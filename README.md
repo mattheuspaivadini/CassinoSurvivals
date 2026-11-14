@@ -1,12 +1,18 @@
+<div align="center">
+
 # Cassino Survivals
 
-Survivor-like 2D top-down feito na Unity. Sobreviva às hordas, evolua suas armas nos caça-níqueis e derrote o boss Tigrinho.
+**Sobreviva às hordas, gire os caça-níqueis e derrube o Tigrinho.**
 
-Inspirado na frenesi de hordas de *Vampire Survivors*, na ação direta de *Hotline Miami* e na estética neon de *GTA Vice City*.
+Um *survivor-like* 2D top-down feito na Unity: a frenesi de hordas de *Vampire Survivors*,
+a ação direta de *Hotline Miami* e o neon de um cassino de Vice City.
 
 ![Unity](https://img.shields.io/badge/Unity-6000.6.9f1-black?logo=unity)
-![URP](https://img.shields.io/badge/Render-URP%202D-555)
-![Linux](https://img.shields.io/badge/Testado%20em-Linux%20(Vulkan)-555?logo=linux&logoColor=white)
+![URP](https://img.shields.io/badge/Render-URP%202D-ff3cac)
+![C#](https://img.shields.io/badge/C%23-.NET-239120?logo=csharp)
+![Linux](https://img.shields.io/badge/Testado%20em-Linux%20(Vulkan)-FCC624?logo=linux&logoColor=black)
+
+</div>
 
 ## Controles
 
