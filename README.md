@@ -1,110 +1,96 @@
-<div align="center">
+# Cassino Survivals
 
-# 🎰 Cassino Survivals
+Survivor-like 2D top-down feito na Unity. Sobreviva às hordas, evolua suas armas nos caça-níqueis e derrote o boss Tigrinho.
 
-**Sobreviva às hordas, gire os caça-níqueis e derrube o Tigrinho.**
-
-Um *survivor-like* 2D top-down feito na Unity: a frenesi de hordas de *Vampire Survivors*,
-a ação direta de *Hotline Miami* e o neon de um cassino de Vice City.
+Inspirado na frenesi de hordas de *Vampire Survivors*, na ação direta de *Hotline Miami* e na estética neon de *GTA Vice City*.
 
 ![Unity](https://img.shields.io/badge/Unity-6000.6.9f1-black?logo=unity)
-![URP](https://img.shields.io/badge/Render-URP%202D-ff3cac)
-![C#](https://img.shields.io/badge/C%23-.NET-239120?logo=csharp)
-![Linux](https://img.shields.io/badge/Testado%20em-Linux%20(Vulkan)-FCC624?logo=linux&logoColor=black)
+![URP](https://img.shields.io/badge/Render-URP%202D-555)
+![Linux](https://img.shields.io/badge/Testado%20em-Linux%20(Vulkan)-555?logo=linux&logoColor=white)
 
-</div>
-
----
-
-## 🕹️ Como jogar
+## Controles
 
 | Tecla | Ação |
 |---|---|
-| **WASD / Setas** | Mover |
-| **E** (perto de um caça-níquel) | Girar as roletas (gasta 1 ficha) |
-| **Mouse** | Escolher o slot no caça-níquel / reiniciar |
+| WASD / Setas | Mover |
+| E (perto de um caça-níquel) | Girar as roletas (gasta 1 ficha) |
+| Mouse | Escolher o slot / reiniciar |
 
-As armas **atiram sozinhas** no inimigo mais próximo. Seu trabalho é se mover, coletar e apostar.
+As armas disparam automaticamente no inimigo mais próximo.
 
-## 🎲 Mecânicas
+## Mecânicas
 
-- **Hordas infinitas:** o ritmo e o HP dos inimigos crescem com o tempo.
-- **Elites** sempre deixam uma **Ficha de Cassino** ao morrer.
-- **Seta-guia:** com fichas no bolso, uma seta ao redor do jogador aponta para o caça-níquel mais próximo.
-- **Caça-níquel com 3 roletas:** o jogo pausa, as roletas giram e você escolhe 1 das 3 armas sorteadas. Quanto mais vezes a arma escolhida aparecer, maior o prêmio:
+- **Hordas:** o ritmo de spawn e o HP dos inimigos crescem com o tempo.
+- **Elites:** sempre deixam uma Ficha de Cassino ao morrer.
+- **Seta-guia:** com fichas no inventário, uma seta ao redor do jogador aponta para o caça-níquel mais próximo.
+- **Caça-níquel:** o jogo pausa, três roletas sorteiam armas e o jogador escolhe uma. O prêmio depende de quantas vezes a arma escolhida apareceu:
 
-  | Aparições | Já tem a arma | Arma nova |
+  | Aparições | Já possui a arma | Arma nova |
   |:---:|:---:|:---:|
-  | 1x | +1 nível | Desbloqueia no Nv 1 |
-  | 2x | +5 níveis | Desbloqueia no Nv 5 |
-  | 3x 🎉 **Jackpot** | +9 níveis | Desbloqueia no Nv 9 |
+  | 1x | +1 nível | Desbloqueia no nível 1 |
+  | 2x | +5 níveis | Desbloqueia no nível 5 |
+  | 3x (Jackpot) | +9 níveis | Desbloqueia no nível 9 |
 
-- **Armas escaláveis:** cada nível aumenta o dano e o pente e diminui o tempo de recarga.
-- **Ajudantes:** NPCs espalhados pelo mapa. Encoste neles e eles passam a te seguir e curar.
+- **Armas:** cada nível aumenta o dano e o pente e reduz o tempo de recarga.
+- **Ajudantes:** NPCs no mapa que, ao serem encontrados, seguem o jogador e curam periodicamente.
 - **Drops:** fichas, cura e bônus de pontos.
-- **🐯 Boss Tigrinho:** aparece aos 5 minutos (ou aos 25.000 pontos). São 60.000 de HP: sem armas evoluídas no cassino, não tem como. Derrotá-lo vence a partida.
+- **Boss Tigrinho:** surge aos 5 minutos ou aos 25.000 pontos, com 60.000 de HP. Derrotá-lo vence a partida.
 
-### Arsenal
+### Armas
 
-| Arma | Estilo |
+| Arma | Característica |
 |---|---|
-| 🔵 Pistola Neon | Equilibrada, arma inicial |
-| 🟠 Escopeta Royal Flush | Leque de 5 projéteis, curto alcance |
-| 🩷 SMG Vice City | Cadência altíssima, pente grande |
-| 🟡 Revólver High Roller | Dano alto, longo alcance |
-| 🟢 Lança-Dados | 3 dados lentos e pesados |
+| Pistola Neon | Equilibrada, arma inicial |
+| Escopeta Royal Flush | Leque de 5 projéteis, curto alcance |
+| SMG Vice City | Cadência alta, pente grande |
+| Revólver High Roller | Dano alto, longo alcance |
+| Lança-Dados | Três projéteis lentos e pesados |
 
-## 🚀 Rodando o projeto
+## Como rodar
 
-1. Instale a **Unity 6000.6.9f1** pelo Unity Hub.
-2. Clone o repositório e adicione a pasta no Hub (**Add → Add project from disk**).
-3. Abra o projeto. A cena `Assets/Scenes/Main.unity` abre sozinha.
+1. Instale a Unity **6000.6.9f1** pelo Unity Hub.
+2. Clone o repositório e adicione a pasta no Hub (*Add > Add project from disk*).
+3. Abra o projeto. A cena `Assets/Scenes/Main.unity` é carregada automaticamente.
 4. Aperte **Play**.
 
-> 💡 Quer regenerar a cena, os prefabs e os sprites do zero? Use o menu **Cassino Survivals → Build Project**.
-> Os ScriptableObjects de armas e inimigos já existentes são preservados.
+Para regenerar cena, prefabs e sprites, use o menu **Cassino Survivals > Build Project**. Os ScriptableObjects de armas e inimigos existentes são preservados.
 
-## 🏗️ Arquitetura
+## Estrutura
 
 ```
 Assets/
 ├── Scripts/
 │   ├── Core/      GameManager, PoolManager, PrefabPool, AudioManager, CameraFollow
 │   ├── Player/    PlayerController
-│   ├── Weapons/   WeaponData (SO), WeaponInstance, WeaponSystem, Projectile
-│   ├── Enemies/   EnemyData (SO), Enemy, EnemySpawner
+│   ├── Weapons/   WeaponData, WeaponInstance, WeaponSystem, Projectile
+│   ├── Enemies/   EnemyData, Enemy, EnemySpawner
 │   ├── Casino/    SlotRules, SlotMachine, SlotMachineUI, Wayfinder
 │   ├── Helpers/   Helper, Drop, DropManager
 │   └── UI/        HUD, EndScreenUI
-├── Editor/        CassinoBuilder (monta tudo), MainSceneLoader
+├── Editor/        CassinoBuilder, MainSceneLoader
 ├── Data/          ScriptableObjects de armas e inimigos
-├── Prefabs/       Projectile, Enemy, Drop (pooled)
-└── Settings/      URP 2D (configuração leve)
+├── Prefabs/       Projectile, Enemy, Drop
+└── Settings/      Configuração do URP 2D
 ```
 
-**Decisões de performance** (pensadas para iGPU Intel Iris Xe):
+## Performance
 
-- ♻️ **Object Pooling** com `UnityEngine.Pool.ObjectPool<T>` para projéteis, inimigos e drops, com objetos pré-criados no carregamento.
-- 🚫 **Zero GC no loop:** sem LINQ, sem `Physics2D.Overlap*`. Acertos, coleta e mira são calculados com `sqrMagnitude`, e as referências ficam em cache.
-- 🎨 **URP 2D enxuto:** sprites *Unlit*, sem luzes 2D, sem pós-processamento, HDR ou MSAA.
-- 🖼️ **UI em Canvas separados** (estático, HUD, modal e tela final). O HUD só atualiza por evento ou a 10 Hz.
-- 🔌 **Desacoplado:** lógica dispara eventos (`OnHpChanged`, `OnScoreChanged`…) e a UI apenas escuta.
-- ⌨️ **Input clássico** (`Input.GetAxisRaw`), sem dor de cabeça com Wayland/XWayland.
+O projeto foi pensado para rodar bem em GPU integrada (Intel Iris Xe):
 
-## 🎨 Assets
+- **Object pooling** com `UnityEngine.Pool.ObjectPool<T>` para projéteis, inimigos e drops, com objetos criados no carregamento da cena.
+- **Sem alocação no loop principal:** nada de LINQ ou `Physics2D.Overlap*`. Mira, acertos e coleta usam `sqrMagnitude`, e as referências ficam em cache.
+- **URP 2D enxuto:** sprites Unlit, sem luzes 2D, pós-processamento, HDR ou MSAA.
+- **UI em Canvas separados** (estático, HUD, modal e tela final). O HUD atualiza por evento ou a 10 Hz.
+- **Lógica desacoplada da UI** por eventos (`OnHpChanged`, `OnScoreChanged`, etc.).
+- **Input clássico** (`Input.GetAxisRaw`), compatível com Wayland/XWayland.
 
-Tudo é placeholder gerado por código (quadrados, círculos, losangos), diferenciado por cor e escala.
-O `AudioManager` já tem os pontos de áudio prontos: basta arrastar os `AudioClip`s no Inspector.
+## Assets
 
-## 🗺️ Próximos passos
+Os visuais são placeholders gerados por código (quadrados, círculos e losangos), diferenciados por cor e escala. O `AudioManager` já expõe os pontos de áudio: basta atribuir os `AudioClip`s no Inspector.
 
-- [ ] Sprites e sons de verdade
+## Próximos passos
+
+- [ ] Sprites e sons definitivos
 - [ ] Ataques especiais do Tigrinho
 - [ ] Ajudantes invocados por drop
-- [ ] Menu principal e ranking de pontos
-
----
-
-<div align="center">
-Feito com ☕ e muitas fichas.
-</div>
+- [ ] Menu principal e ranking
