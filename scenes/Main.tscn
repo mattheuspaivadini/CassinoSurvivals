@@ -1,0 +1,517 @@
+[gd_scene load_steps=30 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/FloorTile.png" id="1_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_tex"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="3_pac"]
+[ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="4_scr"]
+[ext_resource type="Script" path="res://scripts/Enemies/EnemySpawner.cs" id="5_scr"]
+[ext_resource type="Resource" path="res://resources/enemies/Capanga.tres" id="6_res"]
+[ext_resource type="Resource" path="res://resources/enemies/CrupieVeloz.tres" id="7_res"]
+[ext_resource type="Resource" path="res://resources/enemies/SegurancaElite.tres" id="8_res"]
+[ext_resource type="Resource" path="res://resources/enemies/Tigrinho.tres" id="9_res"]
+[ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="10_pac"]
+[ext_resource type="Script" path="res://scripts/Helpers/DropManager.cs" id="11_scr"]
+[ext_resource type="PackedScene" path="res://scenes/Drop.tscn" id="12_pac"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Diamond.png" id="13_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Circle.png" id="14_tex"]
+[ext_resource type="PackedScene" path="res://scenes/SlotMachine.tscn" id="15_pac"]
+[ext_resource type="PackedScene" path="res://scenes/Helper.tscn" id="16_pac"]
+[ext_resource type="Script" path="res://scripts/UI/HUD.cs" id="17_scr"]
+[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="18_scr"]
+[ext_resource type="Script" path="res://scripts/Casino/SlotMachineUI.cs" id="19_scr"]
+[ext_resource type="Resource" path="res://resources/weapons/PistolaNeon.tres" id="20_res"]
+[ext_resource type="Resource" path="res://resources/weapons/EscopetaRoyalFlush.tres" id="21_res"]
+[ext_resource type="Resource" path="res://resources/weapons/SMGViceCity.tres" id="22_res"]
+[ext_resource type="Resource" path="res://resources/weapons/RevolverHighRoller.tres" id="23_res"]
+[ext_resource type="Resource" path="res://resources/weapons/LancaDados.tres" id="24_res"]
+[ext_resource type="Script" path="res://scripts/UI/EndScreenUI.cs" id="25_scr"]
+
+[sub_resource type="RectangleShape2D" id="1_sh"]
+size = Vector2(3720.0, 60.0)
+
+[sub_resource type="RectangleShape2D" id="2_sh"]
+size = Vector2(3720.0, 60.0)
+
+[sub_resource type="RectangleShape2D" id="3_sh"]
+size = Vector2(60.0, 3720.0)
+
+[sub_resource type="RectangleShape2D" id="4_sh"]
+size = Vector2(60.0, 3720.0)
+
+[node name="Main" type="Node2D"]
+
+[node name="Map" type="Node2D" parent="."]
+
+[node name="Floor" type="Sprite2D" parent="Map"]
+z_index = -10
+texture_filter = 1
+texture_repeat = 2
+texture = ExtResource("1_tex")
+scale = Vector2(3.75, 3.75)
+region_enabled = true
+region_rect = Rect2(0, 0, 480, 480)
+
+[node name="Wall_N" type="StaticBody2D" parent="Map"]
+z_index = -5
+collision_layer = 1
+collision_mask = 0
+position = Vector2(0.0, -1830.0)
+
+[node name="Sprite" type="Sprite2D" parent="Map/Wall_N"]
+modulate = Color(1, 0.2, 0.7, 1.0)
+texture = ExtResource("2_tex")
+scale = Vector2(930.0, 15.0)
+
+[node name="Shape" type="CollisionShape2D" parent="Map/Wall_N"]
+shape = SubResource("1_sh")
+
+[node name="Wall_S" type="StaticBody2D" parent="Map"]
+z_index = -5
+collision_layer = 1
+collision_mask = 0
+position = Vector2(0.0, 1830.0)
+
+[node name="Sprite" type="Sprite2D" parent="Map/Wall_S"]
+modulate = Color(1, 0.2, 0.7, 1.0)
+texture = ExtResource("2_tex")
+scale = Vector2(930.0, 15.0)
+
+[node name="Shape" type="CollisionShape2D" parent="Map/Wall_S"]
+shape = SubResource("2_sh")
+
+[node name="Wall_E" type="StaticBody2D" parent="Map"]
+z_index = -5
+collision_layer = 1
+collision_mask = 0
+position = Vector2(1830.0, 0.0)
+
+[node name="Sprite" type="Sprite2D" parent="Map/Wall_E"]
+modulate = Color(1, 0.2, 0.7, 1.0)
+texture = ExtResource("2_tex")
+scale = Vector2(15.0, 930.0)
+
+[node name="Shape" type="CollisionShape2D" parent="Map/Wall_E"]
+shape = SubResource("3_sh")
+
+[node name="Wall_W" type="StaticBody2D" parent="Map"]
+z_index = -5
+collision_layer = 1
+collision_mask = 0
+position = Vector2(-1830.0, 0.0)
+
+[node name="Sprite" type="Sprite2D" parent="Map/Wall_W"]
+modulate = Color(1, 0.2, 0.7, 1.0)
+texture = ExtResource("2_tex")
+scale = Vector2(15.0, 930.0)
+
+[node name="Shape" type="CollisionShape2D" parent="Map/Wall_W"]
+shape = SubResource("4_sh")
+
+[node name="Player" parent="." instance=ExtResource("3_pac")]
+
+[node name="Managers" type="Node" parent="."]
+
+[node name="EnemySpawner" type="Node" parent="Managers"]
+script = ExtResource("5_scr")
+CommonTypes = Array[ExtResource("4_scr")]([ExtResource("6_res"), ExtResource("7_res")])
+EliteType = ExtResource("8_res")
+BossType = ExtResource("9_res")
+EnemyScene = ExtResource("10_pac")
+
+[node name="DropManager" type="Node" parent="Managers"]
+script = ExtResource("11_scr")
+DropScene = ExtResource("12_pac")
+ChipSprite = ExtResource("13_tex")
+HealSprite = ExtResource("14_tex")
+PointsSprite = ExtResource("2_tex")
+
+[node name="SlotMachines" type="Node2D" parent="."]
+
+[node name="SlotMachine1" parent="SlotMachines" instance=ExtResource("15_pac")]
+position = Vector2(-1080.0, -1080.0)
+
+[node name="SlotMachine2" parent="SlotMachines" instance=ExtResource("15_pac")]
+position = Vector2(1080.0, -1080.0)
+
+[node name="SlotMachine3" parent="SlotMachines" instance=ExtResource("15_pac")]
+position = Vector2(-1080.0, 1080.0)
+
+[node name="SlotMachine4" parent="SlotMachines" instance=ExtResource("15_pac")]
+position = Vector2(1080.0, 1080.0)
+
+[node name="SlotMachine5" parent="SlotMachines" instance=ExtResource("15_pac")]
+position = Vector2(0.0, -840.0)
+
+[node name="Helpers" type="Node2D" parent="."]
+
+[node name="Helper1" parent="Helpers" instance=ExtResource("16_pac")]
+position = Vector2(600.0, 360.0)
+
+[node name="Helper2" parent="Helpers" instance=ExtResource("16_pac")]
+position = Vector2(-840.0, -240.0)
+
+[node name="Helper3" parent="Helpers" instance=ExtResource("16_pac")]
+position = Vector2(360.0, -1440.0)
+
+[node name="Canvas_Static" type="CanvasLayer" parent="."]
+
+[node name="HpBarBG" type="ColorRect" parent="Canvas_Static"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 30.0
+offset_top = 30.0
+offset_right = 450.0
+offset_bottom = 64.0
+color = Color(0.1, 0.05, 0.15, 0.9)
+mouse_filter = 2
+
+[node name="Canvas_HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("WeaponSystem")]
+layer = 1
+script = ExtResource("17_scr")
+WeaponSystem = NodePath("../Player/WeaponSystem")
+
+[node name="HpFill" type="ColorRect" parent="Canvas_HUD"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 34.0
+offset_top = 34.0
+offset_right = 446.0
+offset_bottom = 60.0
+color = Color(1, 0.3, 0.8, 1.0)
+mouse_filter = 2
+
+[node name="HpText" type="Label" parent="Canvas_HUD"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 30.0
+offset_top = 30.0
+offset_right = 450.0
+offset_bottom = 64.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 22
+
+[node name="Score" type="Label" parent="Canvas_HUD"]
+anchor_left = 1
+anchor_top = 0
+anchor_right = 1
+anchor_bottom = 0
+offset_left = -530.0
+offset_top = 30.0
+offset_right = -30.0
+offset_bottom = 70.0
+horizontal_alignment = 2
+vertical_alignment = 0
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 32
+
+[node name="Chips" type="Label" parent="Canvas_HUD"]
+anchor_left = 1
+anchor_top = 0
+anchor_right = 1
+anchor_bottom = 0
+offset_left = -530.0
+offset_top = 75.0
+offset_right = -30.0
+offset_bottom = 115.0
+horizontal_alignment = 2
+vertical_alignment = 0
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.15, 1.0)
+theme_override_font_sizes/font_size = 32
+
+[node name="TimerLabel" type="Label" parent="Canvas_HUD"]
+anchor_left = 0.5
+anchor_top = 0
+anchor_right = 0.5
+anchor_bottom = 0
+offset_left = -350.0
+offset_top = 30.0
+offset_right = 350.0
+offset_bottom = 70.0
+horizontal_alignment = 1
+vertical_alignment = 0
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.6, 0.2, 1.0)
+theme_override_font_sizes/font_size = 30
+
+[node name="Weapons" type="RichTextLabel" parent="Canvas_HUD"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 30.0
+offset_top = 80.0
+offset_right = 830.0
+offset_bottom = 480.0
+bbcode_enabled = true
+scroll_active = false
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 24
+
+[node name="Banner" type="Label" parent="Canvas_HUD"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -700.0
+offset_top = -270.0
+offset_right = 700.0
+offset_bottom = -170.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.5, 0, 1.0)
+theme_override_font_sizes/font_size = 64
+
+[node name="Canvas_SlotMachine" type="CanvasLayer" parent="." node_paths=PackedStringArray("WeaponSystem")]
+layer = 10
+script = ExtResource("19_scr")
+WeaponPool = Array[ExtResource("18_scr")]([ExtResource("20_res"), ExtResource("21_res"), ExtResource("22_res"), ExtResource("23_res"), ExtResource("24_res")])
+WeaponSystem = NodePath("../Player/WeaponSystem")
+
+[node name="Panel" type="ColorRect" parent="Canvas_SlotMachine"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="Box" type="ColorRect" parent="Canvas_SlotMachine/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -520.0
+offset_top = -280.0
+offset_right = 520.0
+offset_bottom = 280.0
+color = Color(0.12, 0.04, 0.18, 0.97)
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Canvas_SlotMachine/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -260.0
+offset_right = 500.0
+offset_bottom = -180.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "CAÇA-NÍQUEL"
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.15, 1.0)
+theme_override_font_sizes/font_size = 56
+
+[node name="Slot0" type="Button" parent="Canvas_SlotMachine/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -150.0
+offset_right = -180.0
+offset_bottom = 110.0
+flat = true
+
+[node name="Color" type="ColorRect" parent="Canvas_SlotMachine/Panel/Slot0"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 1, 1.0)
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Canvas_SlotMachine/Panel/Slot0"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = "?"
+mouse_filter = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1.0)
+theme_override_font_sizes/font_size = 30
+
+[node name="Slot1" type="Button" parent="Canvas_SlotMachine/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -150.0
+offset_right = 140.0
+offset_bottom = 110.0
+flat = true
+
+[node name="Color" type="ColorRect" parent="Canvas_SlotMachine/Panel/Slot1"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 1, 1.0)
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Canvas_SlotMachine/Panel/Slot1"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = "?"
+mouse_filter = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1.0)
+theme_override_font_sizes/font_size = 30
+
+[node name="Slot2" type="Button" parent="Canvas_SlotMachine/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 180.0
+offset_top = -150.0
+offset_right = 460.0
+offset_bottom = 110.0
+flat = true
+
+[node name="Color" type="ColorRect" parent="Canvas_SlotMachine/Panel/Slot2"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 1, 1, 1.0)
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Canvas_SlotMachine/Panel/Slot2"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = "?"
+mouse_filter = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1.0)
+theme_override_font_sizes/font_size = 30
+
+[node name="Result" type="Label" parent="Canvas_SlotMachine/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = 165.0
+offset_right = 500.0
+offset_bottom = 235.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 30
+
+[node name="Canvas_EndScreen" type="CanvasLayer" parent="."]
+layer = 20
+script = ExtResource("25_scr")
+
+[node name="Panel" type="ColorRect" parent="Canvas_EndScreen"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.85)
+
+[node name="Title" type="Label" parent="Canvas_EndScreen/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -800.0
+offset_top = -205.0
+offset_right = 800.0
+offset_bottom = -75.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 80
+
+[node name="Stats" type="Label" parent="Canvas_EndScreen/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -70.0
+offset_right = 500.0
+offset_bottom = 50.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 36
+
+[node name="Restart" type="Button" parent="Canvas_EndScreen/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = 105.0
+offset_right = 190.0
+offset_bottom = 195.0
+flat = true
+
+[node name="Color" type="ColorRect" parent="Canvas_EndScreen/Panel/Restart"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.3, 0.8, 1.0)
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Canvas_EndScreen/Panel/Restart"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = "REINICIAR"
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 36

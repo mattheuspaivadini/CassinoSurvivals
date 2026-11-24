@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+WeaponName = "Pistola Neon"
+ProjectileColor = Color(0.2, 1.0, 1.0, 1.0)
+BaseDamage = 10.0
+DamagePerLevel = 4.0
+BaseMagazine = 8
+MagazinePerLevel = 1.0
+BaseReloadTime = 1.4
+ReloadMultiplierPerLevel = 0.92
+MinReloadTime = 0.25
+FireInterval = 0.22
+ProjectilesPerShot = 1
+SpreadAngle = 0.0
+Range = 10.0
+ProjectileSpeed = 16.0
+ProjectileLifetime = 1.2
+ProjectileScale = 0.3

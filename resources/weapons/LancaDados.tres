@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+WeaponName = "Lança-Dados"
+ProjectileColor = Color(0.4, 1.0, 0.3, 1.0)
+BaseDamage = 18.0
+DamagePerLevel = 6.0
+BaseMagazine = 3
+MagazinePerLevel = 0.34
+BaseReloadTime = 2.5
+ReloadMultiplierPerLevel = 0.92
+MinReloadTime = 0.25
+FireInterval = 0.35
+ProjectilesPerShot = 3
+SpreadAngle = 45.0
+Range = 9.0
+ProjectileSpeed = 9.0
+ProjectileLifetime = 2.5
+ProjectileScale = 0.55
