@@ -26,6 +26,10 @@
 crashlytics-build.properties
 .DS_Store
 
+# Projetos gerados pela Unity (os .csproj/.sln do Godot são versionados)
+/Assembly-CSharp*.csproj
+/CassinoSurvivals.slnx
+
 # Godot 4 / .NET
 .godot/
 *.translation
