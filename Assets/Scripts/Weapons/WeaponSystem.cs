@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>Armas equipadas no jogador (várias ao mesmo tempo). Mira automática no inimigo mais próximo.</summary>
+/// <summary>Armas do jogador. Só a selecionada (scroll do mouse) atira, com mira automática no inimigo mais próximo.</summary>
 public class WeaponSystem : MonoBehaviour
 {
     public WeaponData[] startingWeapons;
@@ -10,7 +10,7 @@ public class WeaponSystem : MonoBehaviour
     public readonly List<WeaponInstance> Weapons = new List<WeaponInstance>(8);
     public event Action OnWeaponsChanged;
 
-    float maxRange;
+    public int Selected { get; private set; }
 
     void Start()
     {
@@ -31,8 +31,6 @@ public class WeaponSystem : MonoBehaviour
         if (w == null) Weapons.Add(new WeaponInstance(data, levels));
         else w.AddLevels(levels);
 
-        maxRange = 0f;
-        for (int i = 0; i < Weapons.Count; i++) maxRange = Mathf.Max(maxRange, Weapons[i].Data.range);
         OnWeaponsChanged?.Invoke();
     }
 
@@ -40,17 +38,18 @@ public class WeaponSystem : MonoBehaviour
     {
         if (GameManager.Instance.State != GameState.Playing || EnemySpawner.Instance == null) return;
 
-        Vector2 pos = transform.position;
-        // Uma busca por frame para todas as armas.
-        Enemy target = EnemySpawner.Instance.FindNearest(pos, maxRange, out float sqrDist);
-        float dt = Time.deltaTime;
-
-        for (int i = 0; i < Weapons.Count; i++)
+        float scroll = Input.mouseScrollDelta.y;
+        if (scroll != 0f && Weapons.Count > 1)
         {
-            var w = Weapons[i];
-            bool inRange = target != null && sqrDist <= w.Data.range * w.Data.range;
-            if (w.Tick(dt, inRange)) Fire(w, pos, target.transform.position);
+            // Scroll para cima = arma anterior, para baixo = próxima.
+            Selected = ((Selected + (scroll < 0f ? 1 : -1)) % Weapons.Count + Weapons.Count) % Weapons.Count;
+            OnWeaponsChanged?.Invoke();
         }
+
+        var w = Weapons[Selected];
+        Vector2 pos = transform.position;
+        Enemy target = EnemySpawner.Instance.FindNearest(pos, w.Data.range, out _);
+        if (w.Tick(Time.deltaTime, target != null)) Fire(w, pos, target.transform.position);
     }
 
     void Fire(WeaponInstance w, Vector2 origin, Vector2 targetPos)

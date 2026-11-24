@@ -16,8 +16,8 @@ MonoBehaviour:
   projectileColor: {r: 1, g: 0.55, b: 0.1, a: 1}
   baseDamage: 7
   damagePerLevel: 3
-  baseMagazine: 4
-  magazinePerLevel: 0.5
+  baseMagazine: 10
+  magazinePerLevel: 1
   baseReloadTime: 1.8
   reloadMultiplierPerLevel: 0.92
   minReloadTime: 0.25

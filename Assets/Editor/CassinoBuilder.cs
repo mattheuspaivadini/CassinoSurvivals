@@ -62,7 +62,7 @@ public static class CassinoBuilder
         var shotgun = Asset<WeaponData>($"{WeaponDir}/EscopetaRoyalFlush.asset", w =>
         {
             w.weaponName = "Escopeta Royal Flush"; w.projectileColor = new Color(1f, 0.55f, 0.1f);
-            w.baseDamage = 7; w.damagePerLevel = 3; w.baseMagazine = 4; w.magazinePerLevel = 0.5f;
+            w.baseDamage = 7; w.damagePerLevel = 3; w.baseMagazine = 10; w.magazinePerLevel = 1;
             w.baseReloadTime = 1.8f; w.fireInterval = 0.5f; w.projectilesPerShot = 5; w.spreadAngle = 35;
             w.range = 7; w.projectileSpeed = 13; w.projectileLifetime = 0.6f;
         });

@@ -64,7 +64,7 @@ public class HUD : MonoBehaviour
         for (int i = 0; i < list.Count; i++)
         {
             var w = list[i];
-            sb.Append("<color=#").Append(w.ColorHex).Append('>').Append(w.Data.weaponName).Append("</color>  Nv ")
+            sb.Append(i == weaponSystem.Selected ? "> " : "   ").Append("<color=#").Append(w.ColorHex).Append('>').Append(w.Data.weaponName).Append("</color>  Nv ")
               .Append(w.Level).Append("  ");
             if (w.IsReloading) sb.Append("<color=#FF5555>RECARREGANDO ").Append((int)(w.ReloadProgress * 100f)).Append("%</color>");
             else sb.Append(w.Ammo).Append('/').Append(w.Data.Magazine(w.Level));
