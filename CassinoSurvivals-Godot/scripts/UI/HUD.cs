@@ -80,7 +80,7 @@ public partial class HUD : CanvasLayer
     void RefreshTimer()
     {
         var gm = GameManager.Instance;
-        if (EnemySpawner.Instance.BossSpawned) { timerText.Text = "TIGRINHO EM CAMPO!"; return; }
+        if (EnemySpawner.Instance.HasBossSpawned) { timerText.Text = "TIGRINHO EM CAMPO!"; return; }
         int left = Mathf.Max(0, Mathf.CeilToInt(gm.BossSpawnTime - gm.Elapsed));
         timerText.Text = $"Tigrinho em {left / 60}:{left % 60:00}";
     }

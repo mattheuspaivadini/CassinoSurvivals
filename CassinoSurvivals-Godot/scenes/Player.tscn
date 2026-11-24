@@ -39,7 +39,7 @@ script = ExtResource("4_scr")
 StartingWeapons = Array[ExtResource("1_scr")]([ExtResource("5_res")])
 ProjectileScene = ExtResource("6_pac")
 
-[node name="Wayfinder" type="Node2D" parent="."]
+[node name="Wayfinder" type="Node2D" parent="." node_paths=PackedStringArray("Arrow")]
 script = ExtResource("7_scr")
 Arrow = NodePath("Arrow")
 

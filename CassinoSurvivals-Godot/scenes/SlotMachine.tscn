@@ -6,7 +6,7 @@
 [sub_resource type="RectangleShape2D" id="1_sh"]
 size = Vector2(84.0, 120.0)
 
-[node name="SlotMachine" type="Node2D"]
+[node name="SlotMachine" type="Node2D" node_paths=PackedStringArray("Prompt")]
 script = ExtResource("1_scr")
 Prompt = NodePath("Prompt")
 

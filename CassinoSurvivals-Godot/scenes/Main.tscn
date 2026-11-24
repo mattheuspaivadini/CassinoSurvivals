@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3]
+[gd_scene load_steps=30 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/FloorTile.png" id="1_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_tex"]
@@ -17,13 +17,14 @@
 [ext_resource type="PackedScene" path="res://scenes/SlotMachine.tscn" id="15_pac"]
 [ext_resource type="PackedScene" path="res://scenes/Helper.tscn" id="16_pac"]
 [ext_resource type="Script" path="res://scripts/UI/HUD.cs" id="17_scr"]
-[ext_resource type="Script" path="res://scripts/Casino/SlotMachineUI.cs" id="18_scr"]
-[ext_resource type="Resource" path="res://resources/weapons/PistolaNeon.tres" id="19_res"]
-[ext_resource type="Resource" path="res://resources/weapons/EscopetaRoyalFlush.tres" id="20_res"]
-[ext_resource type="Resource" path="res://resources/weapons/SMGViceCity.tres" id="21_res"]
-[ext_resource type="Resource" path="res://resources/weapons/RevolverHighRoller.tres" id="22_res"]
-[ext_resource type="Resource" path="res://resources/weapons/LancaDados.tres" id="23_res"]
-[ext_resource type="Script" path="res://scripts/UI/EndScreenUI.cs" id="24_scr"]
+[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="18_scr"]
+[ext_resource type="Script" path="res://scripts/Casino/SlotMachineUI.cs" id="19_scr"]
+[ext_resource type="Resource" path="res://resources/weapons/PistolaNeon.tres" id="20_res"]
+[ext_resource type="Resource" path="res://resources/weapons/EscopetaRoyalFlush.tres" id="21_res"]
+[ext_resource type="Resource" path="res://resources/weapons/SMGViceCity.tres" id="22_res"]
+[ext_resource type="Resource" path="res://resources/weapons/RevolverHighRoller.tres" id="23_res"]
+[ext_resource type="Resource" path="res://resources/weapons/LancaDados.tres" id="24_res"]
+[ext_resource type="Script" path="res://scripts/UI/EndScreenUI.cs" id="25_scr"]
 
 [sub_resource type="RectangleShape2D" id="1_sh"]
 size = Vector2(3720.0, 60.0)
@@ -166,7 +167,7 @@ offset_bottom = 64.0
 color = Color(0.1, 0.05, 0.15, 0.9)
 mouse_filter = 2
 
-[node name="Canvas_HUD" type="CanvasLayer" parent="."]
+[node name="Canvas_HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("WeaponSystem")]
 layer = 1
 script = ExtResource("17_scr")
 WeaponSystem = NodePath("../Player/WeaponSystem")
@@ -277,10 +278,10 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.5, 0, 1.0)
 theme_override_font_sizes/font_size = 64
 
-[node name="Canvas_SlotMachine" type="CanvasLayer" parent="."]
+[node name="Canvas_SlotMachine" type="CanvasLayer" parent="." node_paths=PackedStringArray("WeaponSystem")]
 layer = 10
-script = ExtResource("18_scr")
-WeaponPool = Array[ExtResource("1_scr")]([ExtResource("19_res"), ExtResource("20_res"), ExtResource("21_res"), ExtResource("22_res"), ExtResource("23_res")])
+script = ExtResource("19_scr")
+WeaponPool = Array[ExtResource("18_scr")]([ExtResource("20_res"), ExtResource("21_res"), ExtResource("22_res"), ExtResource("23_res"), ExtResource("24_res")])
 WeaponSystem = NodePath("../Player/WeaponSystem")
 
 [node name="Panel" type="ColorRect" parent="Canvas_SlotMachine"]
@@ -439,7 +440,7 @@ theme_override_font_sizes/font_size = 30
 
 [node name="Canvas_EndScreen" type="CanvasLayer" parent="."]
 layer = 20
-script = ExtResource("24_scr")
+script = ExtResource("25_scr")
 
 [node name="Panel" type="ColorRect" parent="Canvas_EndScreen"]
 anchors_preset = 15

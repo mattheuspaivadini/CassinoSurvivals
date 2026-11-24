@@ -34,7 +34,7 @@ public partial class EnemySpawner : Node
 
     [Signal] public delegate void BossSpawnedEventHandler();
 
-    public bool BossSpawned { get; private set; }
+    public bool HasBossSpawned { get; private set; }
 
     readonly List<Enemy> active = new List<Enemy>(512);
     float timer;
@@ -46,7 +46,7 @@ public partial class EnemySpawner : Node
         var gm = GameManager.Instance;
         if (gm.State != GameState.Playing || PlayerController.Instance == null) return;
 
-        if (!BossSpawned && gm.IsBossTime) SpawnBoss();
+        if (!HasBossSpawned && gm.IsBossTime) SpawnBoss();
 
         timer -= (float)delta;
         if (timer > 0f) return;
@@ -67,7 +67,7 @@ public partial class EnemySpawner : Node
 
     void SpawnBoss()
     {
-        BossSpawned = true;
+        HasBossSpawned = true;
         Spawn(BossType, RandomSpawnPosition(), 1f);
         AudioManager.Instance?.PlayBossSpawn();
         EmitSignal(SignalName.BossSpawned);
