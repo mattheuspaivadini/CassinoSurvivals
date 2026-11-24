@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+WeaponName = "SMG Vice City"
+ProjectileColor = Color(1.0, 0.3, 0.8, 1.0)
+BaseDamage = 4.0
+DamagePerLevel = 2.0
+BaseMagazine = 24
+MagazinePerLevel = 3.0
+BaseReloadTime = 2.2
+ReloadMultiplierPerLevel = 0.92
+MinReloadTime = 0.25
+FireInterval = 0.07
+ProjectilesPerShot = 1
+SpreadAngle = 0.0
+Range = 9.0
+ProjectileSpeed = 18.0
+ProjectileLifetime = 1.2
+ProjectileScale = 0.22

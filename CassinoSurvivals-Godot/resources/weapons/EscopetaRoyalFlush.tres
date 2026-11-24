@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+WeaponName = "Escopeta Royal Flush"
+ProjectileColor = Color(1.0, 0.55, 0.1, 1.0)
+BaseDamage = 7.0
+DamagePerLevel = 3.0
+BaseMagazine = 10
+MagazinePerLevel = 1.0
+BaseReloadTime = 1.8
+ReloadMultiplierPerLevel = 0.92
+MinReloadTime = 0.25
+FireInterval = 0.5
+ProjectilesPerShot = 5
+SpreadAngle = 35.0
+Range = 7.0
+ProjectileSpeed = 13.0
+ProjectileLifetime = 0.6
+ProjectileScale = 0.3

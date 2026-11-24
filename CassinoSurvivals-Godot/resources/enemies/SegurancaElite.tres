@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_t"]
+
+[resource]
+script = ExtResource("1_s")
+EnemyName = "Segurança Elite"
+Sprite = ExtResource("2_t")
+Color = Color(0.45, 0.1, 0.8, 1.0)
+Scale = 1.4
+Mass = 4.0
+MaxHp = 220.0
+ContactDamage = 18.0
+ContactCooldown = 0.6
+MoveSpeed = 2.2
+FixedHp = false
+Points = 100
+GuaranteedChip = true
+ChipDropChance = 0.005
+HealDropChance = 0.03
+PointsDropChance = 0.05
+IsBoss = false
