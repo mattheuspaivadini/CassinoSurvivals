@@ -54,11 +54,11 @@ public partial class SlotMachineUI : CanvasLayer
 
         for (float t = 0f; t < SpinDuration; t += SpinTick)
         {
-            for (int i = 0; i < 3; i++) Show(i, RandomWeapon());
+            for (int i = 0; i < 3; i++) ShowReel(i, RandomWeapon());
             await ToSignal(GetTree().CreateTimer(SpinTick), SceneTreeTimer.SignalName.Timeout);
         }
 
-        for (int i = 0; i < 3; i++) { reels[i] = RandomWeapon(); Show(i, reels[i]); }
+        for (int i = 0; i < 3; i++) { reels[i] = RandomWeapon(); ShowReel(i, reels[i]); }
 
         bool jackpot = reels[0] == reels[1] && reels[1] == reels[2];
         resultText.Text = jackpot ? "JACKPOT!!! Escolha sua arma" : "Escolha uma arma";
@@ -93,7 +93,7 @@ public partial class SlotMachineUI : CanvasLayer
 
     WeaponData RandomWeapon() => WeaponPool[GD.RandRange(0, WeaponPool.Count - 1)];
 
-    void Show(int i, WeaponData w)
+    void ShowReel(int i, WeaponData w)
     {
         colors[i].Color = w.ProjectileColor;
         labels[i].Text = w.WeaponName;
