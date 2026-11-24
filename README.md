@@ -4,13 +4,12 @@
 
 **Sobreviva às hordas, gire os caça-níqueis e derrube o Tigrinho.**
 
-Um *survivor-like* 2D top-down feito na Unity: a frenesi de hordas de *Vampire Survivors*,
+Um *survivor-like* 2D top-down feito no Godot 4 (C#): a frenesi de hordas de *Vampire Survivors*,
 a ação direta de *Hotline Miami* e o neon de um cassino de Vice City.
 
-![Unity](https://img.shields.io/badge/Unity-6000.6.9f1-black?logo=unity)
-![URP](https://img.shields.io/badge/Render-URP%202D-ff3cac)
-![C#](https://img.shields.io/badge/C%23-.NET-239120?logo=csharp)
-![Linux](https://img.shields.io/badge/Testado%20em-Linux%20(Vulkan)-FCC624?logo=linux&logoColor=black)
+![Godot](https://img.shields.io/badge/Godot-4.7%20.NET-478cbf?logo=godotengine&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-.NET%2010-239120?logo=csharp)
+![Linux](https://img.shields.io/badge/Testado%20em-Linux-FCC624?logo=linux&logoColor=black)
 
 </div>
 
@@ -20,6 +19,7 @@ a ação direta de *Hotline Miami* e o neon de um cassino de Vice City.
 |---|---|
 | WASD / Setas | Mover |
 | E (perto de um caça-níquel) | Girar as roletas (gasta 1 ficha) |
+| Scroll do mouse | Trocar de arma |
 | Mouse | Escolher o slot / reiniciar |
 
 As armas disparam automaticamente no inimigo mais próximo.
@@ -54,45 +54,44 @@ As armas disparam automaticamente no inimigo mais próximo.
 
 ## Como rodar
 
-1. Instale a Unity **6000.6.9f1** pelo Unity Hub.
-2. Clone o repositório e adicione a pasta no Hub (*Add > Add project from disk*).
-3. Abra o projeto. A cena `Assets/Scenes/Main.unity` é carregada automaticamente.
-4. Aperte **Play**.
+1. Instale o **Godot 4.7 (versão .NET/Mono)** e o **.NET SDK 10**.
+2. Clone o repositório e importe `project.godot` pelo gerenciador de projetos do Godot.
+3. Aperte **F5** (a cena principal é `scenes/Main.tscn`).
 
-Para regenerar cena, prefabs e sprites, use o menu **Cassino Survivals > Build Project**. Os ScriptableObjects de armas e inimigos existentes são preservados.
+Pela linha de comando: `dotnet build` e depois `godot --path .`.
+Teste das regras puras (armas e caça-níquel): `godot --headless --path . -- --selfcheck`.
+
+A migração a partir da Unity está documentada em [MIGRATION_PLAN.md](MIGRATION_PLAN.md). A versão Unity continua no histórico do Git, antes do merge `feat/godot-migration`.
 
 ## Estrutura
 
 ```
-Assets/
-├── Scripts/
-│   ├── Core/      GameManager, PoolManager, PrefabPool, AudioManager, CameraFollow
-│   ├── Player/    PlayerController
-│   ├── Weapons/   WeaponData, WeaponInstance, WeaponSystem, Projectile
-│   ├── Enemies/   EnemyData, Enemy, EnemySpawner
-│   ├── Casino/    SlotRules, SlotMachine, SlotMachineUI, Wayfinder
-│   ├── Helpers/   Helper, Drop, DropManager
-│   └── UI/        HUD, EndScreenUI
-├── Editor/        CassinoBuilder, MainSceneLoader
-├── Data/          ScriptableObjects de armas e inimigos
-├── Prefabs/       Projectile, Enemy, Drop
-└── Settings/      Configuração do URP 2D
+autoloads/   GameManager, AudioManager (singletons globais)
+scenes/      Main, Player, Enemy, Projectile, Drop, Helper, SlotMachine
+scripts/
+├── Player/    PlayerController
+├── Weapons/   WeaponInstance, WeaponSystem, Projectile
+├── Enemies/   Enemy, EnemySpawner
+├── Casino/    SlotRules, SlotMachine, SlotMachineUI, Wayfinder
+├── Helpers/   Helper, Drop, DropManager, DropType
+├── UI/        HUD, EndScreenUI
+└── Resources/ WeaponData, EnemyData (Resource)
+resources/   .tres de armas e inimigos
+assets/      sprites
 ```
 
 ## Performance
 
 O projeto foi pensado para rodar bem em GPU integrada (Intel Iris Xe):
 
-- **Object pooling** com `UnityEngine.Pool.ObjectPool<T>` para projéteis, inimigos e drops, com objetos criados no carregamento da cena.
-- **Sem alocação no loop principal:** nada de LINQ ou `Physics2D.Overlap*`. Mira, acertos e coleta usam `sqrMagnitude`, e as referências ficam em cache.
-- **URP 2D enxuto:** sprites Unlit, sem luzes 2D, pós-processamento, HDR ou MSAA.
-- **UI em Canvas separados** (estático, HUD, modal e tela final). O HUD atualiza por evento ou a 10 Hz.
-- **Lógica desacoplada da UI** por eventos (`OnHpChanged`, `OnScoreChanged`, etc.).
-- **Input clássico** (`Input.GetAxisRaw`), compatível com Wayland/XWayland.
+- **Renderer `gl_compatibility`**, suficiente para um jogo 2D de sprites.
+- **Sem consultas de física no loop principal:** mira, acertos de projétil, contato e coleta usam `LengthSquared`, e o spawner mantém a lista de inimigos ativos com remoção O(1).
+- **HUD por signal:** HP, pontos e fichas só atualizam quando mudam; lista de armas e timer a 10 Hz.
+- **Lógica desacoplada da UI** por signals (`HpChanged`, `ScoreChanged`, etc.).
 
 ## Assets
 
-Os visuais são placeholders gerados por código (quadrados, círculos e losangos), diferenciados por cor e escala. O `AudioManager` já expõe os pontos de áudio: basta atribuir os `AudioClip`s no Inspector.
+Os visuais são placeholders (quadrados, círculos e losangos), diferenciados por cor e escala. O `AudioManager` já expõe os pontos de áudio: basta atribuir os `AudioStream`s em `autoloads/AudioManager.tscn`.
 
 ## Próximos passos
 
