@@ -13,9 +13,6 @@
 .vscode/
 .idea/
 .vs/
-*.csproj
-*.sln
-*.slnx
 *.suo
 *.user
 *.pidb
@@ -28,3 +25,13 @@
 *.x86_64
 crashlytics-build.properties
 .DS_Store
+
+# Godot 4 / .NET
+.godot/
+*.translation
+export.cfg
+export_credentials.cfg
+bin/
+obj/
+.mono/
+data_*/
