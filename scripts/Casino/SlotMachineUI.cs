@@ -33,6 +33,7 @@ public partial class SlotMachineUI : CanvasLayer
             buttons[i] = GetNode<Button>($"Panel/Slot{i}");
             colors[i] = GetNode<ColorRect>($"Panel/Slot{i}/Color");
             labels[i] = GetNode<Label>($"Panel/Slot{i}/Label");
+            labels[i].AddThemeFontOverride("font", new SystemFont { FontWeight = 700 });
             buttons[i].Pressed += () => Choose(idx);
         }
         panel.Visible = false;

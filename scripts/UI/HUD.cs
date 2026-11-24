@@ -48,7 +48,7 @@ public partial class HUD : CanvasLayer
 
     public override void _Process(double delta)
     {
-        if (bannerTimer > 0f)
+        if (bannerTimer > 0f && !GetTree().Paused) // como na Unity, o banner não conta com o jogo pausado
         {
             bannerTimer -= (float)delta;
             if (bannerTimer <= 0f) bannerText.Visible = false;
