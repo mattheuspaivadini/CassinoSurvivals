@@ -22,6 +22,47 @@ public static class SelfCheck
         FlowFieldContornaParede();
         PlanoDaHorda();
         RoundsDaFase();
+        BestiarioEVariantes();
+    }
+
+    static void BestiarioEVariantes()
+    {
+        var ficha = Godot.GD.Load<EnemyData>("res://resources/enemies/CrupieVeloz.tres");
+        var garrafa = Godot.GD.Load<EnemyData>("res://resources/enemies/Garrafa.tres");
+        var fichona = Godot.GD.Load<EnemyData>("res://resources/enemies/Capanga.tres");
+        var elite = Godot.GD.Load<EnemyData>("res://resources/enemies/SegurancaElite.tres");
+        var boss = Godot.GD.Load<EnemyData>("res://resources/enemies/Tigrinho.tres");
+
+        Check(ficha != null && garrafa != null && fichona != null && elite != null && boss != null, "recursos .tres de inimigos carregam");
+
+        var ff = ficha.GetOrBuildFrames();
+        Check(ff.HasAnimation("chase") && ff.GetFrameCount("chase") == 8, "Ficha: 8 frames de chase");
+        Check(ff.HasAnimation("death") && ff.GetFrameCount("death") == 5, "Ficha: 5 frames de death");
+        Check(ficha.Flanker, "Ficha usa flanqueamento");
+
+        var gf = garrafa.GetOrBuildFrames();
+        Check(gf.HasAnimation("idle") && gf.GetFrameCount("idle") == 4, "Garrafa: 4 frames de idle");
+        Check(gf.HasAnimation("chase") && gf.GetFrameCount("chase") == 6, "Garrafa: 6 frames de chase");
+        Check(gf.HasAnimation("death") && gf.GetFrameCount("death") == 3, "Garrafa: 3 frames de death");
+        Check(!garrafa.Flanker && garrafa.Explodes && Godot.Mathf.IsEqualApprox(garrafa.ExplosionFuse, 0.5f), "Garrafa vai direto e explode em 0.5s");
+        Check(Godot.Mathf.IsEqualApprox(garrafa.PuddleDuration, 4f) && Godot.Mathf.IsEqualApprox(garrafa.GoldenPuddleDuration, 6f), "duração da poça normal/dourada");
+
+        var bf = fichona.GetOrBuildFrames();
+        Check(bf.HasAnimation("chase") && bf.GetFrameCount("chase") == 8, "Fichona: 8 frames de chase");
+        Check(!fichona.Flanker && fichona.SplitEnemy != null && fichona.SplitMinCount == 3 && fichona.SplitMaxCount == 4, "Fichona vai direto e divide em 3-4 no Troco");
+
+        Check(!boss.Flanker && boss.IsBoss && boss.GetOrBuildFrames().GetFrameCount("chase") == 8, "Boss animado e sem flank");
+
+        var garrafaDourada = EnemyData.CreateGoldenVariant(garrafa);
+        Check(garrafaDourada.IsGolden && garrafaDourada.GuaranteedChip && garrafaDourada.Dollars == 5, "Dourado garante 1 ficha e $5");
+        Check(Godot.Mathf.IsEqualApprox(garrafaDourada.MaxHp, garrafa.MaxHp * 1.8f), "Dourado 1.8x HP");
+        Check(Godot.Mathf.IsEqualApprox(garrafaDourada.ExplosionDamage, garrafa.ExplosionDamage * 1.3f), "Dourado 1.3x Dano");
+        Check(Godot.Mathf.IsEqualApprox(garrafaDourada.Scale, garrafa.Scale * 1.12f), "Dourado +12% escala");
+        Check(Godot.Mathf.IsEqualApprox(garrafaDourada.PuddleDuration, 6f), "Garrafa Dourada tem poça de 6s");
+        Check(ReferenceEquals(garrafaDourada.GetOrBuildFrames(), gf), "Dourado compartilha SpriteFrames em cache");
+
+        var troco = EnemyData.CreateTrocoMinion(fichona.SplitEnemy);
+        Check(!troco.IsGolden && !troco.GuaranteedChip && troco.Dollars == 0 && troco.ChipDropChance == 0f, "Trava contra farm infinito no Troco");
     }
 
     static void RoundsDaFase()
