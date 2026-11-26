@@ -1,20 +1,85 @@
 using System.Collections.Generic;
 using Godot;
 
-/// <summary>Armas do jogador. Só a selecionada (scroll do mouse) atira, com mira automática no inimigo mais próximo.</summary>
+/// <summary>
+/// Armas do jogador. O gatilho é exclusivamente o botão esquerdo do mouse: nunca há tiro
+/// automático por timer ou proximidade de inimigo. No sandbox, 1-5/Q/E trocam a seleção.
+/// </summary>
 public partial class WeaponSystem : Node
 {
+    static readonly string[] SandboxWeaponPaths =
+    {
+        "res://resources/weapons/PistolaNeon.tres",
+        "res://resources/weapons/RevolverHighRoller.tres",
+        "res://resources/weapons/SMGViceCity.tres",
+        "res://resources/weapons/EscopetaRoyalFlush.tres",
+        "res://resources/weapons/LancaDados.tres",
+    };
+
+    const string ProjectileSheetPath = "res://assets/GunsAssetPack/Gun_Sprite_Sheet/gun_sprite_sheet.png";
+    // Únicos recortes de bala usados (alpha > 0), em coordenadas de textura.
+    static readonly Rect2 BulletRect = new Rect2(0f, 16f, 3f, 1f);
+    static readonly Rect2 GoldBulletRect = new Rect2(32f, 16f, 3f, 1f);
+
+    const string LightShotPath = "res://assets/GunsAssetPack/sounds/tiro_metralhadora.wav";
+    const string HeavyShotPath = "res://assets/GunsAssetPack/sounds/tiro_pistola.wav";
+    const int FirePlayerCount = 4;
+
+    readonly Dictionary<WeaponData, AtlasTexture> projectileTextures = new Dictionary<WeaponData, AtlasTexture>();
+    readonly List<AudioStreamPlayer> firePlayers = new List<AudioStreamPlayer>(FirePlayerCount);
+    int nextFirePlayer;
+
     [Export] public Godot.Collections.Array<WeaponData> StartingWeapons { get; set; }
     [Export] public PackedScene ProjectileScene { get; set; }
 
     public readonly List<WeaponInstance> Weapons = new List<WeaponInstance>(8);
 
     [Signal] public delegate void WeaponsChangedEventHandler();
+    /// <summary>Emitido somente após um disparo validado (munição consumida e projéteis criados).</summary>
+    [Signal] public delegate void WeaponFiredEventHandler();
 
     public int Selected { get; private set; }
 
+    bool sandboxMode;
+    OrbitingWeapon orbitingWeapon;
+
+    /// <summary>Arma orbitante: única fonte de mira e ponto de saída do tiro.</summary>
+    OrbitingWeapon GetOrbitingWeapon()
+    {
+        if (orbitingWeapon == null)
+            orbitingWeapon = GetParent()?.GetNodeOrNull<OrbitingWeapon>("OrbitingWeapon");
+        return orbitingWeapon;
+    }
+
+    /// <summary>Modo de teste: inventário completo, teclas 1-5/Q/E e tiro sem inimigo.</summary>
+    public bool SandboxMode
+    {
+        get => sandboxMode;
+        set
+        {
+            if (sandboxMode == value) return;
+            sandboxMode = value;
+            if (!sandboxMode) return;
+
+            foreach (string path in SandboxWeaponPaths)
+            {
+                WeaponData data = GD.Load<WeaponData>(path);
+                if (data != null && Find(data) == null) AddOrUpgrade(data, 1);
+            }
+        }
+    }
+
     public override void _Ready()
     {
+        // Pool fixo: tiros rápidos não cortam o som anterior e nenhum nó é vazado.
+        for (int i = 0; i < FirePlayerCount; i++)
+        {
+            var player = new AudioStreamPlayer { Bus = "Master", VolumeDb = -6f };
+            AddChild(player);
+            firePlayers.Add(player);
+        }
+
+        if (StartingWeapons == null) return;
         foreach (var w in StartingWeapons) AddOrUpgrade(w, 1);
     }
 
@@ -37,40 +102,175 @@ public partial class WeaponSystem : Node
 
     public override void _UnhandledInput(InputEvent e)
     {
-        if (GameManager.Instance.State != GameState.Playing || Weapons.Count <= 1) return;
+        if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
+        if (Weapons.Count == 0) return;
+
+        if (sandboxMode && e is InputEventKey key && key.Pressed && !key.Echo)
+        {
+            int index = key.Keycode switch
+            {
+                Key.Key1 => 0,
+                Key.Key2 => 1,
+                Key.Key3 => 2,
+                Key.Key4 => 3,
+                Key.Key5 => 4,
+                _ => -1,
+            };
+            if (index >= 0)
+            {
+                if (index < Weapons.Count) Select(index);
+                return;
+            }
+            if (key.Keycode == Key.Q || key.Keycode == Key.E)
+            {
+                Cycle(key.Keycode == Key.E ? 1 : -1);
+                return;
+            }
+        }
 
         // Scroll para cima = arma anterior, para baixo = próxima.
+        if (Weapons.Count <= 1) return;
         int step = e.IsActionPressed("weapon_next") ? 1 : e.IsActionPressed("weapon_prev") ? -1 : 0;
-        if (step == 0) return;
-        Selected = (Selected + step + Weapons.Count) % Weapons.Count;
+        if (step != 0) Cycle(step);
+    }
+
+    void Select(int index)
+    {
+        Selected = Mathf.Clamp(index, 0, Weapons.Count - 1);
         EmitSignal(SignalName.WeaponsChanged);
+    }
+
+    void Cycle(int step) => Select((Selected + step + Weapons.Count) % Weapons.Count);
+
+    /// <summary>Recorte padrão por nome de arma quando o .tres não trouxe uma região válida.</summary>
+    static Rect2 ResolveProjectileRegion(WeaponData d)
+    {
+        string name = d?.WeaponName ?? string.Empty;
+        if (name.Contains("rev", System.StringComparison.OrdinalIgnoreCase)) return GoldBulletRect;
+        // Escopeta usa a bala do Rifle (recorte 32,16,3,1) em leque.
+        if (name.Contains("escopeta", System.StringComparison.OrdinalIgnoreCase)) return GoldBulletRect;
+        if (name.Contains("rifle", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("dados", System.StringComparison.OrdinalIgnoreCase)) return GoldBulletRect;
+        return BulletRect; // Pistola e Metralhadora
+    }
+
+    /// <summary>Atlas da bala, cacheado por arma (os projéteis compartilham o mesmo resource).</summary>
+    AtlasTexture GetProjectileTexture(WeaponData d)
+    {
+        if (projectileTextures.TryGetValue(d, out AtlasTexture cached)) return cached;
+
+        Texture2D sheet = d.ProjectileSheet ?? GD.Load<Texture2D>(ProjectileSheetPath);
+        Rect2 region = d.ProjectileRegion;
+        if (sheet == null || region.Size.X <= 0f || region.Size.Y <= 0f ||
+            region.Position.X < 0f || region.Position.Y < 0f ||
+            region.Position.X + region.Size.X > sheet.GetWidth() ||
+            region.Position.Y + region.Size.Y > sheet.GetHeight())
+            region = ResolveProjectileRegion(d);
+
+        var atlas = new AtlasTexture { Atlas = sheet, Region = region };
+        projectileTextures[d] = atlas;
+        return atlas;
+    }
+
+    /// <summary>Som padrão por nome de arma se o .tres vier sem FireSound.</summary>
+    static AudioStream ResolveFireSound(WeaponData d)
+    {
+        string name = d?.WeaponName ?? string.Empty;
+        // O clipe de metralhadora é curto/nitido (armas leves); o de pistola tem cauda
+        // mais longa e serve para as armas encorpadas com pitch mais grave.
+        if (name.Contains("metralhadora", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("smg", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("vice", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("pistola", System.StringComparison.OrdinalIgnoreCase))
+            return GD.Load<AudioStream>(LightShotPath);
+        return GD.Load<AudioStream>(HeavyShotPath);
+    }
+
+    /// <summary>Pitch padrão por nome de arma se o .tres vier sem FirePitchScale.</summary>
+    static float ResolveFirePitch(WeaponData d)
+    {
+        string name = d?.WeaponName ?? string.Empty;
+        if (name.Contains("escopeta", System.StringComparison.OrdinalIgnoreCase)) return 0.82f;
+        if (name.Contains("rifle", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("dados", System.StringComparison.OrdinalIgnoreCase)) return 0.88f;
+        if (name.Contains("rev", System.StringComparison.OrdinalIgnoreCase)) return 0.92f;
+        if (name.Contains("metralhadora", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("smg", System.StringComparison.OrdinalIgnoreCase)) return 1.06f;
+        return 1.0f;
+    }
+
+    /// <summary>Próximo player livre do pool, com leve variação de pitch.</summary>
+    void PlayFireSound(WeaponData d)
+    {
+        if (firePlayers.Count == 0) return;
+        AudioStream stream = d.FireSound ?? ResolveFireSound(d);
+        if (stream == null) return;
+
+        AudioStreamPlayer player = null;
+        for (int i = 0; i < firePlayers.Count; i++)
+        {
+            var candidate = firePlayers[(nextFirePlayer + i) % firePlayers.Count];
+            if (candidate.Playing) continue;
+            player = candidate;
+            nextFirePlayer = (nextFirePlayer + i + 1) % firePlayers.Count;
+            break;
+        }
+        if (player == null)
+        {
+            player = firePlayers[nextFirePlayer];
+            nextFirePlayer = (nextFirePlayer + 1) % firePlayers.Count;
+        }
+
+        float pitch = d.FirePitchScale > 0f ? d.FirePitchScale : ResolveFirePitch(d);
+        player.Stream = stream;
+        player.PitchScale = Mathf.Clamp(pitch + (float)GD.RandRange(-0.04, 0.04), 0.05f, 4f);
+        player.Play();
     }
 
     public override void _Process(double delta)
     {
-        if (GameManager.Instance.State != GameState.Playing || EnemySpawner.Instance == null) return;
+        if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
+        if (Weapons.Count == 0) return;
 
-        var w = Weapons[Selected];
-        Vector2 pos = ((Node2D)GetParent()).GlobalPosition;
-        Enemy target = EnemySpawner.Instance.FindNearest(pos, w.Data.Range * Units.Px, out _);
-        if (w.Tick((float)delta, target != null)) Fire(w, pos, target.GlobalPosition);
+        // Sem tiro automático: o único gatilho é o botão esquerdo pressionado.
+        // Tick continua avançando o cooldown/recarga mesmo sem gatilho.
+        bool trigger = Input.IsMouseButtonPressed(MouseButton.Left);
+        var w = Weapons[Mathf.Clamp(Selected, 0, Weapons.Count - 1)];
+        if (!w.Tick((float)delta, trigger)) return;
+
+        // Disparo confirmado: munição consumida e projéteis instanciados.
+        Fire(w);
+        EmitSignal(SignalName.WeaponFired);
     }
 
-    void Fire(WeaponInstance w, Vector2 origin, Vector2 targetPos)
+    void Fire(WeaponInstance w)
     {
+        if (ProjectileScene == null) return;
+
         var d = w.Data;
-        float baseAngle = (targetPos - origin).Angle();
+        var player = (Node2D)GetParent();
+        var orbiting = GetOrbitingWeapon();
+
+        // Posição e direção vêm exclusivamente da arma orbitante (já atualizadas no frame atual).
+        Vector2 muzzle = orbiting != null ? orbiting.GetMuzzleGlobalPosition() : player.GlobalPosition;
+        Vector2 baseDir = orbiting != null
+            ? orbiting.GetAimDirection()
+            : player.GetGlobalMousePosition() - player.GlobalPosition;
+        if (baseDir.LengthSquared() < 1f) baseDir = Vector2.Right;
+        baseDir = baseDir.Normalized();
+
         int n = Mathf.Max(1, d.ProjectilesPerShot);
         float damage = d.Damage(w.Level);
 
         for (int i = 0; i < n; i++)
         {
+            // Única variação permitida: o spread intencional da arma.
             float offset = n == 1 ? 0f : Mathf.DegToRad(d.SpreadAngle) * ((float)i / (n - 1) - 0.5f);
-            var v = Vector2.FromAngle(baseAngle + offset) * d.ProjectileSpeed * Units.Px;
+            var v = baseDir.Rotated(offset) * d.ProjectileSpeed; // ProjectileSpeed já é px/s
             var p = ProjectileScene.Instantiate<Projectile>();
             GetTree().CurrentScene.AddChild(p);
-            p.Launch(origin, v, damage, d.ProjectileLifetime, d.ProjectileColor, d.ProjectileScale);
+            p.Launch(muzzle, v, damage, d.ProjectileLifetime, GetProjectileTexture(d), d.ProjectileScale);
         }
-        AudioManager.Instance?.PlayShoot();
+        PlayFireSound(d);
     }
 }
