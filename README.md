@@ -46,11 +46,11 @@ As armas disparam automaticamente no inimigo mais próximo.
 
 | Arma | Característica |
 |---|---|
-| Pistola Neon | Equilibrada, arma inicial |
-| Escopeta Royal Flush | Leque de 5 projéteis, curto alcance |
-| SMG Vice City | Cadência alta, pente grande |
-| Revólver High Roller | Dano alto, longo alcance |
-| Lança-Dados | Três projéteis lentos e pesados |
+| Pistola | Equilibrada, arma inicial |
+| Escopeta | Leque de 5 projéteis, curto alcance |
+| Metralhadora | Cadência alta, pente grande |
+| Revólver | Dano alto, longo alcance |
+| Rifle | Três projéteis lentos e pesados |
 
 ## Fase 1 (Ato 1)
 
