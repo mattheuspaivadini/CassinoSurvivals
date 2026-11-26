@@ -1,23 +1,31 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
-[ext_resource type="Texture2D" path="res://assets/sprites/Diamond.png" id="2_t"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Enemies/Poker_Chip/Poker_Chip_Chase.png" id="2_chase"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Enemies/Poker_Chip/Poker_Chip_Death.png" id="3_death"]
 
 [resource]
 script = ExtResource("1_s")
-EnemyName = "Crupiê Veloz"
-Sprite = ExtResource("2_t")
-Color = Color(0.8, 0.2, 1.0, 1.0)
-Scale = 0.6
+EnemyName = "Ficha"
+Color = Color(1, 1, 1, 1)
+Scale = 0.75
 Mass = 1.0
-MaxHp = 12.0
-ContactDamage = 6.0
+ChaseSheet = ExtResource("2_chase")
+ChaseFrames = 8
+DeathSheet = ExtResource("3_death")
+DeathFrames = 5
+FrameSize = 32
+AnimFps = 12.0
+SpriteScale = 2.6
+MaxHp = 20.0
+ContactDamage = 8.0
 ContactCooldown = 0.6
-MoveSpeed = 4.0
+MoveSpeed = 4.2
 FixedHp = false
 Flanker = true
 Points = 15
 GuaranteedChip = false
+Dollars = 1
 ChipDropChance = 0.005
 HealDropChance = 0.03
 PointsDropChance = 0.05

@@ -1,4 +1,4 @@
-[gd_scene load_steps=31 format=3]
+[gd_scene load_steps=32 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/FloorTile.png" id="1_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_tex"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="4_scr"]
 [ext_resource type="Script" path="res://scripts/Enemies/EnemySpawner.cs" id="5_scr"]
 [ext_resource type="Resource" path="res://resources/enemies/Capanga.tres" id="6_res"]
+[ext_resource type="Resource" path="res://resources/enemies/Garrafa.tres" id="6b_res"]
 [ext_resource type="Resource" path="res://resources/enemies/CrupieVeloz.tres" id="7_res"]
 [ext_resource type="Resource" path="res://resources/enemies/SegurancaElite.tres" id="8_res"]
 [ext_resource type="Resource" path="res://resources/enemies/Tigrinho.tres" id="9_res"]
@@ -118,7 +119,7 @@ shape = SubResource("4_sh")
 
 [node name="EnemySpawner" type="Node" parent="Managers"]
 script = ExtResource("5_scr")
-CommonTypes = Array[ExtResource("4_scr")]([ExtResource("6_res"), ExtResource("7_res")])
+CommonTypes = Array[ExtResource("4_scr")]([ExtResource("7_res"), ExtResource("7_res"), ExtResource("6b_res"), ExtResource("6_res")])
 EliteType = ExtResource("8_res")
 BossType = ExtResource("9_res")
 EnemyScene = ExtResource("10_pac")

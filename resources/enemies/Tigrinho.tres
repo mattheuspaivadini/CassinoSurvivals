@@ -1,24 +1,29 @@
 [gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
-[ext_resource type="Texture2D" path="res://assets/sprites/Circle.png" id="2_t"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Enemies/Poker_Chip_Boss/Boss_Chase.png" id="2_chase"]
 
 [resource]
 script = ExtResource("1_s")
 EnemyName = "Tigrinho"
-Sprite = ExtResource("2_t")
-Color = Color(1.0, 0.5, 0.0, 1.0)
-Scale = 4.0
+Color = Color(1, 0.78, 0.35, 1)
+Scale = 3.2
 Mass = 1000.0
+ChaseSheet = ExtResource("2_chase")
+ChaseFrames = 8
+FrameSize = 64
+AnimFps = 10.0
+SpriteScale = 4.2
 MaxHp = 60000.0
-ContactDamage = 45.0
+ContactDamage = 35.0
 ContactCooldown = 0.8
-MoveSpeed = 2.4
+MoveSpeed = 2.5
 FixedHp = true
+Flanker = false
 Points = 10000
 GuaranteedChip = false
+Dollars = 250
 ChipDropChance = 0.0
 HealDropChance = 0.0
 PointsDropChance = 0.0
 IsBoss = true
-Dollars = 250
