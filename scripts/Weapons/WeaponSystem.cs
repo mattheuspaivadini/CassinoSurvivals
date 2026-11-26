@@ -75,7 +75,7 @@ public partial class WeaponSystem : Node
         // Pool fixo: tiros rápidos não cortam o som anterior e nenhum nó é vazado.
         for (int i = 0; i < FirePlayerCount; i++)
         {
-            var player = new AudioStreamPlayer { Bus = "Master", VolumeDb = -6f };
+            var player = new AudioStreamPlayer { Bus = AudioManager.SfxBus, VolumeDb = -6f };
             AddChild(player);
             firePlayers.Add(player);
         }

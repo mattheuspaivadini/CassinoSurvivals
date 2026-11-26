@@ -14,6 +14,7 @@ config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 
 GameManager="*res://autoloads/GameManager.cs"
 AudioManager="*res://autoloads/AudioManager.tscn"
+PauseMenu="*res://autoloads/PauseMenu.cs"
 
 [display]
 

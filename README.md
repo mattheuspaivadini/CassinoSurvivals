@@ -21,6 +21,9 @@ a ação direta de *Hotline Miami* e o neon de um cassino de Vice City.
 | E (perto de um caça-níquel) | Girar as roletas (gasta 1 ficha) |
 | Scroll do mouse | Trocar de arma |
 | Mouse | Escolher o slot / reiniciar |
+| ESC | Pausa, com volume Geral / Música / Efeitos |
+| T | Mira automática ou pelo mouse |
+| 1–9 | Escolher arma |
 
 As armas disparam automaticamente no inimigo mais próximo.
 
