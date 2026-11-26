@@ -55,7 +55,7 @@ public partial class HordeDirector : Node
     List<HordeEntry> plan;
     RoundSpec spec;
     Phase phase = Phase.Break;
-    int next, roundTotal, roundSpawned, roundKilled;
+    int next, roundTotal, roundSpawned, roundKilled, extraSpawned;
     float timer;
 
     public override void _Ready()
@@ -67,7 +67,7 @@ public partial class HordeDirector : Node
         var commons = new Godot.Collections.Array<EnemyData>();
         foreach (var t in CommonTypes)
         {
-            var c = (EnemyData)t.Duplicate();
+            var c = t.CloneWithSharedFrames();
             c.ChipDropChance = 0f;
             c.PointsDropChance = CommonPointsDropChance;
             commons.Add(c);
@@ -75,11 +75,17 @@ public partial class HordeDirector : Node
         CommonTypes = commons;
         AudioManager.Instance?.PlayMainMusic(); // reiniciar no meio de um boss volta à trilha normal
         EnemySpawner.Instance.EnemyRemoved += OnEnemyRemoved;
+        EnemySpawner.Instance.ExtraEnemySpawned += OnExtraEnemySpawned;
         timer = 0.5f; // primeiro round começa quase de imediato
     }
 
     public override void _ExitTree()
     {
+        if (EnemySpawner.Instance != null)
+        {
+            EnemySpawner.Instance.EnemyRemoved -= OnEnemyRemoved;
+            EnemySpawner.Instance.ExtraEnemySpawned -= OnExtraEnemySpawned;
+        }
         if (Instance == this) Instance = null;
     }
 
@@ -112,7 +118,7 @@ public partial class HordeDirector : Node
         Round = round;
         spec = RoundRules.For(round);
         plan = HordePlan.Build(spec.Count, spec.Duration, doors.Count, spec.Elites, LowerDoors.ToList(), LowerDoorDelay, rng);
-        next = roundSpawned = roundKilled = 0;
+        next = roundSpawned = roundKilled = extraSpawned = 0;
         roundTotal = spec.Count + (spec.Boss ? 1 : 0);
         timer = 0f;
         phase = Phase.Horde;
@@ -123,7 +129,8 @@ public partial class HordeDirector : Node
 
     void Release(HordeEntry entry)
     {
-        var type = entry.Elite ? EliteType : CommonTypes[rng.RandiRange(0, CommonTypes.Count - 1)];
+        var baseType = CommonTypes[rng.RandiRange(0, CommonTypes.Count - 1)];
+        var type = entry.Elite ? EnemyData.CreateGoldenVariant(baseType) : baseType;
         doors[entry.Door].Enqueue(door =>
         {
             var enemy = EnemySpawner.Instance.Spawn(type, door.SpawnPosition, spec.HpMultiplier);
@@ -136,7 +143,7 @@ public partial class HordeDirector : Node
     void SpawnBoss()
     {
         phase = Phase.BossFight;
-        var data = (EnemyData)BossType.Duplicate();
+        var data = BossType.CloneWithSharedFrames();
         data.MaxHp = spec.BossHp;
         data.FixedHp = true;
         data.GuaranteedChip = true;
@@ -156,12 +163,20 @@ public partial class HordeDirector : Node
         });
     }
 
+    void OnExtraEnemySpawned()
+    {
+        if (phase != Phase.Horde && phase != Phase.BossFight) return;
+        roundTotal++;
+        roundSpawned++;
+        if (phase == Phase.Horde) extraSpawned++;
+    }
+
     void OnEnemyRemoved()
     {
         if (phase != Phase.Horde && phase != Phase.BossFight) return;
         roundKilled++;
 
-        if (phase == Phase.Horde && spec.Boss && roundKilled >= spec.Count)
+        if (phase == Phase.Horde && spec.Boss && roundSpawned >= spec.Count + extraSpawned && roundKilled >= spec.Count + extraSpawned)
         {
             phase = Phase.BossIncoming;
             timer = BossDelay;
