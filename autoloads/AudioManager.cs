@@ -21,13 +21,28 @@ public partial class AudioManager : Node
     [Export] public AudioStream GameOver { get; set; }
     [Export] public AudioStream Victory { get; set; }
 
-    AudioStreamPlayer source;
+    [ExportGroup("Música")]
+    /// <summary>Trilha de fundo em loop. Toca desde o início e não para no reload da cena.</summary>
+    [Export] public AudioStream Music { get; set; }
+    [Export] public float MusicVolumeDb { get; set; } = -10f;
+
+    AudioStreamPlayer source, music;
 
     public override void _Ready()
     {
         Instance = this;
         ProcessMode = ProcessModeEnum.Always; // o caça-níquel toca com o jogo pausado
         source = GetNode<AudioStreamPlayer>("Source");
+        StartMusic();
+    }
+
+    void StartMusic()
+    {
+        if (Music == null) return;
+        if (Music is AudioStreamMP3 mp3) mp3.Loop = true;
+        music = new AudioStreamPlayer { Stream = Music, VolumeDb = MusicVolumeDb, Bus = "Master" };
+        AddChild(music);
+        music.Play();
     }
 
     void Play(AudioStream clip)

@@ -54,10 +54,12 @@ As armas disparam automaticamente no inimigo mais próximo.
 
 ## Fase 1 (Ato 1)
 
+Trilha: `assets/sounds/musica_tema.mp3`, em loop desde a abertura do jogo.
+
 A cena principal é `scenes/levels/Fase1.tscn`, montada a partir do Blockout 1 do documento de design (`Cassino Survivors.pdf`):
 
 - Arena vertical com pilares, mesa de pôquer, duas mesas de roleta e balcões de caça-níqueis. Todo obstáculo bloqueia movimento e tiros.
-- 21 rounds. Em cada um, uma horda finita entra pelas 6 portas laterais (a lâmpada da porta pisca ~1s antes de abrir; as portas de baixo esperam 2,5s no início do round). A partir do round 3 vêm Dourados, que sempre deixam ficha.
+- 21 rounds. Em cada um, uma horda finita entra pelas 6 portas laterais (a lâmpada da porta pisca ~1s antes de abrir; as portas de baixo esperam 2,5s no início do round). Todo round traz Dourados (1 a 3), que sempre deixam ficha. A horda cresce de 17 para 74 inimigos ao longo da fase.
 - Rounds 7, 14 e 21 são de boss: primeiro uma mini-horda, depois o boss entra pela porta mais longe do jogador.
 - A porta de cima só abre depois do boss do round 21. Uma seta aponta a saída, e setas na borda da tela mostram os últimos inimigos fora da câmera.
 - Os inimigos contornam obstáculos (flow field), os rápidos tentam cercar o jogador e a horda se espalha em vez de virar fila.

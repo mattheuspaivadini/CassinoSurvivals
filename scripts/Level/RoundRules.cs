@@ -38,14 +38,14 @@ public static class RoundRules
     public static RoundSpec For(int round)
     {
         bool boss = IsBossRound(round);
-        int count = 6 + round;
-        float duration = 12f + round;
+        int count = 14 + 3 * round;
+        float duration = 16f + 0.8f * round;
         if (boss)
         {
             count = Mathf.CeilToInt(count / 2f);
             duration *= 0.5f;
         }
-        int elites = round < 3 ? 0 : round < 10 ? 1 : 2;
+        int elites = round < 8 ? 1 : round < 15 ? 2 : 3; // teto do PDF: 3 Dourados por sala
         float hp = 1f + 0.06f * (round - 1);
         float bossHp = boss ? 2500f * (round / BossEvery) : 0f;
         return new RoundSpec(round, count, duration, elites, hp, boss, bossHp);
