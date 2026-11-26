@@ -17,6 +17,8 @@ public partial class EnemyData : Resource
     [Export] public float MoveSpeed { get; set; } = 2.5f;
     /// <summary>Se true, o HP não escala com o tempo de partida.</summary>
     [Export] public bool FixedHp { get; set; }
+    /// <summary>Enxame: tenta cercar o jogador em vez de vir em linha reta.</summary>
+    [Export] public bool Flanker { get; set; }
 
     [ExportGroup("Recompensa")]
     [Export] public int Points { get; set; } = 10;

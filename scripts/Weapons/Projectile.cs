@@ -28,6 +28,7 @@ public partial class Projectile : Node2D
         if (life <= 0f) { QueueFree(); return; }
 
         Position += velocity * dt;
+        if (Arena.Instance != null && Arena.Instance.IsSolid(Position)) { QueueFree(); return; }
 
         var hit = EnemySpawner.Instance.FindHit(Position, radius);
         if (hit != null)

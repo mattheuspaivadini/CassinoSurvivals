@@ -15,6 +15,7 @@ ContactDamage = 6.0
 ContactCooldown = 0.6
 MoveSpeed = 4.0
 FixedHp = false
+Flanker = true
 Points = 15
 GuaranteedChip = false
 ChipDropChance = 0.005

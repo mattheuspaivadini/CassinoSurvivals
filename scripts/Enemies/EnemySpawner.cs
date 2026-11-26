@@ -9,6 +9,9 @@ public partial class EnemySpawner : Node
 {
     public static EnemySpawner Instance { get; private set; }
 
+    /// <summary>false nas fases com horda finita: quem spawna é o HordeDirector (sem spawn por tempo nem boss).</summary>
+    [Export] public bool AutoSpawn { get; set; } = true;
+
     [ExportGroup("Tipos")]
     [Export] public Godot.Collections.Array<EnemyData> CommonTypes { get; set; }
     [Export] public EnemyData EliteType { get; set; }
@@ -33,8 +36,11 @@ public partial class EnemySpawner : Node
     [Export] public float SpawnMargin { get; set; } = 2f;
 
     [Signal] public delegate void BossSpawnedEventHandler();
+    /// <summary>Um inimigo saiu da lista ativa (morreu).</summary>
+    [Signal] public delegate void EnemyRemovedEventHandler();
 
     public bool HasBossSpawned { get; private set; }
+    public IReadOnlyList<Enemy> Active => active;
 
     readonly List<Enemy> active = new List<Enemy>(512);
     float timer;
@@ -43,6 +49,7 @@ public partial class EnemySpawner : Node
 
     public override void _Process(double delta)
     {
+        if (!AutoSpawn) return;
         var gm = GameManager.Instance;
         if (gm.State != GameState.Playing || PlayerController.Instance == null) return;
 
@@ -94,6 +101,26 @@ public partial class EnemySpawner : Node
         active.RemoveAt(last);
         e.ActiveIndex = -1;
         e.QueueFree();
+        EmitSignal(SignalName.EnemyRemoved);
+    }
+
+    /// <summary>Soma de afastamento dos vizinhos que se sobrepõem (peso cai linearmente com a distância).</summary>
+    public Vector2 Separation(Enemy self)
+    {
+        Vector2 push = Vector2.Zero;
+        Vector2 p = self.GlobalPosition;
+        for (int i = 0; i < active.Count; i++)
+        {
+            var e = active[i];
+            if (e == self) continue;
+            Vector2 d = p - e.GlobalPosition;
+            float r = (self.Radius + e.Radius) * 1.3f;
+            float l2 = d.LengthSquared();
+            if (l2 < 0.0001f || l2 >= r * r) continue;
+            float l = Mathf.Sqrt(l2);
+            push += d / l * (1f - l / r);
+        }
+        return push;
     }
 
     /// <summary>Spawna fora da visão da câmera, preso dentro do mapa.</summary>
