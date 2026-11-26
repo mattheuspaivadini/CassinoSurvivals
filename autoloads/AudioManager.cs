@@ -26,7 +26,13 @@ public partial class AudioManager : Node
     [Export] public AudioStream Music { get; set; }
     /// <summary>Trilha dos rounds de boss.</summary>
     [Export] public AudioStream BossMusic { get; set; }
+    /// <summary>Volume da trilha de boss.</summary>
     [Export] public float MusicVolumeDb { get; set; } = -4f;
+    /// <summary>Volume da trilha principal (a gravação é mais baixa que a do boss).</summary>
+    [Export] public float MainMusicVolumeDb { get; set; } = 3f;
+    /// <summary>Trecho da trilha principal que fica em loop (s). Fim &lt;= 0 = faixa inteira.</summary>
+    [Export] public float MainLoopStart { get; set; } = 10f;
+    [Export] public float MainLoopEnd { get; set; } = 33f;
     /// <summary>Tempo de troca entre as trilhas (s).</summary>
     [Export] public float MusicFade { get; set; } = 0.8f;
 
@@ -44,10 +50,10 @@ public partial class AudioManager : Node
 
     void StartMusic()
     {
-        music = new AudioStreamPlayer { VolumeDb = MusicVolumeDb, Bus = "Master" };
+        music = new AudioStreamPlayer { Bus = "Master" };
         AddChild(music);
         // Loop garantido mesmo se a flag do MP3 não pegar: ao terminar, recomeça a mesma faixa.
-        music.Finished += () => music.Play();
+        music.Finished += () => music.Play(StartOf(music.Stream));
         SwitchMusic(Music, fade: false);
     }
 
@@ -67,14 +73,24 @@ public partial class AudioManager : Node
         if (!fade || !music.Playing)
         {
             music.Stream = stream;
-            music.VolumeDb = MusicVolumeDb;
-            music.Play();
+            music.VolumeDb = VolumeOf(stream);
+            music.Play(StartOf(stream));
             return;
         }
         musicFade = CreateTween();
         musicFade.TweenProperty(music, "volume_db", -40f, MusicFade * 0.5f);
-        musicFade.TweenCallback(Callable.From(() => { music.Stream = stream; music.Play(); }));
-        musicFade.TweenProperty(music, "volume_db", MusicVolumeDb, MusicFade * 0.5f);
+        musicFade.TweenCallback(Callable.From(() => { music.Stream = stream; music.Play(StartOf(stream)); }));
+        musicFade.TweenProperty(music, "volume_db", VolumeOf(stream), MusicFade * 0.5f);
+    }
+
+    float VolumeOf(AudioStream stream) => stream == Music ? MainMusicVolumeDb : MusicVolumeDb;
+    float StartOf(AudioStream stream) => stream == Music ? MainLoopStart : 0f;
+
+    /// <summary>Trilha principal: ao passar do fim do trecho, volta para o início dele.</summary>
+    public override void _Process(double delta)
+    {
+        if (music == null || !music.Playing || music.Stream != Music || MainLoopEnd <= 0f) return;
+        if (music.GetPlaybackPosition() >= MainLoopEnd) music.Seek(MainLoopStart);
     }
 
     void Play(AudioStream clip)
