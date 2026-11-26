@@ -52,11 +52,22 @@ As armas disparam automaticamente no inimigo mais próximo.
 | Revólver High Roller | Dano alto, longo alcance |
 | Lança-Dados | Três projéteis lentos e pesados |
 
+## Fase 1 (Ato 1)
+
+A cena principal é `scenes/levels/Fase1.tscn`, montada a partir do Blockout 1 do documento de design (`Cassino Survivors.pdf`):
+
+- Arena vertical com pilares, mesa de pôquer, duas mesas de roleta e balcões de caça-níqueis. Todo obstáculo bloqueia movimento e tiros.
+- Horda finita de 25 inimigos que entram pelas 6 portas laterais (alerta vermelho ~1s antes de abrir; as portas de baixo esperam 2,5s no início). Dois deles são Dourados e sempre deixam ficha.
+- A porta de cima só abre quando todos morrem. Uma seta aponta a saída, e setas na borda da tela mostram os últimos inimigos fora da câmera.
+- Os inimigos contornam obstáculos (flow field), os rápidos tentam cercar o jogador e a horda se espalha em vez de virar fila.
+
+O modo antigo (arena aberta por tempo, com o Tigrinho) continua em `scenes/Main.tscn`.
+
 ## Como rodar
 
 1. Instale o **Godot 4.7 (versão .NET/Mono)** e o **.NET SDK 10**.
 2. Clone o repositório e importe `project.godot` pelo gerenciador de projetos do Godot.
-3. Aperte **F5** (a cena principal é `scenes/Main.tscn`).
+3. Aperte **F5** (a cena principal é `scenes/levels/Fase1.tscn`).
 
 Pela linha de comando: `dotnet build` e depois `godot --path .`.
 Teste das regras puras (armas e caça-níquel): `godot --headless --path . -- --selfcheck`.

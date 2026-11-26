@@ -18,12 +18,16 @@ Nenhum inimigo novo nesta etapa: os tipos existentes fazem o papel do bestiário
 
 - Vira a main scene. `scenes/Main.tscn` continua existindo como modo antigo (sem alterações de comportamento).
 - Escala: tiles de 16px com escala 3,75 = 1 unidade (60px, `Units.Px`).
-- Arena retangular vertical de 40×52 unidades (2400×3120px). O PDF pede "~1,8–2x a largura por
-  ~2,2–2,5x a altura da tela", o que daria uma arena horizontal; seguimos o Blockout 1 (vertical).
+- Arena retangular vertical de 56×76 unidades (3360×4560px, ~1,75 tela de largura × ~4,2 telas de
+  altura). O PDF pede "~1,8–2x a largura por ~2,2–2,5x a altura da tela", o que daria uma arena
+  horizontal; seguimos o Blockout 1 (vertical). A primeira versão (40×52) ficou pequena no playtest.
+- Posições do layout são frações da meia-área (ex.: portas em y = -0,81·HY, -0,08·HY, 0,73·HY) para
+  o Blockout se manter ao mudar o tamanho. Mobília: pilares 3×3, pôquer 6×4,4, roletas 10×5,
+  balcões 6×3.
 - Layout do Blockout 1, de cima para baixo: saída (topo), portas 1/4, pilares P1/P2 com mesa de
   pôquer entre eles, balcões, portas 2/5, 2 mesas de roleta, balcões, pilares P3/P4, portas 3/6,
   spawn do jogador [J], entrada (base).
-- Vãos entre obstáculos ≥ 4x a largura do jogador (raio 0,4u ⇒ ≥ 3,2u; usamos ≥ 4u).
+- Vãos entre obstáculos ≥ 4x a largura do jogador (raio 0,4u ⇒ ≥ 3,2u; o menor vão do layout tem > 6u).
 - Arte: carpete, paredes, mesas, caça-níqueis decorativos dos balcões e portas animadas vindos
   de `assets/2D Top Down Pixel Art Tileset Casino` e `assets/Dicehead and Casino Asset Pack`.
 - Colisão única: todo obstáculo é `StaticBody2D` na layer 1 e bloqueia movimento e projéteis.
