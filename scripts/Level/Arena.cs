@@ -72,6 +72,15 @@ public partial class Arena : Node2D
         return false;
     }
 
+    /// <summary>Tiro livre entre dois pontos (amostra a cada 20px contra os sólidos reais, sem inflar).</summary>
+    public bool ShotClear(Vector2 a, Vector2 b)
+    {
+        int steps = Mathf.Max(1, Mathf.CeilToInt(a.DistanceTo(b) / 20f));
+        for (int i = 1; i < steps; i++)
+            if (IsSolid(a.Lerp(b, (float)i / steps))) return false;
+        return true;
+    }
+
     void LimitCamera()
     {
         var cam = PlayerController.Instance?.GetNodeOrNull<Camera2D>("Camera");

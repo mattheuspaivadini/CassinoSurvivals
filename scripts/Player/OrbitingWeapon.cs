@@ -236,7 +236,7 @@ public partial class OrbitingWeapon : Node2D
     }
 
     /// <summary>
-    /// Atualiza posição/rotação a partir do mouse em relação ao centro do jogador.
+    /// Atualiza posição/rotação a partir da mira (mouse ou alvo automático) em relação ao centro do jogador.
     /// Idempotente: também é chamada pelas consultas de mira/boca para que o disparo
     /// nunca use a transformação do frame anterior.
     /// </summary>
@@ -245,8 +245,11 @@ public partial class OrbitingWeapon : Node2D
         if (WeaponSprite == null) return;
 
         Vector2 origin = ((Node2D)GetParent()).GlobalPosition;
-        Vector2 aim = GetGlobalMousePosition() - origin;
-        // Mouse exatamente sobre o pivô: preserva a última direção válida.
+        Vector2 aim;
+        if (!AimSettings.Auto) aim = GetGlobalMousePosition() - origin;
+        else if (weaponSystem != null && weaponSystem.TryGetAutoAim(out Vector2 target)) aim = target - origin;
+        else aim = Vector2.Zero; // sem alvo: mantém a última direção
+        // Mira exatamente sobre o pivô: preserva a última direção válida.
         if (aim.LengthSquared() > 1f) lastAimDirection = aim.Normalized();
 
         Position = lastAimDirection * OrbitRadius * Units.Px;

@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using Godot;
 
 /// <summary>
-/// Armas do jogador. O gatilho é exclusivamente o botão esquerdo do mouse: nunca há tiro
-/// automático por timer ou proximidade de inimigo. No sandbox, 1-5/Q/E trocam a seleção.
+/// Armas do jogador. Dois modos de mira (AimSettings, alterna com T): automático, que mira e
+/// atira no inimigo visível mais próximo dentro do alcance, ou manual, com mira no mouse e
+/// gatilho no botão esquerdo. Teclas 1-9 escolhem a arma; scroll alterna. No sandbox, Q/E também.
 /// </summary>
 public partial class WeaponSystem : Node
 {
@@ -105,23 +106,22 @@ public partial class WeaponSystem : Node
         if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
         if (Weapons.Count == 0) return;
 
-        if (sandboxMode && e is InputEventKey key && key.Pressed && !key.Echo)
+        if (e.IsActionPressed("toggle_aim"))
         {
-            int index = key.Keycode switch
-            {
-                Key.Key1 => 0,
-                Key.Key2 => 1,
-                Key.Key3 => 2,
-                Key.Key4 => 3,
-                Key.Key5 => 4,
-                _ => -1,
-            };
+            AimSettings.Auto = !AimSettings.Auto;
+            EmitSignal(SignalName.WeaponsChanged);
+            return;
+        }
+
+        if (e is InputEventKey key && key.Pressed && !key.Echo)
+        {
+            int index = key.Keycode >= Key.Key1 && key.Keycode <= Key.Key9 ? (int)(key.Keycode - Key.Key1) : -1;
             if (index >= 0)
             {
                 if (index < Weapons.Count) Select(index);
                 return;
             }
-            if (key.Keycode == Key.Q || key.Keycode == Key.E)
+            if (sandboxMode && (key.Keycode == Key.Q || key.Keycode == Key.E))
             {
                 Cycle(key.Keycode == Key.E ? 1 : -1);
                 return;
@@ -232,15 +232,55 @@ public partial class WeaponSystem : Node
         if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
         if (Weapons.Count == 0) return;
 
-        // Sem tiro automático: o único gatilho é o botão esquerdo pressionado.
         // Tick continua avançando o cooldown/recarga mesmo sem gatilho.
-        bool trigger = Input.IsMouseButtonPressed(MouseButton.Left);
         var w = Weapons[Mathf.Clamp(Selected, 0, Weapons.Count - 1)];
+        bool trigger = AimSettings.Auto ? TryGetAutoAim(out _) : Input.IsMouseButtonPressed(MouseButton.Left);
         if (!w.Tick((float)delta, trigger)) return;
 
         // Disparo confirmado: munição consumida e projéteis instanciados.
         Fire(w);
         EmitSignal(SignalName.WeaponFired);
+    }
+
+    Enemy autoTarget;
+    ulong autoTargetFrame = ulong.MaxValue;
+
+    /// <summary>
+    /// Alvo da mira automática: inimigo mais próximo dentro do alcance da arma selecionada e sem
+    /// obstáculo no caminho do tiro. Calculado uma vez por frame (arma e disparo consultam).
+    /// </summary>
+    public bool TryGetAutoAim(out Vector2 target)
+    {
+        ulong frame = Engine.GetProcessFrames();
+        if (frame != autoTargetFrame)
+        {
+            autoTargetFrame = frame;
+            autoTarget = FindAutoTarget();
+        }
+        target = autoTarget != null && IsInstanceValid(autoTarget) ? autoTarget.GlobalPosition : Vector2.Zero;
+        return autoTarget != null && IsInstanceValid(autoTarget);
+    }
+
+    Enemy FindAutoTarget()
+    {
+        var spawner = EnemySpawner.Instance;
+        if (spawner == null || Weapons.Count == 0) return null;
+        var d = Weapons[Mathf.Clamp(Selected, 0, Weapons.Count - 1)].Data;
+        float range = Mathf.Min(d.Range * Units.Px, d.ProjectileSpeed * d.ProjectileLifetime);
+        Vector2 from = ((Node2D)GetParent()).GlobalPosition;
+        var arena = Arena.Instance;
+
+        Enemy best = null;
+        float bestSq = range * range;
+        foreach (var e in spawner.Active)
+        {
+            float sq = (e.GlobalPosition - from).LengthSquared();
+            if (sq >= bestSq) continue;
+            if (arena != null && !arena.ShotClear(from, e.GlobalPosition)) continue;
+            bestSq = sq;
+            best = e;
+        }
+        return best;
     }
 
     void Fire(WeaponInstance w)

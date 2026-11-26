@@ -81,6 +81,8 @@ public partial class HUD : CanvasLayer
             else sb.Append(w.Ammo).Append('/').Append(w.Data.Magazine(w.Level));
             sb.Append('\n');
         }
+        sb.Append(AimSettings.Auto ? "[color=#7CFC9A]MIRA: AUTOMÁTICA[/color]" : "[color=#FFD54A]MIRA: MOUSE (clique atira)[/color]")
+          .Append("  [color=#AAAAAA][T] troca · [1-").Append(Mathf.Min(list.Count, 9)).Append("] arma[/color]");
         weaponsText.Text = sb.ToString();
     }
 
