@@ -38,6 +38,8 @@ public partial class EnemySpawner : Node
     [Signal] public delegate void BossSpawnedEventHandler();
     /// <summary>Um inimigo saiu da lista ativa (morreu).</summary>
     [Signal] public delegate void EnemyRemovedEventHandler();
+    /// <summary>Um inimigo extra nasceu fora do plano inicial (ex.: "Troco" da Fichona).</summary>
+    [Signal] public delegate void ExtraEnemySpawnedEventHandler();
 
     public bool HasBossSpawned { get; private set; }
     public IReadOnlyList<Enemy> Active => active;
@@ -67,7 +69,8 @@ public partial class EnemySpawner : Node
 
         for (int i = 0; i < batch && active.Count < MaxAlive; i++)
         {
-            var type = GD.Randf() < elite ? EliteType : CommonTypes[GD.RandRange(0, CommonTypes.Count - 1)];
+            var baseType = CommonTypes[GD.RandRange(0, CommonTypes.Count - 1)];
+            var type = GD.Randf() < elite ? EnemyData.CreateGoldenVariant(baseType) : baseType;
             Spawn(type, RandomSpawnPosition(), hpMul);
         }
     }
@@ -86,7 +89,7 @@ public partial class EnemySpawner : Node
         EmitSignal(SignalName.BossSpawned);
     }
 
-    public Enemy Spawn(EnemyData data, Vector2 pos, float hpMultiplier)
+    public Enemy Spawn(EnemyData data, Vector2 pos, float hpMultiplier, bool isExtra = false)
     {
         var e = EnemyScene.Instantiate<Enemy>();
         e.Position = pos; // antes do AddChild: o corpo já nasce no lugar certo
@@ -94,10 +97,11 @@ public partial class EnemySpawner : Node
         e.Init(data, hpMultiplier);
         e.ActiveIndex = active.Count;
         active.Add(e);
+        if (isExtra) EmitSignal(SignalName.ExtraEnemySpawned);
         return e;
     }
 
-    public void Despawn(Enemy e)
+    public void Despawn(Enemy e, bool freeNode = true)
     {
         int i = e.ActiveIndex;
         if (i < 0) return;
@@ -106,7 +110,7 @@ public partial class EnemySpawner : Node
         active[i].ActiveIndex = i;
         active.RemoveAt(last);
         e.ActiveIndex = -1;
-        e.QueueFree();
+        if (freeNode) e.QueueFree();
         EmitSignal(SignalName.EnemyRemoved);
     }
 

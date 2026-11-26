@@ -1,6 +1,9 @@
 using Godot;
 
-/// <summary>Inimigo: persegue o jogador via RigidBody2D (empurrões entre a horda) e causa dano de contato por distância.</summary>
+/// <summary>
+/// Inimigo animado: persegue o jogador via RigidBody2D (usando FlowField na arena e flanqueamento na Ficha),
+/// com suporte a variante Dourada, divisão "Troco" (Fichona) e explosão + poça (Garrafa de Champanhe).
+/// </summary>
 public partial class Enemy : RigidBody2D
 {
     public EnemyData Data { get; private set; }
@@ -18,15 +21,17 @@ public partial class Enemy : RigidBody2D
     const float FlankRange = 5f;
     const float FlankRadius = 3f;
 
-    Sprite2D sprite;
+    AnimatedSprite2D sprite;
     CollisionShape2D shape;
-    float hp, contactTimer, flashTimer, flankAngle;
+    Vector2 baseSpriteScale = Vector2.One;
+    string currentAnim;
+    float hp, hpMultiplierUsed = 1f, contactTimer, flashTimer, flankAngle, fuseTimer;
     Vector2 entry;
-    bool entering;
+    bool entering, fusing, dead;
 
     public override void _Ready()
     {
-        sprite = GetNode<Sprite2D>("Sprite");
+        sprite = GetNode<AnimatedSprite2D>("Sprite");
         shape = GetNode<CollisionShape2D>("Shape");
     }
 
@@ -34,11 +39,41 @@ public partial class Enemy : RigidBody2D
     public void Init(EnemyData data, float hpMultiplier)
     {
         Data = data;
+        hpMultiplierUsed = hpMultiplier;
         hp = data.FixedHp ? data.MaxHp : data.MaxHp * hpMultiplier;
         Mass = data.Mass;
-        if (data.Sprite != null) sprite.Texture = data.Sprite;
-        Units.Fit(sprite, data.Scale);
+        dead = false;
+        fusing = false;
+        fuseTimer = 0f;
+        contactTimer = 0f;
+        flashTimer = 0f;
+        currentAnim = null;
+
+        CollisionLayer = 4;
+        CollisionMask = 7;
+        SetPhysicsProcess(true);
+        if (shape != null) shape.Disabled = false;
+
+        var frames = data.GetOrBuildFrames();
+        sprite.SpriteFrames = frames;
+        float frameW = Mathf.Max(1, data.FrameSize);
+        if (data.ChaseSheet == null && data.IdleSheet == null && data.Sprite != null)
+            frameW = Mathf.Max(1, data.Sprite.GetWidth());
+
+        float s = data.SpriteScale > 0f ? data.SpriteScale : (Units.Px * data.Scale / frameW);
+        baseSpriteScale = Vector2.One * s;
+        sprite.Scale = baseSpriteScale;
         sprite.Modulate = data.Color;
+        sprite.FlipH = false;
+
+        string initialAnim = frames.HasAnimation("chase") ? "chase" : (frames.HasAnimation("idle") ? "idle" : "");
+        if (initialAnim.Length > 0)
+        {
+            PlayAnim(initialAnim);
+            int count = frames.GetFrameCount(initialAnim);
+            if (count > 1) sprite.Frame = GD.RandRange(0, count - 1);
+        }
+
         ZIndex = data.IsBoss ? 2 : 1;
         Radius = data.Scale * 0.5f * Units.Px;
         shape.Shape = new CircleShape2D { Radius = Radius }; // um shape por inimigo: o raio varia com o tipo
@@ -46,25 +81,64 @@ public partial class Enemy : RigidBody2D
         entering = false;
     }
 
+    void PlayAnim(string name)
+    {
+        if (currentAnim == name || sprite?.SpriteFrames == null || !sprite.SpriteFrames.HasAnimation(name)) return;
+        currentAnim = name;
+        sprite.Play(name);
+    }
+
     public override void _PhysicsProcess(double delta)
     {
+        if (dead) return;
         var player = PlayerController.Instance;
-        if (player == null) return;
+        if (player == null || (GameManager.Instance != null && GameManager.Instance.State != GameState.Playing)) return;
         float dt = (float)delta;
 
         Vector2 pos = GlobalPosition;
         Vector2 toPlayer = player.GlobalPosition - pos;
+
+        if (fusing)
+        {
+            LinearVelocity = LinearVelocity.Lerp(Vector2.Zero, Mathf.Min(1f, 18f * dt));
+            fuseTimer -= dt;
+            QueueRedraw();
+            if (fuseTimer <= 0f) ResolveDeath(killedByPlayer: false);
+            return;
+        }
+
+        if (!entering && Data.Explodes)
+        {
+            float triggerDist = Radius + player.RadiusPx + Data.ExplosionTriggerRange * Units.Px;
+            if (toPlayer.LengthSquared() <= triggerDist * triggerDist)
+            {
+                fusing = true;
+                fuseTimer = Mathf.Max(0.05f, Data.ExplosionFuse);
+                PlayAnim(sprite.SpriteFrames.HasAnimation("idle") ? "idle" : "chase");
+                QueueRedraw();
+                return;
+            }
+        }
+
         Vector2 dir = entering ? EnterDirection(pos) : ChaseDirection(pos, player.GlobalPosition, toPlayer);
         dir += EnemySpawner.Instance.Separation(this) * SeparationWeight;
         Vector2 desired = dir.LengthSquared() > 0.0001f ? dir.Normalized() * Data.MoveSpeed * Units.Px : Vector2.Zero;
         LinearVelocity = LinearVelocity.Lerp(desired, Mathf.Min(1f, Steering * dt));
 
-        contactTimer -= dt;
-        float reach = Radius + player.RadiusPx + 0.1f * Units.Px;
-        if (contactTimer <= 0f && toPlayer.LengthSquared() <= reach * reach)
+        if (LinearVelocity.LengthSquared() > 16f) PlayAnim("chase");
+        else if (sprite.SpriteFrames.HasAnimation("idle")) PlayAnim("idle");
+
+        if (Mathf.Abs(LinearVelocity.X) > 12f) sprite.FlipH = LinearVelocity.X < 0f;
+
+        if (!Data.Explodes)
         {
-            player.TakeDamage(Data.ContactDamage);
-            contactTimer = Data.ContactCooldown;
+            contactTimer -= dt;
+            float reach = Radius + player.RadiusPx + 0.1f * Units.Px;
+            if (contactTimer <= 0f && toPlayer.LengthSquared() <= reach * reach)
+            {
+                player.TakeDamage(Data.ContactDamage);
+                contactTimer = Data.ContactCooldown;
+            }
         }
     }
 
@@ -100,30 +174,141 @@ public partial class Enemy : RigidBody2D
 
     public override void _Process(double delta)
     {
+        if (dead) return;
+        float dt = (float)delta;
+
+        if (fusing)
+        {
+            float total = Mathf.Max(0.05f, Data.ExplosionFuse);
+            float progress = Mathf.Clamp(1f - fuseTimer / total, 0f, 1f);
+            sprite.Scale = baseSpriteScale * (1f + 0.20f * progress);
+            if (flashTimer > 0f)
+            {
+                flashTimer -= dt;
+                return;
+            }
+            bool blink = ((int)(progress * 10f) & 1) == 0;
+            sprite.Modulate = blink ? new Color(1f, 0.35f, 0.25f) : Data.Color;
+            return;
+        }
+
         if (flashTimer <= 0f) return;
-        flashTimer -= (float)delta;
+        flashTimer -= dt;
         if (flashTimer <= 0f) sprite.Modulate = Data.Color;
+    }
+
+    public override void _Draw()
+    {
+        if (!fusing || dead) return;
+        float total = Mathf.Max(0.05f, Data.ExplosionFuse);
+        float progress = Mathf.Clamp(1f - fuseTimer / total, 0f, 1f);
+        float blastR = Data.ExplosionRadius * Units.Px;
+        Color warnColor = Data.IsGolden ? new Color(1f, 0.78f, 0.15f) : new Color(1f, 0.28f, 0.22f);
+
+        DrawCircle(Vector2.Zero, blastR * progress, new Color(warnColor, 0.22f));
+        DrawArc(Vector2.Zero, blastR, 0f, Mathf.Tau, 36, new Color(warnColor, 0.85f), 2.5f);
     }
 
     public void TakeDamage(float amount)
     {
-        if (hp <= 0f) return;
+        if (dead || hp <= 0f) return;
         hp -= amount;
         sprite.Modulate = Colors.White;
         flashTimer = 0.06f;
         AudioManager.Instance?.PlayEnemyHit();
-        if (hp <= 0f) Die();
+        if (hp <= 0f) ResolveDeath(killedByPlayer: true);
     }
 
-    void Die()
+    void ResolveDeath(bool killedByPlayer)
     {
+        if (dead) return;
+        dead = true;
+        fusing = false;
+        QueueRedraw();
+
         AudioManager.Instance?.PlayEnemyDeath();
-        GameManager.Instance.AddScore(Data.Points);
-        GameManager.Instance.AddDollars(Data.Dollars);
-        DropManager.Instance.RollDrops(Data, GlobalPosition);
+
+        if (killedByPlayer)
+        {
+            GameManager.Instance?.AddScore(Data.Points);
+            GameManager.Instance?.AddDollars(Data.Dollars);
+            DropManager.Instance?.RollDrops(Data, GlobalPosition);
+        }
+        else if (Data.GuaranteedChip)
+        {
+            // PDF (Garrafa Dourada): caso exploda por conta própria, a ficha cai em cima da poça.
+            GameManager.Instance?.AddDollars(Data.Dollars);
+            DropManager.Instance?.RollDrops(Data, GlobalPosition);
+        }
+
+        if (Data.Explodes) TriggerExplosion(dealBlastDamage: !killedByPlayer);
+
+        // Importante: spawna o "Troco" ANTES do Despawn para o HordeDirector somar os novos alvos antes de checar fim do round.
+        if (Data.SplitEnemy != null && Data.SplitMaxCount > 0) SpawnTrocoMinions();
+
         bool boss = Data.IsBoss;
-        EnemySpawner.Instance.Despawn(this);
+        bool hasDeathAnim = sprite?.SpriteFrames != null && sprite.SpriteFrames.HasAnimation("death");
+        EnemySpawner.Instance?.Despawn(this, freeNode: !hasDeathAnim);
+
+        if (hasDeathAnim)
+        {
+            SetPhysicsProcess(false);
+            LinearVelocity = Vector2.Zero;
+            CollisionLayer = 0;
+            CollisionMask = 0;
+            if (shape != null) shape.SetDeferred(CollisionShape2D.PropertyName.Disabled, true);
+            sprite.Scale = baseSpriteScale;
+            sprite.Modulate = Data.Color;
+            ZIndex = 0;
+            currentAnim = "death";
+            sprite.Play("death");
+            sprite.AnimationFinished += QueueFree;
+        }
+
         // Na fase com rounds quem encerra é a saída; no modo antigo o boss vence a partida.
-        if (boss && HordeDirector.Instance == null) GameManager.Instance.Victory();
+        if (boss && HordeDirector.Instance == null) GameManager.Instance?.Victory();
+    }
+
+    void TriggerExplosion(bool dealBlastDamage)
+    {
+        float blastPx = Data.ExplosionRadius * Units.Px;
+        if (dealBlastDamage && PlayerController.Instance != null)
+        {
+            var player = PlayerController.Instance;
+            float reach = blastPx + player.RadiusPx;
+            if ((player.GlobalPosition - GlobalPosition).LengthSquared() <= reach * reach)
+                player.TakeDamage(Data.ExplosionDamage);
+        }
+
+        var root = GetTree()?.CurrentScene;
+        if (root == null) return;
+        var puddle = new ChampagnePuddle();
+        root.AddChild(puddle);
+        float duration = Data.IsGolden && Data.GoldenPuddleDuration > 0f ? Data.GoldenPuddleDuration : Data.PuddleDuration;
+        puddle.Setup(GlobalPosition, Data.PuddleRadius * Units.Px, blastPx, Data.PuddleDamagePerSecond, duration, Data.IsGolden);
+    }
+
+    void SpawnTrocoMinions()
+    {
+        var spawner = EnemySpawner.Instance;
+        if (spawner == null) return;
+
+        int min = Mathf.Max(1, Data.SplitMinCount);
+        int max = Mathf.Max(min, Data.SplitMaxCount);
+        int count = GD.RandRange(min, max);
+        var minionData = EnemyData.CreateTrocoMinion(Data.SplitEnemy);
+        float baseAngle = GD.Randf() * Mathf.Tau;
+        float offset = 0.55f * Units.Px;
+
+        for (int i = 0; i < count; i++)
+        {
+            Vector2 spawnPos = GlobalPosition + Vector2.FromAngle(baseAngle + Mathf.Tau * i / count) * offset;
+            if (Arena.Instance != null)
+            {
+                Rect2 inner = Arena.Instance.Bounds.Grow(-1.1f * Units.Px);
+                spawnPos = spawnPos.Clamp(inner.Position, inner.End);
+            }
+            spawner.Spawn(minionData, spawnPos, hpMultiplierUsed, isExtra: true);
+        }
     }
 }
