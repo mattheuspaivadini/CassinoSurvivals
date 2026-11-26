@@ -9,6 +9,8 @@ public partial class HUD : CanvasLayer
 {
     [Export] public WeaponSystem WeaponSystem { get; set; }
     [Export] public float RefreshInterval { get; set; } = 0.1f;
+    /// <summary>Fases com horda finita: mostra Ato/Fase e inimigos restantes no lugar do timer do Tigrinho.</summary>
+    [Export] public HordeDirector Horde { get; set; }
 
     readonly StringBuilder sb = new StringBuilder(512);
     ColorRect hpFill; // pivot X=0; a largura é controlada por Scale.X
@@ -32,6 +34,7 @@ public partial class HUD : CanvasLayer
         gm.ChipsChanged += UpdateChips;
         PlayerController.Instance.HpChanged += UpdateHp;
         EnemySpawner.Instance.BossSpawned += ShowBossBanner;
+        if (Horde != null) Horde.Cleared += ShowClearedBanner;
 
         UpdateScore(gm.Score);
         UpdateChips(gm.Chips);
@@ -79,6 +82,13 @@ public partial class HUD : CanvasLayer
 
     void RefreshTimer()
     {
+        if (Horde != null)
+        {
+            timerText.Text = Horde.IsCleared
+                ? "SAÍDA ABERTA! SIGA PARA A PORTA DE CIMA"
+                : $"{Horde.StageLabel}   |   INIMIGOS: {Horde.Remaining}";
+            return;
+        }
         var gm = GameManager.Instance;
         if (EnemySpawner.Instance.HasBossSpawned) { timerText.Text = "TIGRINHO EM CAMPO!"; return; }
         int left = Mathf.Max(0, Mathf.CeilToInt(gm.BossSpawnTime - gm.Elapsed));
@@ -94,9 +104,14 @@ public partial class HUD : CanvasLayer
     void UpdateScore(int score) => scoreText.Text = $"PONTOS: {score}";
     void UpdateChips(int chips) => chipsText.Text = $"FICHAS: {chips}";
 
-    void ShowBossBanner()
+    void ShowClearedBanner() => ShowBanner("SALA LIMPA!", new Color(1f, 0.85f, 0.15f));
+
+    void ShowBossBanner() => ShowBanner("O TIGRINHO CHEGOU!", new Color(1f, 0.5f, 0f));
+
+    void ShowBanner(string text, Color color)
     {
-        bannerText.Text = "O TIGRINHO CHEGOU!";
+        bannerText.Text = text;
+        bannerText.AddThemeColorOverride("font_color", color);
         bannerText.Visible = true;
         bannerTimer = 4f;
     }

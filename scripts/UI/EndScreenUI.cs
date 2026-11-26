@@ -3,6 +3,8 @@ using Godot;
 /// <summary>Tela de Game Over / Vitória com botão de reiniciar.</summary>
 public partial class EndScreenUI : CanvasLayer
 {
+    [Export] public string VictoryTitle { get; set; } = "VOCÊ QUEBROU A BANCA!";
+
     Control panel;
     Label title, stats;
 
@@ -26,7 +28,7 @@ public partial class EndScreenUI : CanvasLayer
         if (s != GameState.GameOver && s != GameState.Victory) return;
         var gm = GameManager.Instance;
         bool win = s == GameState.Victory;
-        title.Text = win ? "VOCÊ QUEBROU A BANCA!" : "GAME OVER";
+        title.Text = win ? VictoryTitle : "GAME OVER";
         title.AddThemeColorOverride("font_color", win ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.25f, 0.35f));
         int t = (int)gm.Elapsed;
         stats.Text = $"Pontos: {gm.Score}\nTempo: {t / 60}:{t % 60:00}";
