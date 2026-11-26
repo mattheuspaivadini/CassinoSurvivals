@@ -1,18 +1,23 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene format=3 uid="uid://cskvhm6j0h26o"]
 
-[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="1_scr"]
-[ext_resource type="Script" path="res://scripts/Player/PlayerController.cs" id="2_scr"]
-[ext_resource type="Texture2D" path="res://assets/sprites/Circle.png" id="3_tex"]
-[ext_resource type="Script" path="res://scripts/Weapons/WeaponSystem.cs" id="4_scr"]
+[ext_resource type="Script" uid="uid://obuihq4yvepn" path="res://scripts/Resources/WeaponData.cs" id="1_scr"]
+[ext_resource type="Script" uid="uid://1pghsjte2fhh" path="res://scripts/Player/PlayerController.cs" id="2_scr"]
+[ext_resource type="Script" uid="uid://pxeofxhqqos2" path="res://scripts/Weapons/WeaponSystem.cs" id="4_scr"]
 [ext_resource type="Resource" path="res://resources/weapons/PistolaNeon.tres" id="5_res"]
 [ext_resource type="PackedScene" path="res://scenes/Projectile.tscn" id="6_pac"]
-[ext_resource type="Script" path="res://scripts/Casino/Wayfinder.cs" id="7_scr"]
-[ext_resource type="Texture2D" path="res://assets/sprites/Triangle.png" id="8_tex"]
+[ext_resource type="Script" uid="uid://dud8gk73jit3w" path="res://scripts/Casino/Wayfinder.cs" id="7_scr"]
+[ext_resource type="Texture2D" uid="uid://isphlrscrovn" path="res://assets/sprites/Triangle.png" id="8_tex"]
+[ext_resource type="Script" uid="uid://dqjgv37k1woxg" path="res://scripts/Player/OrbitingWeapon.cs" id="9_scr"]
+[ext_resource type="Texture2D" uid="uid://ba7ryr6pkjaky" path="res://assets/Dicehead and Casino Asset Pack/Player/Player_Idle.png" id="10_tex"]
+[ext_resource type="Texture2D" uid="uid://1146a1l4bgom" path="res://assets/Dicehead and Casino Asset Pack/Player/Player_Movement.png" id="11_tex"]
+[ext_resource type="Texture2D" uid="uid://etcnvi3spbjk" path="res://assets/Dicehead and Casino Asset Pack/Player/Player_Dodge_Roll.png" id="12_tex"]
+[ext_resource type="Texture2D" uid="uid://dekaqxvfmbkwh" path="res://assets/GunsAssetPack/Firing_Gun_Spritesheet/firing_gun_sprite_sheet.png" id="13_tex"]
+[ext_resource type="Texture2D" uid="uid://2idepr0qmb0s" path="res://assets/GunsAssetPack/Individual_Gun_Sprites/Extras/Shell.png" id="14_tex"]
 
 [sub_resource type="CircleShape2D" id="1_sh"]
 radius = 24.0
 
-[node name="Player" type="RigidBody2D"]
+[node name="Player" type="RigidBody2D" unique_id=609571262]
 collision_layer = 2
 collision_mask = 5
 mass = 3.0
@@ -20,31 +25,55 @@ gravity_scale = 0.0
 can_sleep = false
 lock_rotation = true
 script = ExtResource("2_scr")
+IdleSheet = ExtResource("10_tex")
+WalkSheet = ExtResource("11_tex")
+RollSheet = ExtResource("12_tex")
 
-[node name="Sprite" type="Sprite2D" parent="."]
+[node name="Sprite" type="AnimatedSprite2D" parent="." unique_id=315319103]
 z_index = 3
-modulate = Color(0.6, 1, 1, 1.0)
-texture = ExtResource("3_tex")
-scale = Vector2(0.75, 0.75)
+scale = Vector2(3, 3)
 
-[node name="Shape" type="CollisionShape2D" parent="."]
+[node name="Shape" type="CollisionShape2D" parent="." unique_id=1914217364]
 shape = SubResource("1_sh")
 
-[node name="Camera" type="Camera2D" parent="."]
+[node name="Camera" type="Camera2D" parent="." unique_id=1133921911]
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 
-[node name="WeaponSystem" type="Node" parent="."]
+[node name="WeaponSystem" type="Node" parent="." unique_id=480550843]
 script = ExtResource("4_scr")
 StartingWeapons = Array[ExtResource("1_scr")]([ExtResource("5_res")])
 ProjectileScene = ExtResource("6_pac")
 
-[node name="Wayfinder" type="Node2D" parent="." node_paths=PackedStringArray("Arrow")]
+[node name="Wayfinder" type="Node2D" parent="." unique_id=1025152594 node_paths=PackedStringArray("Arrow")]
 script = ExtResource("7_scr")
 Arrow = NodePath("Arrow")
 
-[node name="Arrow" type="Sprite2D" parent="Wayfinder"]
+[node name="Arrow" type="Sprite2D" parent="Wayfinder" unique_id=1950142771]
+modulate = Color(1, 0.9, 0.2, 1)
 z_index = 5
-modulate = Color(1, 0.9, 0.2, 1.0)
-texture = ExtResource("8_tex")
 scale = Vector2(0.46875, 0.46875)
+texture = ExtResource("8_tex")
+
+[node name="OrbitingWeapon" type="Node2D" parent="." unique_id=169204725 node_paths=PackedStringArray("WeaponSprite", "FlashSprite", "ShellSprite")]
+script = ExtResource("9_scr")
+WeaponSprite = NodePath("Weapon")
+FlashSprite = NodePath("MuzzleFlash")
+ShellSprite = NodePath("ShellCasing")
+FireSheet = ExtResource("13_tex")
+
+[node name="Weapon" type="Sprite2D" parent="OrbitingWeapon" unique_id=191516665]
+z_index = 4
+
+[node name="MuzzleFlash" type="Sprite2D" parent="OrbitingWeapon" unique_id=192640935]
+visible = false
+modulate = Color(1, 0.85, 0.2, 1)
+z_index = 5
+scale = Vector2(2, 2)
+
+[node name="ShellCasing" type="Sprite2D" parent="OrbitingWeapon"]
+visible = false
+modulate = Color(1, 0.9, 0.55, 1)
+z_index = 6
+scale = Vector2(5, 5)
+texture = ExtResource("14_tex")

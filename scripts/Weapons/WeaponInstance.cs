@@ -40,7 +40,7 @@ public class WeaponInstance
         }
 
         if (fireTimer > 0f) fireTimer -= dt;
-        if (!hasTarget || fireTimer > 0f) return false;
+        if (!hasTarget || fireTimer > 0f || Ammo <= 0) return false;
 
         fireTimer = Data.FireInterval;
         Ammo--;

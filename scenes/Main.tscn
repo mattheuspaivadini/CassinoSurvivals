@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3]
+[gd_scene load_steps=31 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/FloorTile.png" id="1_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_tex"]
@@ -25,6 +25,7 @@
 [ext_resource type="Resource" path="res://resources/weapons/RevolverHighRoller.tres" id="23_res"]
 [ext_resource type="Resource" path="res://resources/weapons/LancaDados.tres" id="24_res"]
 [ext_resource type="Script" path="res://scripts/UI/EndScreenUI.cs" id="25_scr"]
+[ext_resource type="Script" path="res://scripts/MainController.cs" id="26_scr"]
 
 [sub_resource type="RectangleShape2D" id="1_sh"]
 size = Vector2(3720.0, 60.0)
@@ -38,7 +39,11 @@ size = Vector2(60.0, 3720.0)
 [sub_resource type="RectangleShape2D" id="4_sh"]
 size = Vector2(60.0, 3720.0)
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" node_paths=PackedStringArray("EnemySpawner", "WeaponSystem")]
+script = ExtResource("26_scr")
+DebugWeaponSandbox = true
+EnemySpawner = NodePath("Managers/EnemySpawner")
+WeaponSystem = NodePath("Player/WeaponSystem")
 
 [node name="Map" type="Node2D" parent="."]
 
