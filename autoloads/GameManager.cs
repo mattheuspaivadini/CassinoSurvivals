@@ -16,10 +16,16 @@ public partial class GameManager : Node
 
     [Signal] public delegate void ScoreChangedEventHandler(int score);
     [Signal] public delegate void ChipsChangedEventHandler(int chips);
+    [Signal] public delegate void DollarsChangedEventHandler(int dollars);
     [Signal] public delegate void StateChangedEventHandler(int state); // GameState
 
     public int Score { get; private set; }
     public int Chips { get; private set; }
+    /// <summary>$ ganhos nesta partida (vão para o saldo da Loja Externa no fim).</summary>
+    public int RunDollars { get; private set; }
+    /// <summary>Fichas convertidas em $ no fim da partida (Cash Out, $10 cada).</summary>
+    public int CashedOutChips { get; private set; }
+    public const int CashOutPerChip = 10;
     public float Elapsed { get; private set; }
     public GameState State { get; private set; }
 
@@ -53,6 +59,13 @@ public partial class GameManager : Node
         EmitSignal(SignalName.ChipsChanged, Chips);
     }
 
+    public void AddDollars(int amount)
+    {
+        if (amount <= 0 || State == GameState.GameOver || State == GameState.Victory) return;
+        RunDollars += amount;
+        EmitSignal(SignalName.DollarsChanged, RunDollars);
+    }
+
     public bool TrySpendChip()
     {
         if (Chips <= 0) return false;
@@ -84,6 +97,10 @@ public partial class GameManager : Node
         if (State == GameState.GameOver || State == GameState.Victory) return false;
         State = s;
         GetTree().Paused = true;
+        // Cash Out (PDF): fichas não gastas viram $ e o total da partida entra no saldo.
+        CashedOutChips = Chips;
+        RunDollars += Chips * CashOutPerChip;
+        MetaProgress.Bank(RunDollars);
         EmitSignal(SignalName.StateChanged, (int)State);
         return true;
     }
@@ -92,6 +109,7 @@ public partial class GameManager : Node
     public void Restart()
     {
         Score = Chips = 0;
+        RunDollars = CashedOutChips = 0;
         Elapsed = 0f;
         State = GameState.Playing;
         GetTree().Paused = false;

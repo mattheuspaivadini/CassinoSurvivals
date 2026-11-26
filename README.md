@@ -54,12 +54,14 @@ As armas disparam automaticamente no inimigo mais próximo.
 
 ## Fase 1 (Ato 1)
 
-Trilha: `assets/sounds/musica_tema.mp3`, em loop desde a abertura do jogo.
+Trilha: `assets/sounds/musica_tema.mp3` em loop; nos rounds de boss toca `assets/sounds/boss_theme.mp3`.
 
 A cena principal é `scenes/levels/Fase1.tscn`, montada a partir do Blockout 1 do documento de design (`Cassino Survivors.pdf`):
 
 - Arena vertical com estátuas de dado, vasos de planta, mesa de pôquer, duas mesas de roleta e balcões de caça-níqueis. Todo obstáculo bloqueia movimento e tiros.
-- 21 rounds. Em cada um, uma horda finita entra pelas 6 portas laterais (a lâmpada da porta pisca ~1s antes de abrir; as portas de baixo esperam 2,5s no início do round). A horda cresce todo round: de 36 inimigos no round 1 até 150 no round 20. Todo round traz Dourados (2 a 7), que sempre deixam ficha.
+- 21 rounds. Em cada um, uma horda finita entra pelas 6 portas laterais (a lâmpada da porta pisca ~1s antes de abrir; as portas de baixo esperam 2,5s no início do round). A horda cresce todo round: de 36 inimigos no round 1 até 150 no round 20.
+- Fichas: só Dourados e bosses soltam. 1 Dourado por round nos rounds 1–6, 2 nos rounds 8–13 e 3 nos rounds 15–20. Os bosses dos rounds 7, 14 e 21 soltam 3, 4 e 5 fichas.
+- Dinheiro ($), como no PDF: comum $1, Dourado $5, round limpo $10, bosses $75/$125/$250, e cada ficha que sobra vira $10 no fim. O saldo fica salvo entre partidas e é gasto na loja da tela final: Vigor (+6% HP), Arsenal (+5% dano) e Imortalidade (chance de reviver 1x), 5 níveis cada.
 - Cada balcão tem um caça-níquel jogável (brilho dourado no chão): com ficha, aperte E perto dele para girar e ganhar ou evoluir armas.
 - Rounds 7, 14 e 21 são de boss: primeiro uma mini-horda, depois o boss entra pela porta mais longe do jogador.
 - A porta de cima só abre depois do boss do round 21. Uma seta aponta a saída, e setas na borda da tela mostram os últimos inimigos fora da câmera.

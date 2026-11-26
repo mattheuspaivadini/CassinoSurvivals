@@ -21,3 +21,4 @@ ChipDropChance = 0.0
 HealDropChance = 0.0
 PointsDropChance = 0.0
 IsBoss = true
+Dollars = 250

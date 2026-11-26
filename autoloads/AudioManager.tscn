@@ -1,11 +1,13 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://autoloads/AudioManager.cs" id="1_am"]
 [ext_resource type="AudioStream" path="res://assets/sounds/musica_tema.mp3" id="2_music"]
+[ext_resource type="AudioStream" path="res://assets/sounds/boss_theme.mp3" id="3_boss"]
 
 [node name="AudioManager" type="Node"]
 script = ExtResource("1_am")
 Music = ExtResource("2_music")
+BossMusic = ExtResource("3_boss")
 
 [node name="Source" type="AudioStreamPlayer" parent="."]
 max_polyphony = 16

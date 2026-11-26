@@ -38,6 +38,12 @@ public static class SelfCheck
                 Check(s.Count >= RoundRules.For(r - 1).Count, "rounds normais não diminuem");
         }
         Check(bosses == 3, "3 bosses por fase");
+        Check(RoundRules.For(1).Elites == 1 && RoundRules.For(6).Elites == 1, "rounds 1-6: 1 Dourado");
+        Check(RoundRules.For(8).Elites == 2 && RoundRules.For(13).Elites == 2, "rounds 8-13: 2 Dourados");
+        Check(RoundRules.For(15).Elites == 3 && RoundRules.For(20).Elites == 3, "rounds 15-20: 3 Dourados");
+        Check(RoundRules.For(7).Elites == 0 && RoundRules.For(7).BossChips == 3, "boss 7 solta 3 fichas");
+        Check(RoundRules.For(14).BossChips == 4 && RoundRules.For(21).BossChips == 5, "bosses 14/21 soltam 4/5 fichas");
+        Check(RoundRules.For(7).BossDollars == 75 && RoundRules.For(21).BossDollars == 250, "$ dos bosses");
         Check(RoundRules.For(7).Count < RoundRules.For(6).Count, "round de boss é mini-horda");
     }
 

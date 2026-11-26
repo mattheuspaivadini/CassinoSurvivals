@@ -11,9 +11,16 @@ public readonly struct RoundSpec
     public readonly float HpMultiplier;
     public readonly bool Boss;
     public readonly float BossHp;
+    /// <summary>Fichas que o boss solta ao morrer.</summary>
+    public readonly int BossChips;
+    /// <summary>$ pago pelo boss (PDF: $75 / $125 / $250).</summary>
+    public readonly int BossDollars;
 
-    public RoundSpec(int round, int count, float duration, int elites, float hpMultiplier, bool boss, float bossHp)
+    public RoundSpec(int round, int count, float duration, int elites, float hpMultiplier, bool boss, float bossHp,
+        int bossChips, int bossDollars)
     {
+        BossChips = bossChips;
+        BossDollars = bossDollars;
         Round = round;
         Count = count;
         Duration = duration;
@@ -45,10 +52,14 @@ public static class RoundRules
             count = Mathf.CeilToInt(count / 2f);
             duration *= 0.5f;
         }
-        // Dourados são a fonte de fichas (caça-níqueis da arena): crescem com a horda.
-        int elites = 2 + round / 4;
+        // Fichas: 1 Dourado por round até o 1º boss, 2 até o 2º, 3 depois. Rounds de boss não têm
+        // Dourado; o próprio boss solta 3, 4 e 5 fichas.
+        int act = (round - 1) / BossEvery; // 0, 1, 2
+        int elites = boss ? 0 : act + 1;
         float hp = 1f + 0.06f * (round - 1);
         float bossHp = boss ? 2500f * (round / BossEvery) : 0f;
-        return new RoundSpec(round, count, duration, elites, hp, boss, bossHp);
+        int bossChips = boss ? 2 + round / BossEvery : 0;
+        int bossDollars = !boss ? 0 : (round / BossEvery) switch { 1 => 75, 2 => 125, _ => 250 };
+        return new RoundSpec(round, count, duration, elites, hp, boss, bossHp, bossChips, bossDollars);
     }
 }

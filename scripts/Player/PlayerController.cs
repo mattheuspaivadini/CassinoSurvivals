@@ -53,6 +53,7 @@ public partial class PlayerController : RigidBody2D
 		if (!sprite.SpriteFrames.HasAnimation("idle") || sprite.SpriteFrames.GetFrameCount("idle") <= 0)
 			GD.PushWarning("[PlayerController] Nenhum frame de idle: confira IdleSheet/WalkSheet/RollSheet no Player.tscn.");
 		PlayAnim("idle");
+		MaxHp *= MetaProgress.HpMultiplier; // Vigor (Loja Externa)
 		CurrentHp = MaxHp;
 	}
 
@@ -160,8 +161,22 @@ public partial class PlayerController : RigidBody2D
 		CurrentHp = Mathf.Max(0f, CurrentHp - amount);
 		Flash(Colors.Red);
 		AudioManager.Instance?.PlayPlayerHurt();
+		if (CurrentHp <= 0f && TryRevive()) return;
 		EmitSignal(SignalName.HpChanged, CurrentHp, MaxHp);
 		if (CurrentHp <= 0f) GameManager.Instance.GameOver();
+	}
+
+	bool reviveUsed;
+
+	/// <summary>Imortalidade (Loja Externa): 1x por partida, chance de voltar com parte do HP.</summary>
+	bool TryRevive()
+	{
+		if (reviveUsed || GD.Randf() >= MetaProgress.ReviveChance) return false;
+		reviveUsed = true;
+		CurrentHp = MaxHp * MetaProgress.ReviveHpFraction;
+		Flash(new Color(1f, 0.85f, 0.15f));
+		EmitSignal(SignalName.HpChanged, CurrentHp, MaxHp);
+		return true;
 	}
 
 	public void Heal(float amount)

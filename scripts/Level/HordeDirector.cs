@@ -19,6 +19,11 @@ public partial class HordeDirector : Node
     /// <summary>Base do boss; o HP vem do round (RoundRules.BossHp).</summary>
     [Export] public EnemyData BossType { get; set; }
 
+    /// <summary>Chance de drop de pontos dos comuns na fase (o "XP" da horda).</summary>
+    [Export(PropertyHint.Range, "0,1")] public float CommonPointsDropChance { get; set; } = 0.25f;
+    /// <summary>$ por round limpo (PDF, Ato 1: $10).</summary>
+    [Export] public int RoundClearDollars { get; set; } = 10;
+
     [ExportGroup("Ritmo")]
     /// <summary>Pausa entre rounds (s).</summary>
     [Export] public float BreakTime { get; set; } = 3f;
@@ -58,6 +63,17 @@ public partial class HordeDirector : Node
         Instance = this;
         rng.Randomize();
         doors = DoorsRoot.GetChildren().OfType<SpawnDoor>().ToList();
+        // PDF: comuns não soltam ficha (só Dourados e bosses). Mais drop de pontos.
+        var commons = new Godot.Collections.Array<EnemyData>();
+        foreach (var t in CommonTypes)
+        {
+            var c = (EnemyData)t.Duplicate();
+            c.ChipDropChance = 0f;
+            c.PointsDropChance = CommonPointsDropChance;
+            commons.Add(c);
+        }
+        CommonTypes = commons;
+        AudioManager.Instance?.PlayMainMusic(); // reiniciar no meio de um boss volta à trilha normal
         EnemySpawner.Instance.EnemyRemoved += OnEnemyRemoved;
         timer = 0.5f; // primeiro round começa quase de imediato
     }
@@ -100,6 +116,8 @@ public partial class HordeDirector : Node
         roundTotal = spec.Count + (spec.Boss ? 1 : 0);
         timer = 0f;
         phase = Phase.Horde;
+        if (spec.Boss) AudioManager.Instance?.PlayBossMusic();
+        else AudioManager.Instance?.PlayMainMusic();
         EmitSignal(SignalName.RoundStarted, round, spec.Boss);
     }
 
@@ -121,6 +139,9 @@ public partial class HordeDirector : Node
         var data = (EnemyData)BossType.Duplicate();
         data.MaxHp = spec.BossHp;
         data.FixedHp = true;
+        data.GuaranteedChip = true;
+        data.ChipDrops = spec.BossChips;
+        data.Dollars = spec.BossDollars;
 
         Vector2 playerPos = PlayerController.Instance.GlobalPosition;
         var door = doors.OrderByDescending(d => d.GlobalPosition.DistanceSquaredTo(playerPos)).First();
@@ -147,6 +168,9 @@ public partial class HordeDirector : Node
             return;
         }
         if (roundKilled < roundTotal) return;
+
+        GameManager.Instance.AddDollars(RoundClearDollars);
+        if (spec.Boss) AudioManager.Instance?.PlayMainMusic();
 
         if (Round >= Rounds)
         {

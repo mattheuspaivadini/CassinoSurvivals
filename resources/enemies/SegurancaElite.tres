@@ -17,6 +17,7 @@ MoveSpeed = 2.2
 FixedHp = false
 Points = 100
 GuaranteedChip = true
+Dollars = 5
 ChipDropChance = 0.005
 HealDropChance = 0.03
 PointsDropChance = 0.05

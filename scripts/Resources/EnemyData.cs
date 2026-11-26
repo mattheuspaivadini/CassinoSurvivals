@@ -23,6 +23,10 @@ public partial class EnemyData : Resource
     [ExportGroup("Recompensa")]
     [Export] public int Points { get; set; } = 10;
     [Export] public bool GuaranteedChip { get; set; }
+    /// <summary>Quantas fichas o drop garantido solta (Dourado = 1, bosses = 3 a 5).</summary>
+    [Export] public int ChipDrops { get; set; } = 1;
+    /// <summary>Dinheiro ($) da Loja Externa pago ao morrer (PDF: comum $1, Dourado $5).</summary>
+    [Export] public int Dollars { get; set; } = 1;
     [Export(PropertyHint.Range, "0,1")] public float ChipDropChance { get; set; } = 0.005f;
     [Export(PropertyHint.Range, "0,1")] public float HealDropChance { get; set; } = 0.03f;
     [Export(PropertyHint.Range, "0,1")] public float PointsDropChance { get; set; } = 0.05f;

@@ -119,6 +119,7 @@ public partial class Enemy : RigidBody2D
     {
         AudioManager.Instance?.PlayEnemyDeath();
         GameManager.Instance.AddScore(Data.Points);
+        GameManager.Instance.AddDollars(Data.Dollars);
         DropManager.Instance.RollDrops(Data, GlobalPosition);
         bool boss = Data.IsBoss;
         EnemySpawner.Instance.Despawn(this);

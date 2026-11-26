@@ -1,12 +1,17 @@
 using Godot;
 
-/// <summary>Tela de Game Over / Vitória com botão de reiniciar.</summary>
+/// <summary>
+/// Tela de Game Over / Vitória com resumo de $ (PDF, seção 7: Cash Out e Loja Externa) e a loja
+/// de upgrades permanentes, montada em código abaixo do resumo.
+/// </summary>
 public partial class EndScreenUI : CanvasLayer
 {
     [Export] public string VictoryTitle { get; set; } = "VOCÊ QUEBROU A BANCA!";
+    [Export] public bool ShowShop { get; set; } = true;
 
     Control panel;
-    Label title, stats;
+    Label title, stats, balance;
+    readonly Button[] buyButtons = new Button[MetaProgress.Names.Length];
 
     public override void _Ready()
     {
@@ -17,6 +22,7 @@ public partial class EndScreenUI : CanvasLayer
         panel.Visible = false;
         GameManager.Instance.StateChanged += OnStateChanged;
         GetNode<Button>("Panel/Restart").Pressed += GameManager.Instance.Restart;
+        if (ShowShop) BuildShop();
     }
 
     // GameManager é autoload e sobrevive ao reload: desconecta para não chamar um nó liberado.
@@ -31,7 +37,60 @@ public partial class EndScreenUI : CanvasLayer
         title.Text = win ? VictoryTitle : "GAME OVER";
         title.AddThemeColorOverride("font_color", win ? new Color(1f, 0.85f, 0.1f) : new Color(1f, 0.25f, 0.35f));
         int t = (int)gm.Elapsed;
-        stats.Text = $"Pontos: {gm.Score}\nTempo: {t / 60}:{t % 60:00}";
+        string cash = gm.CashedOutChips > 0
+            ? $"  (inclui {gm.CashedOutChips} ficha(s) x ${GameManager.CashOutPerChip})"
+            : "";
+        stats.Text = $"Pontos: {gm.Score}   Tempo: {t / 60}:{t % 60:00}\nGanhou: ${gm.RunDollars}{cash}";
+        RefreshShop();
         panel.Visible = true;
+    }
+
+    /// <summary>Sobe título e resumo e encaixa a loja entre eles e o botão de reiniciar.</summary>
+    void BuildShop()
+    {
+        title.OffsetTop -= 230f;
+        title.OffsetBottom -= 230f;
+        stats.OffsetTop -= 230f;
+        stats.OffsetBottom -= 200f;
+
+        var box = new VBoxContainer
+        {
+            AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+            OffsetLeft = -520f, OffsetRight = 520f, OffsetTop = -120f, OffsetBottom = 95f,
+        };
+        box.AddThemeConstantOverride("separation", 8);
+        panel.AddChild(box);
+
+        balance = new Label { HorizontalAlignment = HorizontalAlignment.Center };
+        balance.AddThemeFontSizeOverride("font_size", 34);
+        balance.AddThemeColorOverride("font_color", new Color(0.45f, 1f, 0.5f));
+        box.AddChild(balance);
+
+        for (int i = 0; i < buyButtons.Length; i++)
+        {
+            int index = i;
+            var b = new Button { CustomMinimumSize = new Vector2(0f, 48f), FocusMode = Control.FocusModeEnum.None };
+            b.AddThemeFontSizeOverride("font_size", 24);
+            b.Pressed += () =>
+            {
+                if (MetaProgress.TryBuy((MetaProgress.Upgrade)index)) RefreshShop();
+            };
+            box.AddChild(b);
+            buyButtons[i] = b;
+        }
+    }
+
+    void RefreshShop()
+    {
+        if (balance == null) return;
+        balance.Text = $"LOJA  -  SALDO: ${MetaProgress.Dollars}";
+        for (int i = 0; i < buyButtons.Length; i++)
+        {
+            var u = (MetaProgress.Upgrade)i;
+            int lvl = MetaProgress.Level(u), cost = MetaProgress.NextCost(u);
+            string price = cost < 0 ? "MÁXIMO" : $"${cost}";
+            buyButtons[i].Text = $"{MetaProgress.Names[i]}  Nv {lvl}/{MetaProgress.MaxLevel}  -  {MetaProgress.Descriptions[i]}  -  {price}";
+            buyButtons[i].Disabled = cost < 0 || MetaProgress.Dollars < cost;
+        }
     }
 }

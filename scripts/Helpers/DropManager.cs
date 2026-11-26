@@ -28,7 +28,13 @@ public partial class DropManager : Node
 
     public void RollDrops(EnemyData data, Vector2 pos)
     {
-        if (data.GuaranteedChip) { Spawn(DropType.Chip, pos); return; }
+        if (data.GuaranteedChip)
+        {
+            int n = Mathf.Max(1, data.ChipDrops);
+            for (int i = 0; i < n; i++)  // várias fichas se espalham em volta do corpo
+                Spawn(DropType.Chip, n == 1 ? pos : pos + Vector2.FromAngle(Mathf.Tau * i / n) * 0.8f * Units.Px);
+            return;
+        }
 
         // Uma única rolagem: no máximo 1 drop por inimigo comum.
         float r = GD.Randf();

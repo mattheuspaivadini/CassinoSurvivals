@@ -14,7 +14,7 @@ public partial class HUD : CanvasLayer
 
     readonly StringBuilder sb = new StringBuilder(512);
     ColorRect hpFill; // pivot X=0; a largura é controlada por Scale.X
-    Label hpText, scoreText, chipsText, timerText, bannerText;
+    Label hpText, scoreText, chipsText, dollarsText, timerText, bannerText;
     RichTextLabel weaponsText;
     float refreshTimer, bannerTimer;
 
@@ -32,6 +32,14 @@ public partial class HUD : CanvasLayer
         var gm = GameManager.Instance;
         gm.ScoreChanged += UpdateScore;
         gm.ChipsChanged += UpdateChips;
+        // $ da partida logo abaixo das fichas (mesmo estilo).
+        dollarsText = (Label)chipsText.Duplicate();
+        dollarsText.Name = "Dollars";
+        dollarsText.Position += new Vector2(0f, 45f);
+        dollarsText.AddThemeColorOverride("font_color", new Color(0.45f, 1f, 0.5f));
+        AddChild(dollarsText);
+        gm.DollarsChanged += UpdateDollars;
+        UpdateDollars(gm.RunDollars);
         PlayerController.Instance.HpChanged += UpdateHp;
         EnemySpawner.Instance.BossSpawned += ShowBossBanner;
         if (Horde != null)
@@ -51,6 +59,7 @@ public partial class HUD : CanvasLayer
     {
         GameManager.Instance.ScoreChanged -= UpdateScore;
         GameManager.Instance.ChipsChanged -= UpdateChips;
+        GameManager.Instance.DollarsChanged -= UpdateDollars;
     }
 
     public override void _Process(double delta)
@@ -109,6 +118,7 @@ public partial class HUD : CanvasLayer
 
     void UpdateScore(int score) => scoreText.Text = $"PONTOS: {score}";
     void UpdateChips(int chips) => chipsText.Text = $"FICHAS: {chips}";
+    void UpdateDollars(int dollars) => dollarsText.Text = $"$ {dollars}";
 
     void ShowClearedBanner() => ShowBanner("FASE LIMPA! A SAÍDA ABRIU", new Color(1f, 0.85f, 0.15f));
 
