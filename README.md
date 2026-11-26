@@ -57,8 +57,9 @@ As armas disparam automaticamente no inimigo mais próximo.
 A cena principal é `scenes/levels/Fase1.tscn`, montada a partir do Blockout 1 do documento de design (`Cassino Survivors.pdf`):
 
 - Arena vertical com pilares, mesa de pôquer, duas mesas de roleta e balcões de caça-níqueis. Todo obstáculo bloqueia movimento e tiros.
-- Horda finita de 25 inimigos que entram pelas 6 portas laterais (alerta vermelho ~1s antes de abrir; as portas de baixo esperam 2,5s no início). Dois deles são Dourados e sempre deixam ficha.
-- A porta de cima só abre quando todos morrem. Uma seta aponta a saída, e setas na borda da tela mostram os últimos inimigos fora da câmera.
+- 21 rounds. Em cada um, uma horda finita entra pelas 6 portas laterais (a lâmpada da porta pisca ~1s antes de abrir; as portas de baixo esperam 2,5s no início do round). A partir do round 3 vêm Dourados, que sempre deixam ficha.
+- Rounds 7, 14 e 21 são de boss: primeiro uma mini-horda, depois o boss entra pela porta mais longe do jogador.
+- A porta de cima só abre depois do boss do round 21. Uma seta aponta a saída, e setas na borda da tela mostram os últimos inimigos fora da câmera.
 - Os inimigos contornam obstáculos (flow field), os rápidos tentam cercar o jogador e a horda se espalha em vez de virar fila.
 
 O modo antigo (arena aberta por tempo, com o Tigrinho) continua em `scenes/Main.tscn`.

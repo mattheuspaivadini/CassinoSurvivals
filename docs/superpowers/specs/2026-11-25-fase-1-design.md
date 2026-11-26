@@ -36,6 +36,16 @@ Nenhum inimigo novo nesta etapa: os tipos existentes fazem o papel do bestiário
 
 ## 2. Regras de sala
 
+> **Atualização (playtest, 26/11):** a fase passou a ter 21 rounds. Cada round é uma horda finita
+> pelas portas laterais; matou todos, pausa de 3s e começa o próximo. Rounds múltiplos de 7
+> (7, 14, 21) são de boss: mini-horda com metade do volume e depois o boss (Tigrinho com HP de
+> 2500/5000/7500) entra pela porta mais longe do jogador. A saída só abre depois do round 21.
+> Escala em `scripts/Level/RoundRules.cs`: 6+N inimigos, duração 12+N s, HP 1 + 0,06·(N-1),
+> Dourados 0 (N<3), 1 (N<10) ou 2. Matar o boss não encerra a partida na fase; só a saída.
+> As portas laterais viraram vãos na parede (moldura dourada, folhas de metal que deslizam,
+> lâmpada que pisca no alerta). O texto abaixo descreve a primeira versão (1 horda de 25).
+
+
 - `HordeDirector` (novo) controla o spawn; `EnemySpawner` passa a ter `AutoSpawn` (true no
   `Main.tscn`, false na Fase 1) e continua sendo o registro de inimigos ativos.
 - Horda: 25 inimigos no total, taxa constante ao longo de ~60s, sorteando portas.

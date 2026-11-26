@@ -122,6 +122,7 @@ public partial class Enemy : RigidBody2D
         DropManager.Instance.RollDrops(Data, GlobalPosition);
         bool boss = Data.IsBoss;
         EnemySpawner.Instance.Despawn(this);
-        if (boss) GameManager.Instance.Victory();
+        // Na fase com rounds quem encerra é a saída; no modo antigo o boss vence a partida.
+        if (boss && HordeDirector.Instance == null) GameManager.Instance.Victory();
     }
 }

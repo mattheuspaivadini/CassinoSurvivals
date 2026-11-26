@@ -34,7 +34,11 @@ public partial class HUD : CanvasLayer
         gm.ChipsChanged += UpdateChips;
         PlayerController.Instance.HpChanged += UpdateHp;
         EnemySpawner.Instance.BossSpawned += ShowBossBanner;
-        if (Horde != null) Horde.Cleared += ShowClearedBanner;
+        if (Horde != null)
+        {
+            Horde.Cleared += ShowClearedBanner;
+            Horde.RoundStarted += ShowRoundBanner;
+        }
 
         UpdateScore(gm.Score);
         UpdateChips(gm.Chips);
@@ -84,9 +88,9 @@ public partial class HUD : CanvasLayer
     {
         if (Horde != null)
         {
-            timerText.Text = Horde.IsCleared
-                ? "SAÍDA ABERTA! SIGA PARA A PORTA DE CIMA"
-                : $"{Horde.StageLabel}   |   INIMIGOS: {Horde.Remaining}";
+            if (Horde.IsCleared) timerText.Text = "SAÍDA ABERTA! SIGA PARA A PORTA DE CIMA";
+            else if (Horde.Round == 0 || Horde.InBreak) timerText.Text = $"{Horde.StageLabel}   |   PRÓXIMO: ROUND {Horde.Round + 1}/{Horde.Rounds}";
+            else timerText.Text = $"{Horde.StageLabel}   |   ROUND {Horde.Round}/{Horde.Rounds}   |   INIMIGOS: {Horde.Remaining}";
             return;
         }
         var gm = GameManager.Instance;
@@ -104,15 +108,18 @@ public partial class HUD : CanvasLayer
     void UpdateScore(int score) => scoreText.Text = $"PONTOS: {score}";
     void UpdateChips(int chips) => chipsText.Text = $"FICHAS: {chips}";
 
-    void ShowClearedBanner() => ShowBanner("SALA LIMPA!", new Color(1f, 0.85f, 0.15f));
+    void ShowClearedBanner() => ShowBanner("FASE LIMPA! A SAÍDA ABRIU", new Color(1f, 0.85f, 0.15f));
+
+    void ShowRoundBanner(int round, bool boss) =>
+        ShowBanner(boss ? $"ROUND {round} - BOSS!" : $"ROUND {round}", boss ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 1f, 1f), 2f);
 
     void ShowBossBanner() => ShowBanner("O TIGRINHO CHEGOU!", new Color(1f, 0.5f, 0f));
 
-    void ShowBanner(string text, Color color)
+    void ShowBanner(string text, Color color, float seconds = 4f)
     {
         bannerText.Text = text;
         bannerText.AddThemeColorOverride("font_color", color);
         bannerText.Visible = true;
-        bannerTimer = 4f;
+        bannerTimer = seconds;
     }
 }

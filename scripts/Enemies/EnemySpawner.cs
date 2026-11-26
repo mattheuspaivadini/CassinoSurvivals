@@ -74,8 +74,14 @@ public partial class EnemySpawner : Node
 
     void SpawnBoss()
     {
-        HasBossSpawned = true;
         Spawn(BossType, RandomSpawnPosition(), 1f);
+        AnnounceBoss();
+    }
+
+    /// <summary>Som e banner de entrada do boss (também usado pelos rounds de boss da fase).</summary>
+    public void AnnounceBoss()
+    {
+        HasBossSpawned = true;
         AudioManager.Instance?.PlayBossSpawn();
         EmitSignal(SignalName.BossSpawned);
     }

@@ -21,6 +21,24 @@ public static class SelfCheck
 
         FlowFieldContornaParede();
         PlanoDaHorda();
+        RoundsDaFase();
+    }
+
+    static void RoundsDaFase()
+    {
+        int bosses = 0;
+        for (int r = 1; r <= RoundRules.RoundsPerStage; r++)
+        {
+            var s = RoundRules.For(r);
+            if (s.Boss) bosses++;
+            Check(s.Boss == (r == 7 || r == 14 || r == 21), $"boss só nos rounds 7/14/21 (round {r})");
+            Check(s.Count > 0 && s.Duration > 0f && s.HpMultiplier >= 1f, $"round {r} válido");
+            Check(!s.Boss || s.BossHp > 0f, $"boss do round {r} com HP");
+            if (r > 1 && !s.Boss && !RoundRules.IsBossRound(r - 1))
+                Check(s.Count >= RoundRules.For(r - 1).Count, "rounds normais não diminuem");
+        }
+        Check(bosses == 3, "3 bosses por fase");
+        Check(RoundRules.For(7).Count < RoundRules.For(6).Count, "round de boss é mini-horda");
     }
 
     /// <summary>Grade 10x5 com parede na coluna 5 (y 0..3); o único vão é a linha y=4.</summary>
