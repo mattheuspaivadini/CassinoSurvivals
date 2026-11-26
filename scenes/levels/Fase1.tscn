@@ -1,0 +1,1057 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/levels/fase1/carpet_red.png" id="t_red"]
+[ext_resource type="Texture2D" path="res://assets/levels/fase1/carpet_blue.png" id="t_blue"]
+[ext_resource type="Texture2D" path="res://assets/levels/fase1/wall_face.png" id="t_wallface"]
+[ext_resource type="Texture2D" path="res://assets/levels/fase1/exit_arch.png" id="t_arch"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Circle.png" id="14_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Diamond.png" id="13_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/Triangle.png" id="t_tri"]
+[ext_resource type="Texture2D" path="res://assets/2D Top Down Pixel Art Tileset Casino/2D_TopDown_Tileset_Casino_1024x512.png" id="t_jephed"]
+[ext_resource type="Texture2D" path="res://assets/2D Top Down Pixel Art Tileset Casino/Animated Sprite Sheets/DoorAnimationSheet_0.png" id="t_door"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Tilesheet_Environment/Tilesheet.png" id="t_dice"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Tilesheet_Environment/Poker_Table.png" id="t_poker"]
+[ext_resource type="PackedScene" path="res://scenes/Player.tscn" id="3_pac"]
+[ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="4_scr"]
+[ext_resource type="Script" path="res://scripts/Enemies/EnemySpawner.cs" id="5_scr"]
+[ext_resource type="Resource" path="res://resources/enemies/Capanga.tres" id="6_res"]
+[ext_resource type="Resource" path="res://resources/enemies/CrupieVeloz.tres" id="7_res"]
+[ext_resource type="Resource" path="res://resources/enemies/SegurancaElite.tres" id="8_res"]
+[ext_resource type="PackedScene" path="res://scenes/Enemy.tscn" id="10_pac"]
+[ext_resource type="Script" path="res://scripts/Helpers/DropManager.cs" id="11_scr"]
+[ext_resource type="PackedScene" path="res://scenes/Drop.tscn" id="12_pac"]
+[ext_resource type="Script" path="res://scripts/UI/HUD.cs" id="17_scr"]
+[ext_resource type="Script" path="res://scripts/UI/EndScreenUI.cs" id="25_scr"]
+[ext_resource type="Script" path="res://scripts/Level/Arena.cs" id="s_arena"]
+[ext_resource type="Script" path="res://scripts/Level/SpawnDoor.cs" id="s_door"]
+[ext_resource type="Script" path="res://scripts/Level/HordeDirector.cs" id="s_horde"]
+[ext_resource type="Script" path="res://scripts/Level/ExitDoor.cs" id="s_exit"]
+[ext_resource type="Script" path="res://scripts/UI/OffscreenPointers.cs" id="s_pointers"]
+
+[sub_resource type="RectangleShape2D" id="rect_1"]
+size = Vector2(120.0, 4800.0)
+
+[sub_resource type="RectangleShape2D" id="rect_2"]
+size = Vector2(3600.0, 120.0)
+
+[sub_resource type="RectangleShape2D" id="rect_3"]
+size = Vector2(1680.0, 240.0)
+
+[sub_resource type="RectangleShape2D" id="rect_4"]
+size = Vector2(60.0, 240.0)
+
+[sub_resource type="RectangleShape2D" id="rect_5"]
+size = Vector2(360.0, 60.0)
+
+[sub_resource type="RectangleShape2D" id="rect_6"]
+size = Vector2(180.0, 180.0)
+
+[sub_resource type="RectangleShape2D" id="rect_7"]
+size = Vector2(360.0, 264.0)
+
+[sub_resource type="RectangleShape2D" id="rect_8"]
+size = Vector2(600.0, 300.0)
+
+[sub_resource type="RectangleShape2D" id="rect_9"]
+size = Vector2(360.0, 180.0)
+
+[sub_resource type="RectangleShape2D" id="rect_10"]
+size = Vector2(240.0, 60.0)
+
+[sub_resource type="RectangleShape2D" id="rect_11"]
+size = Vector2(210.0, 150.0)
+
+[node name="Fase1" type="Node2D"]
+script = ExtResource("s_arena")
+HalfExtents = Vector2(28.0, 38.0)
+
+[node name="Floor" type="Node2D" parent="."]
+z_index = -10
+
+[node name="Carpet" type="Sprite2D" parent="Floor"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_red")
+scale = Vector2(3.8, 3.8)
+region_enabled = true
+region_rect = Rect2(0, 0, 896, 1216)
+texture_repeat = 2
+
+[node name="RugRoulettes" type="Sprite2D" parent="Floor"]
+z_index = 1
+texture_filter = 1
+position = Vector2(0.0, 360.0)
+texture = ExtResource("t_blue")
+scale = Vector2(3.8, 3.8)
+region_enabled = true
+region_rect = Rect2(0, 0, 672, 192)
+texture_repeat = 2
+
+[node name="RugAisle" type="Sprite2D" parent="Floor"]
+z_index = 1
+texture_filter = 1
+position = Vector2(0.0, 1470.0)
+texture = ExtResource("t_blue")
+scale = Vector2(3.8, 3.8)
+region_enabled = true
+region_rect = Rect2(0, 0, 64, 400)
+texture_repeat = 2
+
+[node name="RugAisleTop" type="Sprite2D" parent="Floor"]
+z_index = 1
+texture_filter = 1
+position = Vector2(0.0, -585.0)
+texture = ExtResource("t_blue")
+scale = Vector2(3.8, 3.8)
+region_enabled = true
+region_rect = Rect2(0, 0, 64, 312)
+texture_repeat = 2
+
+[node name="CorridorCarpet" type="Sprite2D" parent="Floor"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, -1680.0)
+texture = ExtResource("t_red")
+scale = Vector2(3.8, 3.8)
+region_enabled = true
+region_rect = Rect2(0, 0, 64, 64)
+texture_repeat = 2
+
+[node name="Walls" type="Node2D" parent="."]
+z_index = -5
+
+[node name="Wall_W" type="StaticBody2D" parent="Walls"]
+position = Vector2(-1740.0, 0.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Wall_W"]
+shape = SubResource("rect_1")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Wall_W"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(30.0, 1200.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="Trim" type="Sprite2D" parent="Walls/Wall_W"]
+z_index = 1
+texture_filter = 1
+position = Vector2(56.4, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(1.8, 1140.0)
+modulate = Color(1.0, 0.2, 0.7, 1.0)
+
+[node name="Wall_E" type="StaticBody2D" parent="Walls"]
+position = Vector2(1740.0, 0.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Wall_E"]
+shape = SubResource("rect_1")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Wall_E"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(30.0, 1200.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="Trim" type="Sprite2D" parent="Walls/Wall_E"]
+z_index = 1
+texture_filter = 1
+position = Vector2(-56.4, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(1.8, 1140.0)
+modulate = Color(1.0, 0.2, 0.7, 1.0)
+
+[node name="Wall_S" type="StaticBody2D" parent="Walls"]
+position = Vector2(0.0, 2340.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Wall_S"]
+shape = SubResource("rect_2")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Wall_S"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(900.0, 30.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="Trim" type="Sprite2D" parent="Walls/Wall_S"]
+z_index = 1
+texture_filter = 1
+position = Vector2(0.0, -56.4)
+texture = ExtResource("2_tex")
+scale = Vector2(840.0, 1.8)
+modulate = Color(1.0, 0.2, 0.7, 1.0)
+
+[node name="Wall_NW" type="StaticBody2D" parent="Walls"]
+position = Vector2(-960.0, -2400.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Wall_NW"]
+shape = SubResource("rect_3")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Wall_NW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(420.0, 60.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="Wall_NE" type="StaticBody2D" parent="Walls"]
+position = Vector2(960.0, -2400.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Wall_NE"]
+shape = SubResource("rect_3")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Wall_NE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(420.0, 60.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="Corridor_W" type="StaticBody2D" parent="Walls"]
+position = Vector2(-150.0, -2400.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Corridor_W"]
+shape = SubResource("rect_4")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Corridor_W"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(15.0, 60.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="Corridor_E" type="StaticBody2D" parent="Walls"]
+position = Vector2(150.0, -2400.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Corridor_E"]
+shape = SubResource("rect_4")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Corridor_E"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(15.0, 60.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="Corridor_Back" type="StaticBody2D" parent="Walls"]
+position = Vector2(0.0, -2550.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Walls/Corridor_Back"]
+shape = SubResource("rect_5")
+
+[node name="Sprite" type="Sprite2D" parent="Walls/Corridor_Back"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("2_tex")
+scale = Vector2(90.0, 15.0)
+modulate = Color(0.16, 0.06, 0.2, 1.0)
+
+[node name="NorthFace" type="Sprite2D" parent="Walls"]
+z_index = 1
+texture_filter = 1
+position = Vector2(0.0, -2400.0)
+texture = ExtResource("t_wallface")
+scale = Vector2(3.8, 3.8)
+region_enabled = true
+region_rect = Rect2(0, 0, 896, 64)
+texture_repeat = 2
+
+[node name="NorthTrim" type="Sprite2D" parent="Walls"]
+z_index = 2
+texture_filter = 1
+position = Vector2(0.0, -2276.4)
+texture = ExtResource("2_tex")
+scale = Vector2(840.0, 1.8)
+modulate = Color(1.0, 0.2, 0.7, 1.0)
+
+[node name="Obstacles" type="Node2D" parent="."]
+z_index = 0
+
+[node name="P1" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(-840.0, -1320.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/P1"]
+shape = SubResource("rect_6")
+
+[node name="Sprite" type="Sprite2D" parent="Obstacles/P1"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_dice")
+scale = Vector2(7.8, 7.8)
+region_enabled = true
+region_rect = Rect2(192, 192, 23, 23)
+
+[node name="P2" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(840.0, -1320.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/P2"]
+shape = SubResource("rect_6")
+
+[node name="Sprite" type="Sprite2D" parent="Obstacles/P2"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_dice")
+scale = Vector2(7.8, 7.8)
+region_enabled = true
+region_rect = Rect2(192, 192, 23, 23)
+
+[node name="P3" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(-900.0, 1320.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/P3"]
+shape = SubResource("rect_6")
+
+[node name="Sprite" type="Sprite2D" parent="Obstacles/P3"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_dice")
+scale = Vector2(7.8, 7.8)
+region_enabled = true
+region_rect = Rect2(192, 192, 23, 23)
+
+[node name="P4" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(900.0, 1320.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/P4"]
+shape = SubResource("rect_6")
+
+[node name="Sprite" type="Sprite2D" parent="Obstacles/P4"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_dice")
+scale = Vector2(7.8, 7.8)
+region_enabled = true
+region_rect = Rect2(192, 192, 23, 23)
+
+[node name="PokerTable" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(0.0, -1320.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/PokerTable"]
+shape = SubResource("rect_7")
+
+[node name="Sprite" type="Sprite2D" parent="Obstacles/PokerTable"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_poker")
+scale = Vector2(7.5, 7.5)
+region_enabled = true
+region_rect = Rect2(8, 14, 48, 37)
+
+[node name="Roulette_L" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(-660.0, 360.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/Roulette_L"]
+shape = SubResource("rect_8")
+
+[node name="Sprite" type="Sprite2D" parent="Obstacles/Roulette_L"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.2, 5.2)
+region_enabled = true
+region_rect = Rect2(905, 132, 119, 60)
+
+[node name="Roulette_R" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(660.0, 360.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/Roulette_R"]
+shape = SubResource("rect_8")
+
+[node name="Sprite" type="Sprite2D" parent="Obstacles/Roulette_R"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, 0.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.4, 5.4)
+region_enabled = true
+region_rect = Rect2(912, 196, 112, 60)
+flip_h = true
+
+[node name="Counter_NW" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(-1500.0, -720.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/Counter_NW"]
+shape = SubResource("rect_9")
+
+[node name="Machine0" type="Sprite2D" parent="Obstacles/Counter_NW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine1" type="Sprite2D" parent="Obstacles/Counter_NW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Machine2" type="Sprite2D" parent="Obstacles/Counter_NW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine3" type="Sprite2D" parent="Obstacles/Counter_NW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Counter_NE" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(1500.0, -720.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/Counter_NE"]
+shape = SubResource("rect_9")
+
+[node name="Machine0" type="Sprite2D" parent="Obstacles/Counter_NE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine1" type="Sprite2D" parent="Obstacles/Counter_NE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Machine2" type="Sprite2D" parent="Obstacles/Counter_NE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine3" type="Sprite2D" parent="Obstacles/Counter_NE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Counter_SW" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(-1500.0, 840.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/Counter_SW"]
+shape = SubResource("rect_9")
+
+[node name="Machine0" type="Sprite2D" parent="Obstacles/Counter_SW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine1" type="Sprite2D" parent="Obstacles/Counter_SW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Machine2" type="Sprite2D" parent="Obstacles/Counter_SW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine3" type="Sprite2D" parent="Obstacles/Counter_SW"]
+z_index = 0
+texture_filter = 1
+position = Vector2(135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Counter_SE" type="StaticBody2D" parent="Obstacles" groups=["solid"]]
+position = Vector2(1500.0, 840.0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="Shape" type="CollisionShape2D" parent="Obstacles/Counter_SE"]
+shape = SubResource("rect_9")
+
+[node name="Machine0" type="Sprite2D" parent="Obstacles/Counter_SE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine1" type="Sprite2D" parent="Obstacles/Counter_SE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Machine2" type="Sprite2D" parent="Obstacles/Counter_SE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(45.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(784, 17, 16, 42)
+
+[node name="Machine3" type="Sprite2D" parent="Obstacles/Counter_SE"]
+z_index = 0
+texture_filter = 1
+position = Vector2(135.0, -18.0)
+texture = ExtResource("t_jephed")
+scale = Vector2(5.6, 5.6)
+region_enabled = true
+region_rect = Rect2(816, 17, 16, 42)
+
+[node name="Doors" type="Node2D" parent="."]
+z_index = 1
+
+[node name="Porta1" type="Node2D" parent="Doors"]
+position = Vector2(-1680.0, -1860.0)
+script = ExtResource("s_door")
+Inward = Vector2(1.0, 0.0)
+
+[node name="Door" type="Sprite2D" parent="Doors/Porta1"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-45.0, 0.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = -1.6
+hframes = 7
+
+[node name="Alert" type="Sprite2D" parent="Doors/Porta1"]
+z_index = -1
+texture_filter = 1
+position = Vector2(54.0, 0.0)
+texture = ExtResource("14_tex")
+scale = Vector2(1.6, 1.6)
+modulate = Color(1.0, 0.15, 0.2, 0.8)
+
+[node name="Porta2" type="Node2D" parent="Doors"]
+position = Vector2(-1680.0, -180.0)
+script = ExtResource("s_door")
+Inward = Vector2(1.0, 0.0)
+
+[node name="Door" type="Sprite2D" parent="Doors/Porta2"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-45.0, 0.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = -1.6
+hframes = 7
+
+[node name="Alert" type="Sprite2D" parent="Doors/Porta2"]
+z_index = -1
+texture_filter = 1
+position = Vector2(54.0, 0.0)
+texture = ExtResource("14_tex")
+scale = Vector2(1.6, 1.6)
+modulate = Color(1.0, 0.15, 0.2, 0.8)
+
+[node name="Porta3" type="Node2D" parent="Doors"]
+position = Vector2(-1680.0, 1680.0)
+script = ExtResource("s_door")
+Inward = Vector2(1.0, 0.0)
+
+[node name="Door" type="Sprite2D" parent="Doors/Porta3"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-45.0, 0.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = -1.6
+hframes = 7
+
+[node name="Alert" type="Sprite2D" parent="Doors/Porta3"]
+z_index = -1
+texture_filter = 1
+position = Vector2(54.0, 0.0)
+texture = ExtResource("14_tex")
+scale = Vector2(1.6, 1.6)
+modulate = Color(1.0, 0.15, 0.2, 0.8)
+
+[node name="Porta4" type="Node2D" parent="Doors"]
+position = Vector2(1680.0, -1860.0)
+script = ExtResource("s_door")
+Inward = Vector2(-1.0, 0.0)
+
+[node name="Door" type="Sprite2D" parent="Doors/Porta4"]
+z_index = 0
+texture_filter = 1
+position = Vector2(45.0, 0.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = 1.6
+hframes = 7
+
+[node name="Alert" type="Sprite2D" parent="Doors/Porta4"]
+z_index = -1
+texture_filter = 1
+position = Vector2(-54.0, 0.0)
+texture = ExtResource("14_tex")
+scale = Vector2(1.6, 1.6)
+modulate = Color(1.0, 0.15, 0.2, 0.8)
+
+[node name="Porta5" type="Node2D" parent="Doors"]
+position = Vector2(1680.0, -180.0)
+script = ExtResource("s_door")
+Inward = Vector2(-1.0, 0.0)
+
+[node name="Door" type="Sprite2D" parent="Doors/Porta5"]
+z_index = 0
+texture_filter = 1
+position = Vector2(45.0, 0.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = 1.6
+hframes = 7
+
+[node name="Alert" type="Sprite2D" parent="Doors/Porta5"]
+z_index = -1
+texture_filter = 1
+position = Vector2(-54.0, 0.0)
+texture = ExtResource("14_tex")
+scale = Vector2(1.6, 1.6)
+modulate = Color(1.0, 0.15, 0.2, 0.8)
+
+[node name="Porta6" type="Node2D" parent="Doors"]
+position = Vector2(1680.0, 1680.0)
+script = ExtResource("s_door")
+Inward = Vector2(-1.0, 0.0)
+
+[node name="Door" type="Sprite2D" parent="Doors/Porta6"]
+z_index = 0
+texture_filter = 1
+position = Vector2(45.0, 0.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = 1.6
+hframes = 7
+
+[node name="Alert" type="Sprite2D" parent="Doors/Porta6"]
+z_index = -1
+texture_filter = 1
+position = Vector2(-54.0, 0.0)
+texture = ExtResource("14_tex")
+scale = Vector2(1.6, 1.6)
+modulate = Color(1.0, 0.15, 0.2, 0.8)
+
+[node name="Entrance0" type="Sprite2D" parent="Doors"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-36.0, 2325.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = 3.1
+hframes = 7
+
+[node name="Entrance1" type="Sprite2D" parent="Doors"]
+z_index = 0
+texture_filter = 1
+position = Vector2(36.0, 2325.0)
+texture = ExtResource("t_door")
+scale = Vector2(3.8, 3.8)
+rotation = 3.1
+hframes = 7
+
+[node name="Exit" type="StaticBody2D" parent="."]
+position = Vector2(0.0, -2310.0)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("s_exit")
+z_index = 1
+
+[node name="Shape" type="CollisionShape2D" parent="Exit"]
+shape = SubResource("rect_10")
+
+[node name="Arch" type="Sprite2D" parent="Exit"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, -90.0)
+texture = ExtResource("t_arch")
+scale = Vector2(3.8, 3.8)
+
+[node name="Bars" type="Node2D" parent="Exit"]
+z_index = 1
+
+[node name="Bar0" type="Sprite2D" parent="Exit/Bars"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-96.0, -72.0)
+texture = ExtResource("2_tex")
+scale = Vector2(2.2, 51.0)
+modulate = Color(1.0, 0.2, 0.45, 1.0)
+
+[node name="Bar1" type="Sprite2D" parent="Exit/Bars"]
+z_index = 0
+texture_filter = 1
+position = Vector2(-48.0, -72.0)
+texture = ExtResource("2_tex")
+scale = Vector2(2.2, 51.0)
+modulate = Color(1.0, 0.2, 0.45, 1.0)
+
+[node name="Bar2" type="Sprite2D" parent="Exit/Bars"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, -72.0)
+texture = ExtResource("2_tex")
+scale = Vector2(2.2, 51.0)
+modulate = Color(1.0, 0.2, 0.45, 1.0)
+
+[node name="Bar3" type="Sprite2D" parent="Exit/Bars"]
+z_index = 0
+texture_filter = 1
+position = Vector2(48.0, -72.0)
+texture = ExtResource("2_tex")
+scale = Vector2(2.2, 51.0)
+modulate = Color(1.0, 0.2, 0.45, 1.0)
+
+[node name="Bar4" type="Sprite2D" parent="Exit/Bars"]
+z_index = 0
+texture_filter = 1
+position = Vector2(96.0, -72.0)
+texture = ExtResource("2_tex")
+scale = Vector2(2.2, 51.0)
+modulate = Color(1.0, 0.2, 0.45, 1.0)
+
+[node name="BarTop" type="Sprite2D" parent="Exit/Bars"]
+z_index = 0
+texture_filter = 1
+position = Vector2(0.0, -12.0)
+texture = ExtResource("2_tex")
+scale = Vector2(54.0, 3.0)
+modulate = Color(1.0, 0.2, 0.45, 1.0)
+
+[node name="Trigger" type="Area2D" parent="Exit"]
+position = Vector2(0.0, -120.0)
+collision_layer = 0
+collision_mask = 2
+
+[node name="Shape" type="CollisionShape2D" parent="Exit/Trigger"]
+shape = SubResource("rect_11")
+
+[node name="Player" parent="." instance=ExtResource("3_pac")]
+position = Vector2(0.0, 2100.0)
+
+[node name="Managers" type="Node" parent="."]
+
+[node name="EnemySpawner" type="Node" parent="Managers"]
+script = ExtResource("5_scr")
+AutoSpawn = false
+EnemyScene = ExtResource("10_pac")
+
+[node name="DropManager" type="Node" parent="Managers"]
+script = ExtResource("11_scr")
+DropScene = ExtResource("12_pac")
+ChipSprite = ExtResource("13_tex")
+HealSprite = ExtResource("14_tex")
+PointsSprite = ExtResource("2_tex")
+
+[node name="HordeDirector" type="Node" parent="Managers" node_paths=PackedStringArray("DoorsRoot", "Exit")]
+script = ExtResource("s_horde")
+CommonTypes = Array[ExtResource("4_scr")]([ExtResource("7_res"), ExtResource("7_res"), ExtResource("6_res")])
+EliteType = ExtResource("8_res")
+DoorsRoot = NodePath("../../Doors")
+Exit = NodePath("../../Exit")
+
+[node name="Canvas_Static" type="CanvasLayer" parent="."]
+
+[node name="HpBarBG" type="ColorRect" parent="Canvas_Static"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 30.0
+offset_top = 30.0
+offset_right = 450.0
+offset_bottom = 64.0
+color = Color(0.1, 0.05, 0.15, 0.9)
+mouse_filter = 2
+
+[node name="Canvas_HUD" type="CanvasLayer" parent="." node_paths=PackedStringArray("WeaponSystem", "Horde")]
+layer = 1
+script = ExtResource("17_scr")
+WeaponSystem = NodePath("../Player/WeaponSystem")
+Horde = NodePath("../Managers/HordeDirector")
+
+[node name="HpFill" type="ColorRect" parent="Canvas_HUD"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 34.0
+offset_top = 34.0
+offset_right = 446.0
+offset_bottom = 60.0
+color = Color(1, 0.3, 0.8, 1.0)
+mouse_filter = 2
+
+[node name="HpText" type="Label" parent="Canvas_HUD"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 30.0
+offset_top = 30.0
+offset_right = 450.0
+offset_bottom = 64.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 22
+
+[node name="Score" type="Label" parent="Canvas_HUD"]
+anchor_left = 1
+anchor_top = 0
+anchor_right = 1
+anchor_bottom = 0
+offset_left = -530.0
+offset_top = 30.0
+offset_right = -30.0
+offset_bottom = 70.0
+horizontal_alignment = 2
+vertical_alignment = 0
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 32
+
+[node name="Chips" type="Label" parent="Canvas_HUD"]
+anchor_left = 1
+anchor_top = 0
+anchor_right = 1
+anchor_bottom = 0
+offset_left = -530.0
+offset_top = 75.0
+offset_right = -30.0
+offset_bottom = 115.0
+horizontal_alignment = 2
+vertical_alignment = 0
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.15, 1.0)
+theme_override_font_sizes/font_size = 32
+
+[node name="TimerLabel" type="Label" parent="Canvas_HUD"]
+anchor_left = 0.5
+anchor_top = 0
+anchor_right = 0.5
+anchor_bottom = 0
+offset_left = -350.0
+offset_top = 30.0
+offset_right = 350.0
+offset_bottom = 70.0
+horizontal_alignment = 1
+vertical_alignment = 0
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.6, 0.2, 1.0)
+theme_override_font_sizes/font_size = 30
+
+[node name="Weapons" type="RichTextLabel" parent="Canvas_HUD"]
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 30.0
+offset_top = 80.0
+offset_right = 830.0
+offset_bottom = 480.0
+bbcode_enabled = true
+scroll_active = false
+mouse_filter = 2
+theme_override_font_sizes/normal_font_size = 24
+
+[node name="Banner" type="Label" parent="Canvas_HUD"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -700.0
+offset_top = -270.0
+offset_right = 700.0
+offset_bottom = -170.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.5, 0, 1.0)
+theme_override_font_sizes/font_size = 64
+
+[node name="Canvas_Pointers" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="Pointers" type="Node2D" parent="Canvas_Pointers"]
+script = ExtResource("s_pointers")
+ArrowTexture = ExtResource("t_tri")
+
+[node name="Canvas_EndScreen" type="CanvasLayer" parent="."]
+layer = 20
+script = ExtResource("25_scr")
+VictoryTitle = "FASE 1 CONCLUÍDA!"
+
+[node name="Panel" type="ColorRect" parent="Canvas_EndScreen"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.85)
+
+[node name="Title" type="Label" parent="Canvas_EndScreen/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -800.0
+offset_top = -205.0
+offset_right = 800.0
+offset_bottom = -75.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 80
+
+[node name="Stats" type="Label" parent="Canvas_EndScreen/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -500.0
+offset_top = -70.0
+offset_right = 500.0
+offset_bottom = 50.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = ""
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 36
+
+[node name="Restart" type="Button" parent="Canvas_EndScreen/Panel"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -190.0
+offset_top = 105.0
+offset_right = 190.0
+offset_bottom = 195.0
+flat = true
+
+[node name="Color" type="ColorRect" parent="Canvas_EndScreen/Panel/Restart"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(1, 0.3, 0.8, 1.0)
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Canvas_EndScreen/Panel/Restart"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+text = "REINICIAR"
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1.0)
+theme_override_font_sizes/font_size = 36
