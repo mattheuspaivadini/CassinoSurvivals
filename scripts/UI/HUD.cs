@@ -41,7 +41,8 @@ public partial class HUD : CanvasLayer
         gm.DollarsChanged += UpdateDollars;
         UpdateDollars(gm.RunDollars);
         PlayerController.Instance.HpChanged += UpdateHp;
-        EnemySpawner.Instance.BossSpawned += ShowBossBanner;
+        if (EnemySpawner.Instance != null)
+            EnemySpawner.Instance.BossSpawned += ShowBossBanner;
         if (Horde != null)
         {
             Horde.Cleared += ShowClearedBanner;
@@ -105,6 +106,11 @@ public partial class HUD : CanvasLayer
             return;
         }
         var gm = GameManager.Instance;
+        if (EnemySpawner.Instance == null)
+        {
+            timerText.Text = "SALA DE DESCANSO  |  SAÍDA SUPERIOR ABERTA";
+            return;
+        }
         if (EnemySpawner.Instance.HasBossSpawned) { timerText.Text = "TIGRINHO EM CAMPO!"; return; }
         int left = Mathf.Max(0, Mathf.CeilToInt(gm.BossSpawnTime - gm.Elapsed));
         timerText.Text = $"Tigrinho em {left / 60}:{left % 60:00}";

@@ -30,6 +30,10 @@ public partial class OffscreenPointers : Node2D
                 foreach (var e in EnemySpawner.Instance.Active)
                     Point(e.GlobalPosition, EnemyColor, false, ref used);
         }
+        else if (ExitDoor.Instance != null && ExitDoor.Instance.IsOpen)
+        {
+            Point(ExitDoor.Instance.GlobalPosition, ExitColor, true, ref used);
+        }
         for (int i = used; i < pool.Count; i++) pool[i].Visible = false;
     }
 
