@@ -24,6 +24,7 @@ public static class SelfCheck
         RoundsDaFase();
         BestiarioEVariantes();
         SalaDeDescansoEBlockout3();
+        ArenasDosAtosEBlockout2();
     }
 
     static void BestiarioEVariantes()
@@ -68,25 +69,76 @@ public static class SelfCheck
 
     static void RoundsDaFase()
     {
-        int bosses = 0;
+        Check(CampaignRules.TotalStages == 15 && CampaignRules.ActsCount == 3 && CampaignRules.StagesPerAct == 5, "campanha 15 fases (3 Atos x 5)");
+        Check(RoundRules.RoundsPerStage == 15 && RoundRules.BossEvery == 5, "RoundRules alinhado com 15 fases");
+
+        int[] expectedMobs = { 25, 30, 34, 38, 18, 40, 44, 47, 50, 24, 52, 55, 58, 60, 28 };
+        int[] expectedGoldens = { 2, 2, 2, 2, 0, 2, 3, 2, 3, 0, 3, 3, 3, 3, 0 };
+        int[] expectedChips = { 2, 2, 2, 2, 4, 2, 3, 2, 3, 5, 3, 3, 3, 3, 0 };
+
+        int bosses = 0, totalMobs = 0, totalGoldens = 0, totalChips = 0, totalClearBonus = 0, totalRevenue = 0;
+        var rng = new Godot.RandomNumberGenerator { Seed = 2026 };
+
         for (int r = 1; r <= RoundRules.RoundsPerStage; r++)
         {
             var s = RoundRules.For(r);
+            var c = CampaignRules.ForStage(r);
             if (s.Boss) bosses++;
-            Check(s.Boss == (r == 7 || r == 14 || r == 21), $"boss só nos rounds 7/14/21 (round {r})");
-            Check(s.Count > 0 && s.Duration > 0f && s.HpMultiplier >= 1f, $"round {r} válido");
-            Check(!s.Boss || s.BossHp > 0f, $"boss do round {r} com HP");
-            if (r > 1 && !s.Boss && !RoundRules.IsBossRound(r - 1))
-                Check(s.Count >= RoundRules.For(r - 1).Count, "rounds normais não diminuem");
+
+            Check(s.Boss == (r == 5 || r == 10 || r == 15), $"boss só nas fases 5/10/15 (fase {r})");
+            Check(s.Count == expectedMobs[r - 1], $"volume de horda fase {r} ({s.Count})");
+            Check(s.Elites == expectedGoldens[r - 1], $"dourados fase {r} ({s.Elites})");
+            Check(c.ChipsReward == expectedChips[r - 1], $"fichas fase {r} ({c.ChipsReward})");
+            Check(s.Duration > 0f && s.HpMultiplier >= 1f && s.DamageMultiplier >= 1f, $"fase {r} válida");
+            Check(!s.Boss || s.BossHp > 0f, $"boss da fase {r} com HP");
+            Check(c.RemovesSlotMachinesAfterClear == (r == 14), $"flag pós-F14 exclusiva da fase 14 (fase {r})");
+
+            if (r > 1)
+            {
+                var prev = CampaignRules.ForStage(r - 1);
+                Check(c.HpScale >= prev.HpScale && c.DamageScale >= prev.DamageScale, $"escala monotônica na fase {r}");
+                if (c.IsBossStage)
+                {
+                    Check(Godot.Mathf.IsEqualApprox(c.HpScale, prev.HpScale), $"mini-horda {r} mantém HP da fase anterior");
+                    Check(Godot.Mathf.IsEqualApprox(c.DamageScale, prev.DamageScale), $"mini-horda {r} mantém Dano da fase anterior");
+                    Check(c.TotalMobs < prev.TotalMobs, $"fase {r} tem mini-horda menor que fase anterior");
+                }
+                else if (!prev.IsBossStage)
+                {
+                    Check(c.TotalMobs >= prev.TotalMobs, $"fases normais não diminuem ({r})");
+                }
+            }
+
+            // Introdução em escada dos inimigos
+            int expectedPoolSize = r <= 2 ? 3 : r == 3 ? 4 : r <= 5 ? 5 : r == 6 ? 6 : 7;
+            Check(c.UnlockedEnemies.Count == expectedPoolSize, $"escada de inimigos fase {r}");
+            var unlocked = new System.Collections.Generic.HashSet<EnemyKind>(c.UnlockedEnemies);
+            for (int k = 0; k < 20; k++)
+                Check(unlocked.Contains(CampaignRules.PickEnemyKind(c, rng)), $"sorteio respeita pool da fase {r}");
+
+            totalMobs += c.TotalMobs;
+            totalGoldens += c.GoldenCount;
+            totalChips += c.ChipsReward;
+            totalClearBonus += c.ClearBonusDollars;
+            totalRevenue += c.ExpectedRevenueDollars;
         }
-        Check(bosses == 3, "3 bosses por fase");
-        Check(RoundRules.For(1).Elites == 1 && RoundRules.For(6).Elites == 1, "rounds 1-6: 1 Dourado");
-        Check(RoundRules.For(8).Elites == 2 && RoundRules.For(13).Elites == 2, "rounds 8-13: 2 Dourados");
-        Check(RoundRules.For(15).Elites == 3 && RoundRules.For(20).Elites == 3, "rounds 15-20: 3 Dourados");
-        Check(RoundRules.For(7).Elites == 0 && RoundRules.For(7).BossChips == 3, "boss 7 solta 3 fichas");
-        Check(RoundRules.For(14).BossChips == 4 && RoundRules.For(21).BossChips == 5, "bosses 14/21 soltam 4/5 fichas");
-        Check(RoundRules.For(7).BossDollars == 75 && RoundRules.For(21).BossDollars == 250, "$ dos bosses");
-        Check(RoundRules.For(7).Count < RoundRules.For(6).Count, "round de boss é mini-horda");
+
+        Check(bosses == 3, "3 bosses na campanha");
+        Check(totalMobs == 603, $"total de mobs = 603 (obtido {totalMobs})");
+        Check(totalGoldens == 30, $"total de dourados = 30 (obtido {totalGoldens})");
+        Check(totalChips == 39, $"total de fichas = 39 (obtido {totalChips})");
+        Check(totalClearBonus == 690, $"bônus de sala/boss = $690 (obtido {totalClearBonus})");
+        Check(totalRevenue == 1413, $"receita total = $1413 (obtido {totalRevenue})");
+
+        Check(Godot.Mathf.IsEqualApprox(CampaignRules.ForStage(1).HpScale, 1.00f) && Godot.Mathf.IsEqualApprox(CampaignRules.ForStage(1).DamageScale, 1.00f), "escala F1 (1.00 / 1.00)");
+        Check(Godot.Mathf.IsEqualApprox(CampaignRules.ForStage(14).HpScale, 2.40f) && Godot.Mathf.IsEqualApprox(CampaignRules.ForStage(14).DamageScale, 1.45f), "escala F14 (2.40 / 1.45)");
+
+        var f5 = CampaignRules.ForStage(5);
+        var f10 = CampaignRules.ForStage(10);
+        var f15 = CampaignRules.ForStage(15);
+        Check(f5.Boss == BossKind.Rainha && Godot.Mathf.IsEqualApprox(f5.BossHp, 3200f) && Godot.Mathf.IsEqualApprox(f5.BossDpsCap, 55f) && f5.BossChips == 4 && f5.BossDollars == 75, "Boss Ato 1: Rainha");
+        Check(f10.Boss == BossKind.Rei && Godot.Mathf.IsEqualApprox(f10.BossHp, 6800f) && Godot.Mathf.IsEqualApprox(f10.BossDpsCap, 105f) && f10.BossChips == 5 && f10.BossDollars == 125, "Boss Ato 2: Rei");
+        Check(f15.Boss == BossKind.MaquinaCacaNiquel && Godot.Mathf.IsEqualApprox(f15.BossHp, 14000f) && Godot.Mathf.IsEqualApprox(f15.BossDpsCap, 180f) && f15.BossChips == 0 && f15.BossDollars == 250, "Boss Ato 3: Máquina de Caça-Níquel");
     }
 
     /// <summary>Grade 10x5 com parede na coluna 5 (y 0..3); o único vão é a linha y=4.</summary>
@@ -226,6 +278,198 @@ public static class SelfCheck
         finally
         {
             root?.Free();
+        }
+    }
+
+    static void ArenasDosAtosEBlockout2()
+    {
+        // 1. Arena de Boss (Blockout 2)
+        var bossPacked = Godot.GD.Load<Godot.PackedScene>(CampaignRules.BossScenePath);
+        Check(bossPacked != null, "ArenaBoss.tscn carrega");
+        var bossRoot = bossPacked.Instantiate<Arena>();
+        try
+        {
+            Check(bossRoot != null && bossRoot.IsBossArena, "ArenaBoss marcada como IsBossArena");
+            var player = bossRoot.GetNode<Godot.Node2D>("Player");
+            var exit = bossRoot.GetNode<ExitDoor>("Exit");
+            var bossSpawn = bossRoot.GetNode<Godot.Node2D>("BossSpawn");
+            var horde = bossRoot.GetNode<HordeDirector>("Managers/HordeDirector");
+            Check(!exit.StartsOpen && horde != null && horde.LowerDoors.Contains(1) && horde.LowerDoors.Contains(3), "ArenaBoss configura saída fechada e atraso nas portas inferiores (1, 3)");
+            Check(horde.LowerDoorDelay >= 2f && horde.LowerDoorDelay <= 3f, "ArenaBoss atraso inicial 2s–3s");
+
+            var doors = new System.Collections.Generic.List<SpawnDoor>();
+            var doorPosUnits = new System.Collections.Generic.List<Godot.Vector2>();
+            foreach (var child in bossRoot.GetNode("Doors").GetChildren())
+            {
+                if (child is SpawnDoor sd)
+                {
+                    doors.Add(sd);
+                    doorPosUnits.Add(sd.Position / Units.Px);
+                }
+            }
+
+            var pillarsUnits = new System.Collections.Generic.List<Godot.Vector2>();
+            var solids = CollectObstacleSolids(bossRoot.GetNode("Obstacles"));
+            for (int p = 1; p <= 4; p++)
+            {
+                var pillar = bossRoot.GetNodeOrNull<Godot.Node2D>($"Obstacles/P{p}");
+                Check(pillar != null, $"ArenaBoss possui pilar P{p}");
+                pillarsUnits.Add(pillar.Position / Units.Px);
+            }
+            Check(solids.Count == 6, $"ArenaBoss possui 6 obstáculos sólidos (4 pilares + 2 balcões, encontrados: {solids.Count})");
+
+            bool bossOk = CampaignRules.ValidateBossArenaLayout(
+                bossRoot.HalfExtents,
+                player.Position / Units.Px,
+                exit.Position / Units.Px,
+                bossSpawn.Position / Units.Px,
+                doorPosUnits,
+                pillarsUnits,
+                solids,
+                out string bossErr);
+            Check(bossOk, $"Blockout 2 válido: {bossErr}");
+
+            ValidateArenaNavigation(bossRoot.HalfExtents, bossRoot.Inflate, player.Position, exit.Position, doors, solids, bossSpawn.Position, "ArenaBoss");
+            CheckNoSlotMachines(bossRoot, "ArenaBoss");
+
+            for (int act = 1; act <= CampaignRules.ActsCount; act++)
+            {
+                bossRoot.ApplyActTheme(act);
+                var t = CampaignRules.GetActTheme(act);
+                Check(bossRoot.GetNode<Godot.Sprite2D>("Floor/Carpet").Modulate == t.CarpetModulate, $"ArenaBoss aplica carpete do Ato {act}");
+                Check(bossRoot.GetNode<Godot.Sprite2D>("Floor/CorridorCarpet").Modulate == t.CarpetModulate, $"ArenaBoss aplica corredor do Ato {act}");
+                Check(bossRoot.GetNode<Godot.Sprite2D>("Floor/RugBossArena").Modulate == t.RugModulate, $"ArenaBoss aplica tapete central do Ato {act}");
+                Check(bossRoot.GetNode<Godot.Sprite2D>("Walls/NorthTrim").Modulate == t.NeonTrimColor, $"ArenaBoss aplica neon da parede do Ato {act}");
+                Check(bossRoot.GetNode<Godot.Sprite2D>("Doors/Porta1/PanelA/Neon").Modulate == t.NeonTrimColor, $"ArenaBoss aplica neon das portas do Ato {act}");
+            }
+        }
+        finally
+        {
+            bossRoot?.Free();
+        }
+
+        // 2. Arenas normais dos 3 Atos: navegação + variação espacial e ambiental
+        var layoutSignatures = new System.Collections.Generic.List<string>();
+        var carpetColors = new System.Collections.Generic.List<Godot.Color>();
+        var trimColors = new System.Collections.Generic.List<Godot.Color>();
+
+        for (int act = 1; act <= CampaignRules.ActsCount; act++)
+        {
+            var theme = CampaignRules.GetActTheme(act);
+            var packed = Godot.GD.Load<Godot.PackedScene>(theme.NormalScenePath);
+            Check(packed != null, $"Cena do Ato {act} carrega ({theme.NormalScenePath})");
+            var root = packed.Instantiate<Arena>();
+            try
+            {
+                Check(root != null && root.ActNumber == act && !root.IsBossArena, $"Ato {act} configurado corretamente");
+                var player = root.GetNode<Godot.Node2D>("Player");
+                var exit = root.GetNode<ExitDoor>("Exit");
+                var horde = root.GetNode<HordeDirector>("Managers/HordeDirector");
+                Check(!exit.StartsOpen && horde != null && horde.LowerDoors.Contains(2) && horde.LowerDoors.Contains(5), $"Ato {act} atrasa portas inferiores (2, 5)");
+
+                var doors = new System.Collections.Generic.List<SpawnDoor>();
+                var doorPosUnits = new System.Collections.Generic.List<Godot.Vector2>();
+                foreach (var child in root.GetNode("Doors").GetChildren())
+                {
+                    if (child is SpawnDoor sd)
+                    {
+                        doors.Add(sd);
+                        doorPosUnits.Add(sd.Position / Units.Px);
+                    }
+                }
+
+                var solids = CollectObstacleSolids(root.GetNode("Obstacles"));
+                bool ok = CampaignRules.ValidateNormalArenaLayout(
+                    root.HalfExtents,
+                    player.Position / Units.Px,
+                    exit.Position / Units.Px,
+                    doorPosUnits,
+                    solids,
+                    out string err);
+                Check(ok, $"Layout Ato {act} válido: {err}");
+
+                ValidateArenaNavigation(root.HalfExtents, root.Inflate, player.Position, exit.Position, doors, solids, null, $"Ato{act}");
+                CheckNoSlotMachines(root, $"Ato{act}");
+
+                var sig = new System.Text.StringBuilder();
+                foreach (var r in solids) sig.Append($"{r.Position.X:0},{r.Position.Y:0},{r.Size.X:0},{r.Size.Y:0};");
+                layoutSignatures.Add(sig.ToString());
+                carpetColors.Add(root.GetNode<Godot.Sprite2D>("Floor/Carpet").Modulate);
+                trimColors.Add(root.GetNode<Godot.Sprite2D>("Walls/NorthTrim").Modulate);
+            }
+            finally
+            {
+                root?.Free();
+            }
+        }
+
+        Check(layoutSignatures[0] != layoutSignatures[1] && layoutSignatures[1] != layoutSignatures[2] && layoutSignatures[0] != layoutSignatures[2],
+            "Arenas dos 3 Atos têm posicionamento de obstáculos distinto");
+        Check(carpetColors[0] != carpetColors[1] && carpetColors[1] != carpetColors[2] && carpetColors[0] != carpetColors[2],
+            "Arenas dos 3 Atos têm carpetes distintos");
+        Check(trimColors[0] != trimColors[1] && trimColors[1] != trimColors[2] && trimColors[0] != trimColors[2],
+            "Arenas dos 3 Atos têm iluminação neon distinta");
+    }
+
+    static void CheckNoSlotMachines(Godot.Node node, string label)
+    {
+        Check(node.GetNodeOrNull("Canvas_SlotMachine") == null, $"{label}: sem Canvas_SlotMachine");
+        Check(!HasSlotNodeRecursive(node), $"{label}: sem SlotMachine ou SlotMachineUI nas salas de combate");
+    }
+
+    static bool HasSlotNodeRecursive(Godot.Node node)
+    {
+        if (node is SlotMachine || node is SlotMachineUI) return true;
+        if (node is Godot.Sprite2D s && s.RegionEnabled)
+        {
+            var p = s.RegionRect.Position;
+            if ((Godot.Mathf.IsEqualApprox(p.X, 784f) || Godot.Mathf.IsEqualApprox(p.X, 816f)) && Godot.Mathf.IsEqualApprox(p.Y, 17f))
+                return true;
+        }
+        foreach (var child in node.GetChildren())
+            if (HasSlotNodeRecursive(child)) return true;
+        return false;
+    }
+
+    static System.Collections.Generic.List<Godot.Rect2> CollectObstacleSolids(Godot.Node obstaclesRoot)
+    {
+        var solids = new System.Collections.Generic.List<Godot.Rect2>();
+        foreach (var child in obstaclesRoot.GetChildren())
+        {
+            if (child is Godot.Node2D obs && obs.IsInGroup("solid"))
+            {
+                var cs = obs.GetNodeOrNull<Godot.CollisionShape2D>("Shape");
+                if (cs?.Shape is Godot.RectangleShape2D rect)
+                    solids.Add(new Godot.Rect2(obs.Position + cs.Position - rect.Size / 2f, rect.Size));
+            }
+        }
+        return solids;
+    }
+
+    static void ValidateArenaNavigation(
+        Godot.Vector2 halfExtentsUnits,
+        float inflateUnits,
+        Godot.Vector2 playerPos,
+        Godot.Vector2 exitPos,
+        System.Collections.Generic.IReadOnlyList<SpawnDoor> doors,
+        System.Collections.Generic.IReadOnlyList<Godot.Rect2> solids,
+        Godot.Vector2? extraPoint,
+        string label)
+    {
+        var half = halfExtentsUnits * Units.Px;
+        var bounds = new Godot.Rect2(-half, half * 2f);
+        var grid = new ArenaGrid(bounds, Units.Px, solids, inflateUnits * Units.Px);
+        var flow = new FlowField(grid);
+        flow.Compute(grid.ToCell(playerPos));
+
+        Check(flow.DistanceAt(grid.ToCell(new Godot.Vector2(exitPos.X, exitPos.Y + 60f))) >= 0, $"{label}: caminho livre até a saída");
+        if (extraPoint.HasValue)
+            Check(flow.DistanceAt(grid.ToCell(extraPoint.Value)) >= 0, $"{label}: caminho livre até spawn do Boss");
+
+        for (int i = 0; i < doors.Count; i++)
+        {
+            var entryPos = doors[i].Position + doors[i].Inward.Normalized() * doors[i].EntryDistance * Units.Px;
+            Check(flow.DistanceAt(grid.ToCell(entryPos)) >= 0, $"{label}: caminho livre até porta {i + 1}");
         }
     }
 

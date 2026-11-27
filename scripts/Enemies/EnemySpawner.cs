@@ -94,12 +94,12 @@ public partial class EnemySpawner : Node
         EmitSignal(SignalName.BossSpawned);
     }
 
-    public Enemy Spawn(EnemyData data, Vector2 pos, float hpMultiplier, bool isExtra = false)
+    public Enemy Spawn(EnemyData data, Vector2 pos, float hpMultiplier, bool isExtra = false, float damageMultiplier = 1f)
     {
         var e = EnemyScene.Instantiate<Enemy>();
         e.Position = pos; // antes do AddChild: o corpo já nasce no lugar certo
         AddChild(e);
-        e.Init(data, hpMultiplier);
+        e.Init(data, hpMultiplier, damageMultiplier);
         e.ActiveIndex = active.Count;
         active.Add(e);
         if (isExtra) EmitSignal(SignalName.ExtraEnemySpawned);

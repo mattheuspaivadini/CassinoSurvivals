@@ -25,7 +25,7 @@ public partial class Enemy : RigidBody2D
     CollisionShape2D shape;
     Vector2 baseSpriteScale = Vector2.One;
     string currentAnim;
-    float hp, hpMultiplierUsed = 1f, contactTimer, flashTimer, flankAngle, fuseTimer;
+    float hp, hpMultiplierUsed = 1f, damageMultiplierUsed = 1f, contactTimer, flashTimer, flankAngle, fuseTimer;
     Vector2 entry;
     bool entering, fusing, dead;
 
@@ -36,10 +36,11 @@ public partial class Enemy : RigidBody2D
     }
 
     /// <summary>Chamar depois de AddChild (precisa dos nós filhos).</summary>
-    public void Init(EnemyData data, float hpMultiplier)
+    public void Init(EnemyData data, float hpMultiplier, float damageMultiplier = 1f)
     {
         Data = data;
         hpMultiplierUsed = hpMultiplier;
+        damageMultiplierUsed = Mathf.Max(0.1f, damageMultiplier);
         hp = data.FixedHp ? data.MaxHp : data.MaxHp * hpMultiplier;
         Mass = data.Mass;
         dead = false;
@@ -136,7 +137,7 @@ public partial class Enemy : RigidBody2D
             float reach = Radius + player.RadiusPx + 0.1f * Units.Px;
             if (contactTimer <= 0f && toPlayer.LengthSquared() <= reach * reach)
             {
-                player.TakeDamage(Data.ContactDamage);
+                player.TakeDamage(Data.ContactDamage * damageMultiplierUsed);
                 contactTimer = Data.ContactCooldown;
             }
         }
@@ -277,7 +278,7 @@ public partial class Enemy : RigidBody2D
             var player = PlayerController.Instance;
             float reach = blastPx + player.RadiusPx;
             if ((player.GlobalPosition - GlobalPosition).LengthSquared() <= reach * reach)
-                player.TakeDamage(Data.ExplosionDamage);
+                player.TakeDamage(Data.ExplosionDamage * damageMultiplierUsed);
         }
 
         var root = GetTree()?.CurrentScene;
@@ -285,7 +286,7 @@ public partial class Enemy : RigidBody2D
         var puddle = new ChampagnePuddle();
         root.AddChild(puddle);
         float duration = Data.IsGolden && Data.GoldenPuddleDuration > 0f ? Data.GoldenPuddleDuration : Data.PuddleDuration;
-        puddle.Setup(GlobalPosition, Data.PuddleRadius * Units.Px, blastPx, Data.PuddleDamagePerSecond, duration, Data.IsGolden);
+        puddle.Setup(GlobalPosition, Data.PuddleRadius * Units.Px, blastPx, Data.PuddleDamagePerSecond * damageMultiplierUsed, duration, Data.IsGolden);
     }
 
     void SpawnTrocoMinions()
@@ -308,7 +309,7 @@ public partial class Enemy : RigidBody2D
                 Rect2 inner = Arena.Instance.Bounds.Grow(-1.1f * Units.Px);
                 spawnPos = spawnPos.Clamp(inner.Position, inner.End);
             }
-            spawner.Spawn(minionData, spawnPos, hpMultiplierUsed, isExtra: true);
+            spawner.Spawn(minionData, spawnPos, hpMultiplierUsed, isExtra: true, damageMultiplier: damageMultiplierUsed);
         }
     }
 }

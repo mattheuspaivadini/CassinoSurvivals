@@ -101,8 +101,16 @@ public partial class HUD : CanvasLayer
         if (Horde != null)
         {
             if (Horde.IsCleared) timerText.Text = "SAÍDA ABERTA! SIGA PARA A PORTA DE CIMA";
-            else if (Horde.Round == 0 || Horde.InBreak) timerText.Text = $"{Horde.StageLabel}   |   PRÓXIMO: ROUND {Horde.Round + 1}/{Horde.Rounds}";
-            else timerText.Text = $"{Horde.StageLabel}   |   ROUND {Horde.Round}/{Horde.Rounds}   |   INIMIGOS: {Horde.Remaining}";
+            else if (Horde.IsSingleStage)
+            {
+                timerText.Text = (Horde.Round == 0 || Horde.InBreak)
+                    ? $"{Horde.StageLabel}   |   PREPARAR..."
+                    : $"{Horde.StageLabel}   |   INIMIGOS: {Horde.Remaining}";
+            }
+            else if (Horde.Round == 0 || Horde.InBreak)
+                timerText.Text = $"{Horde.StageLabel}   |   PRÓXIMA: FASE {Horde.Round + 1}/{Horde.EndStage}";
+            else
+                timerText.Text = $"{Horde.StageLabel}   |   FASE {Horde.Round}/{Horde.EndStage}   |   INIMIGOS: {Horde.Remaining}";
             return;
         }
         var gm = GameManager.Instance;
@@ -128,8 +136,11 @@ public partial class HUD : CanvasLayer
 
     void ShowClearedBanner() => ShowBanner("FASE LIMPA! A SAÍDA ABRIU", new Color(1f, 0.85f, 0.15f));
 
-    void ShowRoundBanner(int round, bool boss) =>
-        ShowBanner(boss ? $"ROUND {round} - BOSS!" : $"ROUND {round}", boss ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 1f, 1f), 2f);
+    void ShowRoundBanner(int round, bool boss)
+    {
+        string label = CampaignRules.ForStage(round).StageLabel;
+        ShowBanner(boss ? $"{label} — BOSS!" : label, boss ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 1f, 1f), 2f);
+    }
 
     void ShowBossBanner() => ShowBanner("O TIGRINHO CHEGOU!", new Color(1f, 0.5f, 0f));
 
