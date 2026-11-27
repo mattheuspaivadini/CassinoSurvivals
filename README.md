@@ -10,6 +10,7 @@ a ação direta de *Hotline Miami* e o neon de um cassino de Vice City.
 ![Godot](https://img.shields.io/badge/Godot-4.7%20.NET-478cbf?logo=godotengine&logoColor=white)
 ![C#](https://img.shields.io/badge/C%23-.NET%2010-239120?logo=csharp)
 ![Linux](https://img.shields.io/badge/Testado%20em-Linux-FCC624?logo=linux&logoColor=black)
+[![GitHub Projects](https://img.shields.io/badge/Quadro%20de%20Tarefas-GitHub%20Projects-8250DF?logo=github)](https://github.com/users/mattheuspaivadini/projects/5)
 
 </div>
 
