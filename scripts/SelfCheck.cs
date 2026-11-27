@@ -23,6 +23,7 @@ public static class SelfCheck
         PlanoDaHorda();
         RoundsDaFase();
         BestiarioEVariantes();
+        SalaDeDescansoEBlockout3();
     }
 
     static void BestiarioEVariantes()
@@ -131,6 +132,101 @@ public static class SelfCheck
             Check(e.Time >= 2.5f || (e.Door != 2 && e.Door != 5), "portas de baixo respeitam o atraso");
         }
         Check(elites == 2, "horda deveria ter 2 dourados");
+    }
+
+    static void SalaDeDescansoEBlockout3()
+    {
+        // 1. Custos e limites oficiais das 4 estações
+        Check(LoungeRules.GetCost(LoungeStationType.Bar) == 1, "Bar custa 1 ficha");
+        Check(LoungeRules.GetCost(LoungeStationType.UpgradeSlot) == 1, "Melhorias custa 1 ficha");
+        Check(LoungeRules.GetCost(LoungeStationType.WeaponSlot) == 2, "Armas custa 2 fichas");
+        Check(LoungeRules.GetCost(LoungeStationType.Roulette, 4) == 4 && LoungeRules.GetCost(LoungeStationType.Roulette, 5) == 5, "Roleta custa 4-5 fichas");
+        Check(LoungeRules.GetCost(LoungeStationType.Roulette, 2) == 4 && LoungeRules.GetCost(LoungeStationType.Roulette, 9) == 5, "Roleta faz clamp entre 4 e 5");
+
+        Check(LoungeRules.GetMaxUsesPerRoom(LoungeStationType.Bar) == 0 && LoungeRules.GetMaxUsesPerRun(LoungeStationType.Bar) == 0, "Bar tem uso livre");
+        Check(LoungeRules.GetMaxUsesPerRoom(LoungeStationType.UpgradeSlot) == 0 && LoungeRules.GetMaxUsesPerRun(LoungeStationType.UpgradeSlot) == 0, "Melhorias tem uso livre");
+        Check(LoungeRules.GetMaxUsesPerRoom(LoungeStationType.WeaponSlot) == 0 && LoungeRules.GetMaxUsesPerRun(LoungeStationType.WeaponSlot) == 0, "Armas tem uso livre");
+        Check(LoungeRules.GetMaxUsesPerRoom(LoungeStationType.Roulette) == 1, "Roleta máx. 1 por sala");
+        Check(LoungeRules.GetMaxUsesPerRun(LoungeStationType.Roulette, 3) == 3 && LoungeRules.GetMaxUsesPerRun(LoungeStationType.Roulette, 4) == 4, "Roleta máx. 3-4 por run");
+
+        Check(LoungeRules.CanUse(LoungeStationType.Bar, 1, 5, 10), "Bar liberado com 1 ficha e usos repetidos");
+        Check(!LoungeRules.CanUse(LoungeStationType.WeaponSlot, 1, 0, 0), "Armas bloqueado com apenas 1 ficha");
+        Check(LoungeRules.CanUse(LoungeStationType.WeaponSlot, 2, 0, 0), "Armas liberado com 2 fichas");
+        Check(!LoungeRules.CanUse(LoungeStationType.Roulette, 3, 0, 0), "Roleta bloqueada com 3 fichas");
+        Check(LoungeRules.CanUse(LoungeStationType.Roulette, 4, 0, 0), "Roleta liberada com 4 fichas");
+        Check(!LoungeRules.CanUse(LoungeStationType.Roulette, 5, 1, 1), "Roleta respeita limite de 1/sala");
+        Check(!LoungeRules.CanUse(LoungeStationType.Roulette, 5, 0, 3, 1, 4, 3), "Roleta respeita limite de 3/run");
+        Check(!LoungeRules.CanUse(LoungeStationType.Roulette, 5, 0, 4, 1, 4, 4), "Roleta respeita limite de 4/run");
+
+        // Pós-Fase 14: máquinas de Armas e Melhorias somem, Bar e Roleta continuam
+        Check(!LoungeRules.IsAvailableInStage(LoungeStationType.WeaponSlot, 14) && !LoungeRules.IsAvailableInStage(LoungeStationType.UpgradeSlot, 14), "Caça-níqueis somem após a Fase 14");
+        Check(LoungeRules.IsAvailableInStage(LoungeStationType.Bar, 14) && LoungeRules.IsAvailableInStage(LoungeStationType.Roulette, 14), "Bar e Roleta permanecem após a Fase 14");
+
+        // 2. Cena fixa da Sala de Descanso (Blockout 3) e leitura/fluxo espacial
+        var packed = Godot.GD.Load<Godot.PackedScene>("res://scenes/levels/SalaDescanso.tscn");
+        Check(packed != null, "SalaDescanso.tscn carrega");
+        var root = packed.Instantiate<Arena>();
+        try
+        {
+            Check(root != null && root.FixedCamera, "SalaDescanso usa câmera fixa sem scroll");
+
+            var stations = root.GetNode("Stations");
+            var weaponStation = stations.GetNode<LoungeStation>("WeaponSlot");
+            var upgradeStation = stations.GetNode<LoungeStation>("UpgradeSlot");
+            var rouletteStation = stations.GetNode<LoungeStation>("Roulette");
+            var barStation = stations.GetNode<LoungeStation>("Bar");
+
+            Check(weaponStation.StationType == LoungeStationType.WeaponSlot && LoungeRules.GetCost(weaponStation.StationType, weaponStation.Cost) == 2, "Estação Armas configurada (2 fichas)");
+            Check(upgradeStation.StationType == LoungeStationType.UpgradeSlot && LoungeRules.GetCost(upgradeStation.StationType, upgradeStation.Cost) == 1, "Estação Melhorias configurada (1 ficha)");
+            Check(rouletteStation.StationType == LoungeStationType.Roulette && rouletteStation.Cost >= 4 && rouletteStation.Cost <= 5 && rouletteStation.MaxUsesPerRoom == 1 && rouletteStation.MaxUsesPerRun >= 3 && rouletteStation.MaxUsesPerRun <= 4, "Estação Roleta configurada (4-5 fichas, 1/sala, 3-4/run)");
+            Check(barStation.StationType == LoungeStationType.Bar && LoungeRules.GetCost(barStation.StationType, barStation.Cost) == 1, "Estação Bar configurada (1 ficha)");
+
+            var player = root.GetNode<Godot.Node2D>("Player");
+            var entrance = root.GetNode<Godot.Node2D>("Entrance");
+            var exit = root.GetNode<ExitDoor>("Exit");
+            Check(player != null && entrance != null && exit != null && exit.StartsOpen, "Entrada, Jogador [J] e Porta Superior presentes");
+
+            var solids = new System.Collections.Generic.List<Godot.Rect2>();
+            foreach (var child in root.GetNode("Obstacles").GetChildren())
+            {
+                if (child is Godot.Node2D obs && obs.IsInGroup("solid"))
+                {
+                    var cs = obs.GetNodeOrNull<Godot.CollisionShape2D>("Shape");
+                    if (cs?.Shape is Godot.RectangleShape2D rect)
+                        solids.Add(new Godot.Rect2(obs.Position + cs.Position - rect.Size / 2f, rect.Size));
+                }
+            }
+            Check(solids.Count == 6, "SalaDescanso possui 6 obstáculos sólidos (2 sofás + 4 estações)");
+
+            bool layoutOk = LoungeRules.ValidateBlockoutLayout(
+                root.HalfExtents,
+                player.Position / Units.Px,
+                exit.Position / Units.Px,
+                weaponStation.Position / Units.Px,
+                upgradeStation.Position / Units.Px,
+                rouletteStation.Position / Units.Px,
+                barStation.Position / Units.Px,
+                solids,
+                out string layoutError);
+            Check(layoutOk, $"Blockout 3 válido: {layoutError}");
+
+            // Valida fluxo de circulação real via ArenaGrid + FlowField a partir de [J]
+            var half = root.HalfExtents * Units.Px;
+            var bounds = new Godot.Rect2(-half, half * 2f);
+            var grid = new ArenaGrid(bounds, Units.Px, solids, root.Inflate * Units.Px);
+            var flow = new FlowField(grid);
+            flow.Compute(grid.ToCell(player.Position));
+
+            Check(flow.DistanceAt(grid.ToCell(new Godot.Vector2(weaponStation.Position.X, weaponStation.Position.Y + 60f))) >= 0, "Caminho livre de [J] até Armas");
+            Check(flow.DistanceAt(grid.ToCell(new Godot.Vector2(upgradeStation.Position.X, upgradeStation.Position.Y + 60f))) >= 0, "Caminho livre de [J] até Melhorias");
+            Check(flow.DistanceAt(grid.ToCell(new Godot.Vector2(rouletteStation.Position.X + 75f, rouletteStation.Position.Y))) >= 0, "Caminho livre de [J] até Roleta");
+            Check(flow.DistanceAt(grid.ToCell(new Godot.Vector2(barStation.Position.X - 95f, barStation.Position.Y))) >= 0, "Caminho livre de [J] até Bar");
+            Check(flow.DistanceAt(grid.ToCell(new Godot.Vector2(exit.Position.X, exit.Position.Y + 60f))) >= 0, "Caminho livre de [J] até Próxima Horda");
+        }
+        finally
+        {
+            root?.Free();
+        }
     }
 
     static void Check(bool ok, string what)
