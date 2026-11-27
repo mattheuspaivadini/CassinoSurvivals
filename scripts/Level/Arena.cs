@@ -16,6 +16,8 @@ public partial class Arena : Node2D
     /// <summary>Margem da câmera além da arena (unidades); o topo ganha espaço extra pela saída.</summary>
     [Export] public float CameraMargin { get; set; } = 2f;
     [Export] public float CameraTopExtra { get; set; } = 4f;
+    /// <summary>Sala de Descanso (Blockout 3): trava a câmera em 1 tela fixa (1920x1080) sem scroll.</summary>
+    [Export] public bool FixedCamera { get; set; } = false;
 
     public Rect2 Bounds { get; private set; }
     public ArenaGrid Grid { get; private set; }
@@ -85,6 +87,15 @@ public partial class Arena : Node2D
     {
         var cam = PlayerController.Instance?.GetNodeOrNull<Camera2D>("Camera");
         if (cam == null) return;
+        if (FixedCamera)
+        {
+            cam.PositionSmoothingEnabled = false;
+            cam.LimitLeft = -960;
+            cam.LimitRight = 960;
+            cam.LimitTop = -540;
+            cam.LimitBottom = 540;
+            return;
+        }
         float m = CameraMargin * Units.Px;
         cam.LimitLeft = Mathf.FloorToInt(Bounds.Position.X - m);
         cam.LimitRight = Mathf.CeilToInt(Bounds.End.X + m);

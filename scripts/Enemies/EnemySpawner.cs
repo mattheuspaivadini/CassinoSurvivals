@@ -49,6 +49,11 @@ public partial class EnemySpawner : Node
 
     public override void _Ready() => Instance = this;
 
+    public override void _ExitTree()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     public override void _Process(double delta)
     {
         if (!AutoSpawn) return;
