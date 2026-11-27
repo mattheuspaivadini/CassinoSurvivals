@@ -3,8 +3,8 @@ using System.Linq;
 using Godot;
 
 /// <summary>
-/// Rounds da fase: cada round é uma horda finita saindo das portas laterais. Rounds múltiplos de 7
-/// trazem um boss depois da mini-horda. A saída só abre quando o último round (21) é limpo.
+/// Fases da campanha: cada fase tem uma horda finita saindo das portas laterais. Fases múltiplas de 5
+/// (5, 10 e 15) trazem mini-horda de aquecimento seguida de Boss.
 /// </summary>
 public partial class HordeDirector : Node
 {
@@ -14,18 +14,30 @@ public partial class HordeDirector : Node
 
     [ExportGroup("Inimigos")]
     [Export] public Godot.Collections.Array<EnemyData> CommonTypes { get; set; }
+    [Export] public EnemyData FichaType { get; set; }
+    [Export] public EnemyData FichonaType { get; set; }
+    [Export] public EnemyData ChampanheType { get; set; }
+    [Export] public EnemyData EspadasType { get; set; }
+    [Export] public EnemyData OurosType { get; set; }
+    [Export] public EnemyData PausType { get; set; }
+    [Export] public EnemyData CopasType { get; set; }
     /// <summary>Dourado: drop de ficha garantido.</summary>
     [Export] public EnemyData EliteType { get; set; }
-    /// <summary>Base do boss; o HP vem do round (RoundRules.BossHp).</summary>
+    /// <summary>Base do boss; o HP vem da fase (RoundRules.BossHp).</summary>
     [Export] public EnemyData BossType { get; set; }
 
     /// <summary>Chance de drop de pontos dos comuns na fase (o "XP" da horda).</summary>
     [Export(PropertyHint.Range, "0,1")] public float CommonPointsDropChance { get; set; } = 0.25f;
-    /// <summary>$ por round limpo (PDF, Ato 1: $10).</summary>
+    /// <summary>$ por round limpo legado (quando RoomClearDollars == 0 em sala normal).</summary>
     [Export] public int RoundClearDollars { get; set; } = 10;
 
+    [ExportGroup("Campanha")]
+    [Export(PropertyHint.Range, "1,15")] public int StartStage { get; set; } = 1;
+    [Export(PropertyHint.Range, "1,15")] public int EndStage { get; set; } = CampaignRules.TotalStages;
+    [Export] public Node2D BossSpawnPoint { get; set; }
+
     [ExportGroup("Ritmo")]
-    /// <summary>Pausa entre rounds (s).</summary>
+    /// <summary>Pausa entre fases (s).</summary>
     [Export] public float BreakTime { get; set; } = 3f;
     /// <summary>Pausa dramática entre a mini-horda e a entrada do boss (s).</summary>
     [Export] public float BossDelay { get; set; } = 2f;
@@ -36,24 +48,28 @@ public partial class HordeDirector : Node
     [ExportGroup("Sala")]
     [Export] public Node DoorsRoot { get; set; }
     [Export] public ExitDoor Exit { get; set; }
-    [Export] public string StageLabel { get; set; } = "ATO 1 - FASE 1";
+    [Export] public string StageLabel { get; set; } = "ATO 1 — FASE 1/5";
 
     [Signal] public delegate void RoundStartedEventHandler(int round, bool boss);
     [Signal] public delegate void ClearedEventHandler();
 
     public int Round { get; private set; }
-    public int Rounds => RoundRules.RoundsPerStage;
+    public int Rounds => Mathf.Max(1, EndStage - StartStage + 1);
+    public bool IsSingleStage => StartStage >= EndStage;
+    public StageSpec CurrentStageSpec => stageSpec;
     public bool IsBossRound => RoundRules.IsBossRound(Round);
     public bool InBreak => phase == Phase.Break;
-    /// <summary>Inimigos que ainda faltam neste round (inclui os que nem saíram e o boss).</summary>
+    /// <summary>Inimigos que ainda faltam nesta fase (inclui os que nem saíram e o boss).</summary>
     public int Remaining => roundTotal - roundKilled;
     public bool AllSpawned => phase != Phase.Break && roundSpawned >= roundTotal;
     public bool IsCleared => phase == Phase.Done;
 
     readonly RandomNumberGenerator rng = new RandomNumberGenerator();
+    readonly Dictionary<EnemyKind, EnemyData> kindLookup = new Dictionary<EnemyKind, EnemyData>();
     List<SpawnDoor> doors;
     List<HordeEntry> plan;
     RoundSpec spec;
+    StageSpec stageSpec;
     Phase phase = Phase.Break;
     int next, roundTotal, roundSpawned, roundKilled, extraSpawned;
     float timer;
@@ -65,18 +81,47 @@ public partial class HordeDirector : Node
         doors = DoorsRoot.GetChildren().OfType<SpawnDoor>().ToList();
         // PDF: comuns não soltam ficha (só Dourados e bosses). Mais drop de pontos.
         var commons = new Godot.Collections.Array<EnemyData>();
-        foreach (var t in CommonTypes)
+        if (CommonTypes != null)
         {
-            var c = t.CloneWithSharedFrames();
-            c.ChipDropChance = 0f;
-            c.PointsDropChance = CommonPointsDropChance;
-            commons.Add(c);
+            foreach (var t in CommonTypes)
+                commons.Add(NormalizeCommon(t));
         }
         CommonTypes = commons;
+
+        RegisterKind(EnemyKind.Ficha, FichaType);
+        RegisterKind(EnemyKind.Fichona, FichonaType);
+        RegisterKind(EnemyKind.Champanhe, ChampanheType);
+        RegisterKind(EnemyKind.CartaEspadas, EspadasType);
+        RegisterKind(EnemyKind.CartaOuros, OurosType);
+        RegisterKind(EnemyKind.CartaPaus, PausType);
+        RegisterKind(EnemyKind.CartaCopas, CopasType);
+
+        int initialStage = Mathf.Clamp(StartStage, 1, CampaignRules.TotalStages);
+        EndStage = Mathf.Clamp(EndStage, initialStage, CampaignRules.TotalStages);
+        StartStage = initialStage;
+        Round = initialStage - 1;
+        stageSpec = CampaignRules.ForStage(initialStage);
+        StageLabel = stageSpec.StageLabel;
+        if (Arena.Instance != null && (Arena.Instance.IsBossArena || Arena.Instance.ActNumber != stageSpec.Act))
+            Arena.Instance.ApplyActTheme(stageSpec.Act);
+
         AudioManager.Instance?.PlayMainMusic(); // reiniciar no meio de um boss volta à trilha normal
         EnemySpawner.Instance.EnemyRemoved += OnEnemyRemoved;
         EnemySpawner.Instance.ExtraEnemySpawned += OnExtraEnemySpawned;
-        timer = 0.5f; // primeiro round começa quase de imediato
+        timer = 0.5f; // primeira fase começa quase de imediato
+    }
+
+    EnemyData NormalizeCommon(EnemyData source)
+    {
+        var c = source.CloneWithSharedFrames();
+        c.ChipDropChance = 0f;
+        c.PointsDropChance = CommonPointsDropChance;
+        return c;
+    }
+
+    void RegisterKind(EnemyKind kind, EnemyData source)
+    {
+        if (source != null) kindLookup[kind] = NormalizeCommon(source);
     }
 
     public override void _ExitTree()
@@ -116,7 +161,12 @@ public partial class HordeDirector : Node
     void StartRound(int round)
     {
         Round = round;
+        stageSpec = CampaignRules.ForStage(round);
         spec = RoundRules.For(round);
+        StageLabel = stageSpec.StageLabel;
+        if (Arena.Instance != null && (Arena.Instance.IsBossArena || Arena.Instance.ActNumber != stageSpec.Act))
+            Arena.Instance.ApplyActTheme(stageSpec.Act);
+
         plan = HordePlan.Build(spec.Count, spec.Duration, doors.Count, spec.Elites, LowerDoors.ToList(), LowerDoorDelay, rng);
         next = roundSpawned = roundKilled = extraSpawned = 0;
         roundTotal = spec.Count + (spec.Boss ? 1 : 0);
@@ -129,14 +179,40 @@ public partial class HordeDirector : Node
 
     void Release(HordeEntry entry)
     {
-        var baseType = CommonTypes[rng.RandiRange(0, CommonTypes.Count - 1)];
+        var baseType = ResolveEnemyDataForStage(stageSpec);
         var type = entry.Elite ? EnemyData.CreateGoldenVariant(baseType) : baseType;
         doors[entry.Door].Enqueue(door =>
         {
-            var enemy = EnemySpawner.Instance.Spawn(type, door.SpawnPosition, spec.HpMultiplier);
+            var enemy = EnemySpawner.Instance.Spawn(type, door.SpawnPosition, spec.HpMultiplier, damageMultiplier: spec.DamageMultiplier);
             enemy.SetEntry(door.EntryPosition);
             roundSpawned++;
         });
+    }
+
+    EnemyData ResolveEnemyDataForStage(StageSpec s)
+    {
+        if (kindLookup.Count > 0 && s.SpawnWeights != null)
+        {
+            int availableTotal = 0;
+            for (int i = 0; i < s.SpawnWeights.Count; i++)
+            {
+                if (kindLookup.ContainsKey(s.SpawnWeights[i].Kind))
+                    availableTotal += Mathf.Max(0, s.SpawnWeights[i].Weight);
+            }
+            if (availableTotal > 0)
+            {
+                int roll = rng.RandiRange(0, availableTotal - 1);
+                int acc = 0;
+                for (int i = 0; i < s.SpawnWeights.Count; i++)
+                {
+                    var w = s.SpawnWeights[i];
+                    if (!kindLookup.TryGetValue(w.Kind, out var candidate)) continue;
+                    acc += Mathf.Max(0, w.Weight);
+                    if (roll < acc) return candidate;
+                }
+            }
+        }
+        return CommonTypes[rng.RandiRange(0, CommonTypes.Count - 1)];
     }
 
     /// <summary>O boss entra pela porta mais longe do jogador, para dar tempo de ler a entrada.</summary>
@@ -146,18 +222,24 @@ public partial class HordeDirector : Node
         var data = BossType.CloneWithSharedFrames();
         data.MaxHp = spec.BossHp;
         data.FixedHp = true;
-        data.GuaranteedChip = true;
+        data.GuaranteedChip = spec.BossChips > 0;
         data.ChipDrops = spec.BossChips;
         data.Dollars = spec.BossDollars;
 
         Vector2 playerPos = PlayerController.Instance.GlobalPosition;
-        var door = doors.OrderByDescending(d => d.GlobalPosition.DistanceSquaredTo(playerPos)).First();
+        var candidateDoors = BossSpawnPoint != null
+            ? doors.Where(d => d.GlobalPosition.Y <= 0f).DefaultIfEmpty(doors[0])
+            : doors;
+        var door = candidateDoors.OrderByDescending(d => d.GlobalPosition.DistanceSquaredTo(playerPos)).First();
         door.Enqueue(d =>
         {
             // O boss é largo: nasce mais para dentro para não ficar preso na parede.
             float inset = data.Scale * 0.5f + 0.5f;
-            var boss = EnemySpawner.Instance.Spawn(data, d.GlobalPosition + d.InwardDir * inset * Units.Px, 1f);
-            boss.SetEntry(d.GlobalPosition + d.InwardDir * (inset + 2f) * Units.Px);
+            var boss = EnemySpawner.Instance.Spawn(data, d.GlobalPosition + d.InwardDir * inset * Units.Px, 1f, damageMultiplier: spec.DamageMultiplier);
+            Vector2 entryTarget = BossSpawnPoint != null
+                ? BossSpawnPoint.GlobalPosition
+                : d.GlobalPosition + d.InwardDir * (inset + 2f) * Units.Px;
+            boss.SetEntry(entryTarget);
             roundSpawned++;
             EnemySpawner.Instance.AnnounceBoss();
         });
@@ -184,10 +266,11 @@ public partial class HordeDirector : Node
         }
         if (roundKilled < roundTotal) return;
 
-        GameManager.Instance.AddDollars(RoundClearDollars);
+        int clearDollars = spec.RoomClearDollars > 0 ? spec.RoomClearDollars : (spec.Boss ? 0 : RoundClearDollars);
+        if (clearDollars > 0) GameManager.Instance.AddDollars(clearDollars);
         if (spec.Boss) AudioManager.Instance?.PlayMainMusic();
 
-        if (Round >= Rounds)
+        if (Round >= EndStage)
         {
             phase = Phase.Done;
             Exit?.Open();

@@ -18,6 +18,10 @@ public partial class Arena : Node2D
     [Export] public float CameraTopExtra { get; set; } = 4f;
     /// <summary>Sala de Descanso (Blockout 3): trava a câmera em 1 tela fixa (1920x1080) sem scroll.</summary>
     [Export] public bool FixedCamera { get; set; } = false;
+    /// <summary>Ato visual desta arena (1 = Salão das Fichas, 2 = High Stakes, 3 = Sala VIP).</summary>
+    [Export] public int ActNumber { get; set; } = 1;
+    /// <summary>Indica se esta cena usa o layout reduzido de Arena de Boss (Blockout 2).</summary>
+    [Export] public bool IsBossArena { get; set; } = false;
 
     public Rect2 Bounds { get; private set; }
     public ArenaGrid Grid { get; private set; }
@@ -40,6 +44,7 @@ public partial class Arena : Node2D
         Grid = new ArenaGrid(Bounds, Units.Px, solids, Inflate * Units.Px);
         flow = new FlowField(Grid);
         LimitCamera();
+        if (IsBossArena) ApplyActTheme(ActNumber);
     }
 
     public override void _ExitTree()
@@ -81,6 +86,60 @@ public partial class Arena : Node2D
         for (int i = 1; i < steps; i++)
             if (IsSolid(a.Lerp(b, (float)i / steps))) return false;
         return true;
+    }
+
+    /// <summary>Aplica a paleta visual (carpete, corredor, passadeiras, paredes e neon) de um dos 3 Atos.</summary>
+    public void ApplyActTheme(int act)
+    {
+        ActNumber = Mathf.Clamp(act, 1, CampaignRules.ActsCount);
+        ActTheme theme = CampaignRules.GetActTheme(ActNumber);
+
+        var carpet = GetNodeOrNull<Sprite2D>("Floor/Carpet");
+        if (carpet != null) carpet.Modulate = theme.CarpetModulate;
+
+        var corridorCarpet = GetNodeOrNull<Sprite2D>("Floor/CorridorCarpet");
+        if (corridorCarpet != null) corridorCarpet.Modulate = theme.CarpetModulate;
+
+        var floor = GetNodeOrNull<Node>("Floor");
+        if (floor != null)
+        {
+            foreach (Node child in floor.GetChildren())
+            {
+                if (child is Sprite2D s && s.Name.ToString().StartsWith("Rug"))
+                    s.Modulate = theme.RugModulate;
+            }
+        }
+
+        var walls = GetNodeOrNull<Node>("Walls");
+        if (walls != null)
+        {
+            foreach (Node child in walls.GetChildren())
+            {
+                if (child is Sprite2D direct && direct.Name == "NorthTrim")
+                {
+                    direct.Modulate = theme.NeonTrimColor;
+                    continue;
+                }
+                foreach (Node sub in child.GetChildren())
+                {
+                    if (sub is not Sprite2D sp) continue;
+                    if (sp.Name == "Trim") sp.Modulate = theme.NeonTrimColor;
+                    else if (sp.Name == "Sprite") sp.Modulate = theme.WallModulate;
+                }
+            }
+        }
+
+        var doors = GetNodeOrNull<Node>("Doors");
+        if (doors != null)
+        {
+            foreach (Node door in doors.GetChildren())
+            {
+                var neonA = door.GetNodeOrNull<Sprite2D>("PanelA/Neon");
+                if (neonA != null) neonA.Modulate = theme.NeonTrimColor;
+                var neonB = door.GetNodeOrNull<Sprite2D>("PanelB/Neon");
+                if (neonB != null) neonB.Modulate = theme.NeonTrimColor;
+            }
+        }
     }
 
     void LimitCamera()
