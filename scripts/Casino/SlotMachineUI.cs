@@ -20,7 +20,9 @@ public partial class SlotMachineUI : CanvasLayer
     WeaponData[] reels = new WeaponData[3];
     readonly Button[] buttons = new Button[3];
     readonly ColorRect[] colors = new ColorRect[3];
+    readonly TextureRect[] icons = new TextureRect[3];
     readonly Label[] labels = new Label[3];
+    readonly Dictionary<string, Texture2D> texCache = new Dictionary<string, Texture2D>();
     Control panel;
     Label resultText;
     Button declineButton;
@@ -39,6 +41,27 @@ public partial class SlotMachineUI : CanvasLayer
             colors[i] = GetNode<ColorRect>($"Panel/Slot{i}/Color");
             labels[i] = GetNode<Label>($"Panel/Slot{i}/Label");
             labels[i].AddThemeFontOverride("font", new SystemFont { FontWeight = 700 });
+
+            icons[i] = new TextureRect
+            {
+                AnchorLeft = 0f, AnchorRight = 1f, AnchorTop = 0f, AnchorBottom = 1f,
+                OffsetLeft = 14f, OffsetRight = -14f, OffsetTop = 10f, OffsetBottom = -48f,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Visible = false,
+            };
+            buttons[i].AddChild(icons[i]);
+            buttons[i].MoveChild(icons[i], labels[i].GetIndex());
+
+            labels[i].AnchorLeft = 0f; labels[i].AnchorRight = 1f;
+            labels[i].AnchorTop = 1f; labels[i].AnchorBottom = 1f;
+            labels[i].OffsetLeft = 8f; labels[i].OffsetRight = -8f;
+            labels[i].OffsetTop = -44f; labels[i].OffsetBottom = -6f;
+            labels[i].AddThemeFontSizeOverride("font_size", 22);
+            labels[i].AddThemeColorOverride("font_color", Colors.White);
+
             buttons[i].Pressed += () => Choose(idx);
         }
 
@@ -143,8 +166,44 @@ public partial class SlotMachineUI : CanvasLayer
 
     void ShowReel(int i, WeaponData w)
     {
-        colors[i].Color = w.ProjectileColor;
+        var tex = LoadTexture(WeaponFramePath(w));
+        icons[i].Texture = tex;
+        icons[i].Visible = tex != null;
+        colors[i].Color = tex != null ? new Color(0.10f, 0.06f, 0.16f, 0.92f) : w.ProjectileColor;
+        labels[i].AddThemeColorOverride("font_color", tex != null ? Colors.White : Colors.Black);
         labels[i].Text = w.WeaponName;
+    }
+
+    public static string WeaponFramePath(WeaponData w)
+    {
+        if (w == null) return "res://assets/molduras/armas/pistola.png";
+        string key = (w.WeaponName + " " + w.ResourcePath).ToLowerInvariant();
+        if (key.Contains("revolver") || key.Contains("revólver")) return "res://assets/molduras/armas/revolver.png";
+        if (key.Contains("escopeta") || key.Contains("shotgun")) return "res://assets/molduras/armas/escopeta.png";
+        if (key.Contains("metralhadora") || key.Contains("smg") || key.Contains("machine")) return "res://assets/molduras/armas/metralhadora.png";
+        if (key.Contains("ak47")) return "res://assets/molduras/armas/ak47.png";
+        if (key.Contains("m4")) return "res://assets/molduras/armas/m4.png";
+        if (key.Contains("sniper")) return "res://assets/molduras/armas/sniper.png";
+        if (key.Contains("rifle") || key.Contains("fuzil") || key.Contains("lancadados")) return "res://assets/molduras/armas/rifle.png";
+        return "res://assets/molduras/armas/pistola.png";
+    }
+
+    Texture2D LoadTexture(string resPath)
+    {
+        if (string.IsNullOrEmpty(resPath)) return null;
+        if (texCache.TryGetValue(resPath, out var cached)) return cached;
+        var tex = ResourceLoader.Exists(resPath) ? GD.Load<Texture2D>(resPath) : null;
+        if (tex == null)
+        {
+            string abs = ProjectSettings.GlobalizePath(resPath);
+            if (System.IO.File.Exists(abs))
+            {
+                var img = new Image();
+                if (img.Load(abs) == Error.Ok) tex = ImageTexture.CreateFromImage(img);
+            }
+        }
+        texCache[resPath] = tex;
+        return tex;
     }
 
     void SetButtons(bool on)
