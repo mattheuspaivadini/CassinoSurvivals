@@ -32,6 +32,8 @@ public partial class PlayerController : RigidBody2D
 	public bool IsInvulnerable => invulnTimer > 0f;
 	public bool IsRolling => rollTimer > 0f;
 	public bool IsBluffImmune => bluffImmuneThisRoll && rollTimer > 0f;
+	/// <summary>Modo Sandbox (#23): imortalidade de teste, sempre false na campanha normal.</summary>
+	public bool DebugGodMode { get; set; }
 
 	const uint PlayerLayerBit = 2u;
 	const uint EnemyLayerBit = 4u;
@@ -260,7 +262,7 @@ public partial class PlayerController : RigidBody2D
 
 	public void TakeDamage(float amount, bool isContact = false)
 	{
-		if (CurrentHp <= 0f || invulnTimer > 0f || GameManager.Instance.State != GameState.Playing) return;
+		if (DebugGodMode || CurrentHp <= 0f || invulnTimer > 0f || GameManager.Instance.State != GameState.Playing) return;
 		// Blefe Perfeito (passiva #8): dash imune atravessa inimigos sem sofrer dano de contato.
 		if (isContact && IsBluffImmune) return;
 

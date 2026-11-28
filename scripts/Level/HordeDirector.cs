@@ -102,6 +102,18 @@ public partial class HordeDirector : Node
         RegisterKind(EnemyKind.CartaCopas, CopasType);
 
         var gm = GameManager.Instance;
+        if (gm != null && gm.EnemySandboxActive)
+        {
+            // Modo Sandbox (#23): mantém portas e catálogo registrados para reforços de Boss, mas sem horda automática.
+            SetSandboxStageScale(1);
+            StageLabel = "SANDBOX / DEBUG";
+            SetProcess(false);
+            AudioManager.Instance?.PlayMainMusic();
+            var sceneRoot = GetTree()?.CurrentScene;
+            if (sceneRoot != null && sceneRoot.GetNodeOrNull("EnemySandboxUI") == null)
+                sceneRoot.CallDeferred(Node.MethodName.AddChild, new EnemySandboxUI { Name = "EnemySandboxUI" });
+            return;
+        }
         if (gm != null)
         {
             if (!gm.CampaignActive && StartStage == 1 && EndStage == CampaignRules.TotalStages)
@@ -141,6 +153,15 @@ public partial class HordeDirector : Node
     {
         source ??= EnemyCatalog.Load(kind);
         if (source != null) kindLookup[kind] = NormalizeCommon(source);
+    }
+
+    /// <summary>Usado pelo Modo Sandbox (#23) para calibrar reforços de Boss pela escala da fase selecionada.</summary>
+    public void SetSandboxStageScale(int stage)
+    {
+        int s = Mathf.Clamp(stage, 1, CampaignRules.TotalStages);
+        stageSpec = CampaignRules.ForStage(s);
+        spec = RoundRules.For(s);
+        EnemySpeedMultiplier = 1f;
     }
 
     /// <summary>

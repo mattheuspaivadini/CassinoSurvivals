@@ -27,6 +27,8 @@ public abstract class BossBrain : EnemyBrain
 
     public bool Invulnerable { get; private set; }
     public bool Fury { get; private set; }
+    public bool HasPendingLock => nextLockIndex < LockThresholds.Length;
+    public float NextLockFraction => HasPendingLock ? LockThresholds[nextLockIndex] : -1f;
     protected bool InLock { get; private set; }
     protected int LockIndex { get; private set; }
     protected virtual float FuryThreshold => EnemyRules.FuryHpFraction;
@@ -108,6 +110,38 @@ public abstract class BossBrain : EnemyBrain
         InLock = true;
         LockSequence();
         Then(0f, () => { Invulnerable = false; InLock = false; idleTimer = IdleGap; });
+    }
+
+    /// <summary>Modo Sandbox (#23): ajusta HP ao próximo marco e dispara a Trava de Fase imediatamente.</summary>
+    public bool DebugForceNextLock()
+    {
+        if (Self == null || Self.IsDead || InLock || !HasPendingLock) return false;
+        float targetHp = Self.MaxHp * LockThresholds[nextLockIndex];
+        if (Self.Hp > targetHp) Self.SetHpForDebug(targetHp);
+        StartLock();
+        return true;
+    }
+
+    /// <summary>Modo Sandbox (#23): reduz o HP abaixo do limiar (&lt;40%) e ativa o estado de Fúria imediatamente.</summary>
+    public bool DebugForceFury()
+    {
+        if (Self == null || Self.IsDead) return false;
+        float targetHp = Self.MaxHp * Mathf.Max(0.05f, FuryThreshold - 0.02f);
+        if (Self.Hp > targetHp) Self.SetHpForDebug(targetHp);
+        if (InLock)
+        {
+            steps.Clear();
+            running = false;
+            Invulnerable = false;
+            InLock = false;
+            idleTimer = 0.2f;
+        }
+        if (!Fury)
+        {
+            Fury = true;
+            OnFury();
+        }
+        return true;
     }
 
     public override float FilterDamage(float amount)

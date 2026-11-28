@@ -34,6 +34,81 @@ public static class SelfCheck
         CamadaDeDificuldade();
         ArsenalE2Slots();
         PassivasDaRoleta();
+        ModoSandboxDebug();
+    }
+
+    static void ModoSandboxDebug()
+    {
+        // 1. 100% desativado por padrão na campanha normal e build final.
+        Check(!GameManager.HasEnemySandboxFlag(Array.Empty<string>()) &&
+              !GameManager.HasEnemySandboxFlag(new[] { "--selfcheck" }) &&
+              GameManager.HasEnemySandboxFlag(new[] { "--enemy-sandbox" }),
+            "flag CLI --enemy-sandbox reconhecida apenas quando explícita");
+        Check(GameManager.Instance != null && !GameManager.Instance.EnemySandboxActive,
+            "EnemySandboxActive desativado por padrão sem flag");
+
+        var mainPacked = Godot.GD.Load<Godot.PackedScene>("res://scenes/Main.tscn");
+        var mainRoot = mainPacked.Instantiate<MainController>();
+        try
+        {
+            Check(mainRoot != null && !mainRoot.DebugWeaponSandbox, "Main.tscn vem com DebugWeaponSandbox desligado por padrão");
+        }
+        finally
+        {
+            mainRoot?.Free();
+        }
+
+        // 2. Catálogo dos 7 arquétipos (normais e variantes Douradas).
+        Check(EnemySandboxRules.Enemies.Length == 7, "Sandbox expõe os 7 arquétipos oficiais");
+        foreach (var opt in EnemySandboxRules.Enemies)
+        {
+            var normal = EnemySandboxRules.BuildEnemyData(opt.Kind, golden: false);
+            var golden = EnemySandboxRules.BuildEnemyData(opt.Kind, golden: true);
+            Check(normal != null && !normal.IsGolden, $"Sandbox carrega {opt.Kind} normal");
+            Check(golden != null && golden.IsGolden && golden.GuaranteedChip && Near(golden.MaxHp, normal.MaxHp * EnemyData.GoldenHpMultiplier),
+                $"Sandbox gera {opt.Kind} Dourado (1,8x HP + ficha garantida)");
+        }
+
+        // 3. Catálogo dos 3 Bosses com parâmetros oficiais da campanha.
+        Check(EnemySandboxRules.Bosses.Length == 3, "Sandbox expõe os 3 Bosses oficiais");
+        var rainhaData = EnemySandboxRules.BuildBossData(BossKind.Rainha, out var s5);
+        var reiData = EnemySandboxRules.BuildBossData(BossKind.Rei, out var s10);
+        var maqData = EnemySandboxRules.BuildBossData(BossKind.MaquinaCacaNiquel, out var s15);
+        Check(s5.Stage == 5 && rainhaData.IsBoss && rainhaData.FixedHp && Near(rainhaData.MaxHp, 3200f) && Near(rainhaData.BossDpsCap, 55f),
+            "Sandbox Boss Rainha (3200 HP / cap 55)");
+        Check(s10.Stage == 10 && reiData.IsBoss && reiData.FixedHp && Near(reiData.MaxHp, 6800f) && Near(reiData.BossDpsCap, 105f),
+            "Sandbox Boss Rei (6800 HP / cap 105)");
+        Check(s15.Stage == 15 && maqData.IsBoss && maqData.FixedHp && Near(maqData.MaxHp, 14000f) && Near(maqData.BossDpsCap, 180f),
+            "Sandbox Boss Máquina (14000 HP / cap 180)");
+
+        // 4. Transições de Trava de Fase e Fúria sob demanda (Rainha 50% e Máquina 65%/35%).
+        var enemyPacked = Godot.GD.Load<Godot.PackedScene>("res://scenes/Enemy.tscn");
+        var bossNode = enemyPacked.Instantiate<Enemy>();
+        try
+        {
+            bossNode._Ready();
+            bossNode.Init(rainhaData, 1f, 1f);
+            var brain = bossNode.Brain as BossBrain;
+            Check(brain != null && brain.HasPendingLock && Near(brain.NextLockFraction, 0.5f) && !brain.Invulnerable && !brain.Fury,
+                "Rainha nasce pronta com trava de 50% pendente");
+            Check(brain.DebugForceNextLock() && brain.Invulnerable && Near(bossNode.Hp, 1600f),
+                "DebugForceNextLock trava Rainha em 50% HP (invulnerável)");
+            Check(brain.DebugForceFury() && brain.Fury && !brain.Invulnerable && bossNode.Hp < bossNode.MaxHp * 0.4f,
+                "DebugForceFury ativa Fúria (<40% HP) e libera trava");
+
+            bossNode.Init(maqData, 1f, 1f);
+            var maqBrain = bossNode.Brain as BossBrain;
+            Check(maqBrain != null && maqBrain.HasPendingLock && Near(maqBrain.NextLockFraction, 0.65f),
+                "Máquina inicia com 1ª trava em 65%");
+            Check(maqBrain.DebugForceNextLock() && maqBrain.Invulnerable && Near(bossNode.Hp, 14000f * 0.65f),
+                "Máquina trava aos 65% HP");
+            Check(maqBrain.HasPendingLock && Near(maqBrain.NextLockFraction, 0.35f),
+                "Máquina mantém 2ª trava em 35% pendente");
+        }
+        finally
+        {
+            bossNode.Free();
+        }
     }
 
     static void PassivasDaRoleta()

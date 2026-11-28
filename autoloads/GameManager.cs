@@ -35,6 +35,11 @@ public partial class GameManager : Node
     public int CurrentStage { get; private set; } = 1;
     public bool InLounge { get; private set; }
     public bool CampaignActive { get; private set; }
+    /// <summary>Modo Sandbox/Debug (#23): 100% desativado por padrão; só liga com a flag CLI --enemy-sandbox.</summary>
+    public bool EnemySandboxActive { get; private set; }
+
+    public static bool HasEnemySandboxFlag(string[] args) =>
+        args != null && args.Contains("--enemy-sandbox");
 
     public bool IsBossTime =>
         Elapsed >= BossSpawnTime || (BossScoreThreshold > 0 && Score >= BossScoreThreshold);
@@ -44,9 +49,15 @@ public partial class GameManager : Node
         Instance = this;
         ProcessMode = ProcessModeEnum.Always; // o jogo pausa via SceneTree.Paused; o manager não
 
-        if (!OS.GetCmdlineUserArgs().Contains("--selfcheck")) return;
-        try { SelfCheck.Run(); GD.Print("selfcheck OK"); GetTree().Quit(); }
-        catch (Exception e) { GD.PrintErr(e.Message); GetTree().Quit(1); }
+        string[] args = OS.GetCmdlineUserArgs();
+        if (args.Contains("--selfcheck"))
+        {
+            try { SelfCheck.Run(); GD.Print("selfcheck OK"); GetTree().Quit(); }
+            catch (Exception e) { GD.PrintErr(e.Message); GetTree().Quit(1); }
+            return;
+        }
+        if (HasEnemySandboxFlag(args))
+            CallDeferred(nameof(StartEnemySandbox));
     }
 
     public override void _Process(double delta)
@@ -128,12 +139,29 @@ public partial class GameManager : Node
         CurrentStage = 1;
         InLounge = false;
         CampaignActive = true;
+        EnemySandboxActive = false;
         LoungeStation.RouletteUsesInRun = 0;
         RunState.Reset();
         State = GameState.Playing;
         GetTree().Paused = false;
         string target = showCutscene ? CutsceneScenePath : CampaignRules.ForStage(1).ScenePath;
         GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, target);
+    }
+
+    /// <summary>Inicia a arena de testes do Modo Sandbox/Debug (--enemy-sandbox).</summary>
+    public void StartEnemySandbox()
+    {
+        Score = Chips = RunDollars = CashedOutChips = 0;
+        Elapsed = 0f;
+        CurrentStage = 1;
+        InLounge = false;
+        CampaignActive = false;
+        EnemySandboxActive = true;
+        LoungeStation.RouletteUsesInRun = 0;
+        RunState.Reset();
+        State = GameState.Playing;
+        GetTree().Paused = false;
+        GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, CampaignRules.BossScenePath);
     }
 
     /// <summary>
@@ -147,6 +175,7 @@ public partial class GameManager : Node
         CurrentStage = 1;
         InLounge = false;
         CampaignActive = false;
+        EnemySandboxActive = false;
         LoungeStation.RouletteUsesInRun = 0;
         RunState.Reset();
         State = GameState.Playing;
@@ -182,6 +211,11 @@ public partial class GameManager : Node
     /// <summary>Este nó sobrevive ao reload da cena (autoload), então o estado é zerado à mão.</summary>
     public void Restart()
     {
+        if (EnemySandboxActive)
+        {
+            StartEnemySandbox();
+            return;
+        }
         string scene = GetTree().CurrentScene?.SceneFilePath;
         if (!CampaignActive && scene == "res://scenes/Main.tscn")
         {
