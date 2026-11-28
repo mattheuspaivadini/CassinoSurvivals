@@ -93,6 +93,16 @@ public static class GameFeel
         if (root is Node2D) Burst(root, globalPos, color, amount, speed);
     }
 
+    /// <summary>Anel expansivo rápido no mundo (Efeito Dominó e Virar a Mesa).</summary>
+    public static void PulseRing(Node context, Vector2 globalPos, float radiusPx, Color color, float duration = 0.26f)
+    {
+        var root = context?.GetTree()?.CurrentScene;
+        if (root is not Node2D) return;
+        var ring = new ShockwaveRing();
+        root.AddChild(ring);
+        ring.Setup(globalPos, radiusPx, color, duration);
+    }
+
     static Gradient Fade(Color c)
     {
         var g = new Gradient();
@@ -112,5 +122,37 @@ public static class GameFeel
         var t = rect.CreateTween();
         t.TweenProperty(rect, "modulate:a", 0f, seconds);
         t.TweenCallback(Callable.From(rect.QueueFree));
+    }
+}
+
+/// <summary>Onda circular expansiva de curta duração usada por Efeito Dominó e Virar a Mesa.</summary>
+public partial class ShockwaveRing : Node2D
+{
+    float maxRadius, duration, elapsed;
+    Color color;
+
+    public void Setup(Vector2 pos, float radiusPx, Color c, float seconds)
+    {
+        GlobalPosition = pos;
+        maxRadius = Mathf.Max(8f, radiusPx);
+        color = c;
+        duration = Mathf.Max(0.05f, seconds);
+        ZIndex = 8;
+    }
+
+    public override void _Process(double delta)
+    {
+        elapsed += (float)delta;
+        if (elapsed >= duration) { QueueFree(); return; }
+        QueueRedraw();
+    }
+
+    public override void _Draw()
+    {
+        float t = Mathf.Clamp(elapsed / duration, 0f, 1f);
+        float r = Mathf.Lerp(maxRadius * 0.2f, maxRadius, 1f - (1f - t) * (1f - t));
+        float a = 1f - t;
+        DrawCircle(Vector2.Zero, r, new Color(color, 0.16f * a));
+        DrawArc(Vector2.Zero, r, 0f, Mathf.Tau, 36, new Color(color, 0.9f * a), Mathf.Lerp(5f, 1.5f, t));
     }
 }

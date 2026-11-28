@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using Godot;
 
 /// <summary>
 /// Inimigo animado: persegue o jogador via RigidBody2D (usando FlowField na arena e flanqueamento na Ficha),
-/// com suporte a variante Dourada, divisão "Troco" (Fichona) e explosão + poça (Garrafa de Champanhe).
+/// com suporte a variante Dourada, divisão "Troco" (Fichona), explosão + poça (Garrafa de Champanhe)
+/// e status/knockback das Passivas da Roleta (#21).
 /// </summary>
 public partial class Enemy : RigidBody2D
 {
@@ -16,10 +18,12 @@ public partial class Enemy : RigidBody2D
     public float MaxHp { get; private set; }
     public float DamageMultiplier => damageMultiplierUsed;
     public float HpMultiplier => hpMultiplierUsed;
-    /// <summary>Velocidade de movimento (u/s) já com a escala de dificuldade da fase.</summary>
-    public float MoveSpeed => Data.MoveSpeed * speedMultiplierUsed;
+    /// <summary>Velocidade de movimento (u/s) já com escala da fase e lentidão do Gelo no Copo.</summary>
+    public float MoveSpeed => Data.MoveSpeed * speedMultiplierUsed * (slowTimer > 0f ? PassiveRules.SlowSpeedMultiplier : 1f);
     float speedMultiplierUsed = 1f;
     public bool IsDead => dead;
+    public bool IsSlowed => slowTimer > 0f;
+    public bool IsBurning => burn.IsActive;
     public AnimatedSprite2D Sprite => sprite;
 
     /// <summary>Índice na lista ativa do EnemySpawner (remoção O(1) por swap).</summary>
@@ -38,6 +42,9 @@ public partial class Enemy : RigidBody2D
     Vector2 baseSpriteScale = Vector2.One;
     string currentAnim, overrideAnim;
     float hp, hpMultiplierUsed = 1f, damageMultiplierUsed = 1f, contactTimer, flashTimer, flankAngle, fuseTimer, overrideAnimTimer;
+    float slowTimer, statusVisualTimer;
+    PassiveRules.BurnState burn;
+    Vector2 knockbackVelocity;
     Vector2 entry;
     bool entering, fusing, dead;
 
@@ -65,6 +72,10 @@ public partial class Enemy : RigidBody2D
         currentAnim = null;
         overrideAnim = null;
         overrideAnimTimer = 0f;
+        slowTimer = 0f;
+        statusVisualTimer = 0f;
+        burn.Clear();
+        knockbackVelocity = Vector2.Zero;
 
         CollisionLayer = 4;
         CollisionMask = 7;
@@ -147,7 +158,17 @@ public partial class Enemy : RigidBody2D
         else desired = WithSeparation(ChaseDirection(pos, player.GlobalPosition, toPlayer), MoveSpeed);
 
         bool snap = !entering && Brain != null && Brain.SnapVelocity;
-        LinearVelocity = snap ? desired : LinearVelocity.Lerp(desired, Mathf.Min(1f, Steering * dt));
+        Vector2 baseVel = snap ? desired : LinearVelocity.Lerp(desired, Mathf.Min(1f, Steering * dt));
+        if (knockbackVelocity.LengthSquared() > 1f)
+        {
+            LinearVelocity = baseVel + knockbackVelocity;
+            knockbackVelocity = knockbackVelocity.Lerp(Vector2.Zero, Mathf.Min(1f, 14f * dt));
+        }
+        else
+        {
+            knockbackVelocity = Vector2.Zero;
+            LinearVelocity = baseVel;
+        }
 
         if (attackTimer > 0f) attackTimer -= dt;
         if (overrideAnimTimer > 0f) overrideAnimTimer -= dt;
@@ -176,7 +197,7 @@ public partial class Enemy : RigidBody2D
             float reach = Radius + player.RadiusPx + 0.1f * Units.Px;
             if (contactTimer <= 0f && toPlayer.LengthSquared() <= reach * reach)
             {
-                player.TakeDamage(Data.ContactDamage * damageMultiplierUsed * (Brain?.ContactScale ?? 1f));
+                player.TakeDamage(Data.ContactDamage * damageMultiplierUsed * (Brain?.ContactScale ?? 1f), isContact: true);
                 contactTimer = Data.ContactCooldown;
             }
         }
@@ -259,10 +280,66 @@ public partial class Enemy : RigidBody2D
         return arena == null ? (target - pos).Normalized() : arena.Steer(pos, target);
     }
 
+    /// <summary>Gelo no Copo (passiva #3): -30% de velocidade por 1,5s (novos acertos reiniciam).</summary>
+    public void ApplySlow(float duration = PassiveRules.SlowDuration)
+    {
+        if (dead) return;
+        slowTimer = Mathf.Max(slowTimer, duration);
+        QueueRedraw();
+    }
+
+    /// <summary>Mão Quente (passiva #4): acumula +30% do dano do disparo em queimadura por 1,5s.</summary>
+    public void ApplyBurn(float shotDamage)
+    {
+        if (dead || shotDamage <= 0f) return;
+        burn.Apply(shotDamage);
+        QueueRedraw();
+    }
+
+    /// <summary>All-In / Virar a Mesa (passivas #5 e #7): empurrão respeitando Paus e Bosses.</summary>
+    public void ApplyKnockback(Vector2 dir, float speedPx, bool ignoreMass = false)
+    {
+        if (dead || Data == null || Data.IsBoss || Data.KnockbackResistant) return;
+        if (dir.LengthSquared() < 0.0001f || speedPx <= 0f) return;
+        float scale = ignoreMass ? 1f : 1f / Mathf.Sqrt(Mathf.Max(1f, Data.Mass));
+        knockbackVelocity += dir.Normalized() * (speedPx * scale);
+        const float MaxKnockbackSpeed = 650f;
+        if (knockbackVelocity.LengthSquared() > MaxKnockbackSpeed * MaxKnockbackSpeed)
+            knockbackVelocity = knockbackVelocity.Normalized() * MaxKnockbackSpeed;
+    }
+
+    Color StatusTint()
+    {
+        Color c = Data != null ? Data.Color : Colors.White;
+        if (IsSlowed && IsBurning) return c * new Color(0.92f, 0.78f, 0.85f);
+        if (IsBurning) return c * new Color(1f, 0.60f, 0.32f);
+        if (IsSlowed) return c * new Color(0.55f, 0.88f, 1f);
+        return c;
+    }
+
     public override void _Process(double delta)
     {
         if (dead) return;
         float dt = (float)delta;
+
+        bool playing = GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
+        if (playing)
+        {
+            bool hadSlow = slowTimer > 0f;
+            if (slowTimer > 0f)
+            {
+                slowTimer = Mathf.Max(0f, slowTimer - dt);
+                if (hadSlow && slowTimer <= 0f) QueueRedraw();
+            }
+            if (burn.IsActive)
+            {
+                statusVisualTimer += dt;
+                float burnDmg = burn.Tick(dt);
+                if (burnDmg > 0f) TakeDamage(burnDmg, fromDot: true);
+                if (dead) return;
+                QueueRedraw();
+            }
+        }
 
         if (fusing)
         {
@@ -275,13 +352,18 @@ public partial class Enemy : RigidBody2D
                 return;
             }
             bool blink = ((int)(progress * 10f) & 1) == 0;
-            sprite.Modulate = blink ? new Color(1f, 0.35f, 0.25f) : Data.Color;
+            sprite.Modulate = blink ? new Color(1f, 0.35f, 0.25f) : StatusTint();
             return;
         }
 
-        if (flashTimer <= 0f) return;
-        flashTimer -= dt;
-        if (flashTimer <= 0f) sprite.Modulate = Data.Color;
+        if (flashTimer > 0f)
+        {
+            flashTimer -= dt;
+            if (flashTimer <= 0f) sprite.Modulate = StatusTint();
+            return;
+        }
+        Color tint = StatusTint();
+        if (sprite.Modulate != tint) sprite.Modulate = tint;
     }
 
     public override void _Draw()
@@ -291,6 +373,22 @@ public partial class Enemy : RigidBody2D
             float auraR = Radius * 1.25f;
             DrawCircle(Vector2.Zero, auraR, new Color(1f, 0.84f, 0.18f, 0.16f));
             DrawArc(Vector2.Zero, auraR, 0f, Mathf.Tau, 28, new Color(1f, 0.88f, 0.28f, 0.85f), 2.5f);
+        }
+        if (!dead && IsSlowed)
+        {
+            float iceR = Radius * 1.08f;
+            DrawArc(Vector2.Zero, iceR, 0f, Mathf.Tau, 24, new Color(0.45f, 0.88f, 1f, 0.75f), 2.2f);
+        }
+        if (!dead && IsBurning)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                float phase = (statusVisualTimer * 3.2f + i * 0.25f) % 1f;
+                float angle = i * Mathf.Pi * 0.5f + statusVisualTimer * 1.8f;
+                Vector2 ember = new Vector2(Mathf.Cos(angle) * Radius * 0.55f, Mathf.Sin(angle) * Radius * 0.3f - phase * Radius * 1.1f);
+                float r = Mathf.Lerp(5.5f, 1.8f, phase);
+                DrawCircle(ember, r, new Color(1f, Mathf.Lerp(0.75f, 0.22f, phase), 0.1f, (1f - phase) * 0.9f));
+            }
         }
         if (!dead) Brain?.Draw(this);
         if (!fusing || dead) return;
@@ -303,7 +401,7 @@ public partial class Enemy : RigidBody2D
         DrawArc(Vector2.Zero, blastR, 0f, Mathf.Tau, 36, new Color(warnColor, 0.85f), 2.5f);
     }
 
-    public void TakeDamage(float amount)
+    public void TakeDamage(float amount, bool isCrit = false, bool fromDot = false)
     {
         if (dead || hp <= 0f) return;
         if (Brain != null) amount = Brain.FilterDamage(amount);
@@ -314,9 +412,9 @@ public partial class Enemy : RigidBody2D
             return;
         }
         hp -= amount;
-        sprite.Modulate = Colors.White;
-        flashTimer = 0.06f;
-        AudioManager.Instance?.PlayEnemyHit();
+        sprite.Modulate = isCrit ? GameFeel.Gold : fromDot ? new Color(1f, 0.52f, 0.14f) : Colors.White;
+        flashTimer = fromDot ? 0.04f : 0.06f;
+        if (!fromDot) AudioManager.Instance?.PlayEnemyHit();
         if (hp <= 0f) ResolveDeath(killedByPlayer: true);
     }
 
@@ -325,6 +423,9 @@ public partial class Enemy : RigidBody2D
         if (dead) return;
         dead = true;
         fusing = false;
+        slowTimer = 0f;
+        burn.Clear();
+        knockbackVelocity = Vector2.Zero;
         QueueRedraw();
         Brain?.OnDeath();
         sprite.Offset = Vector2.Zero;
@@ -336,6 +437,14 @@ public partial class Enemy : RigidBody2D
             GameManager.Instance?.AddScore(Data.Points);
             GameManager.Instance?.AddDollars(Data.Dollars);
             DropManager.Instance?.RollDrops(Data, GlobalPosition);
+
+            // Troco em Sangue (passiva #10): 5% HP a cada 20 comuns e 3% HP por Dourado.
+            float healFrac = RunState.RegisterKillForBloodChange(Data.IsGolden);
+            if (healFrac > 0f && PlayerController.Instance != null && IsInstanceValid(PlayerController.Instance))
+                PlayerController.Instance.Heal(PlayerController.Instance.MaxHp * healFrac);
+
+            // Efeito Dominó (passiva #2): explosão curta em área ao abater.
+            if (RunState.Has(Passive.EfeitoDomino)) TriggerDominoExplosion();
         }
         else if (Data.GuaranteedChip)
         {
@@ -378,6 +487,33 @@ public partial class Enemy : RigidBody2D
 
         // Na fase com rounds quem encerra é a saída; no modo antigo o boss vence a partida.
         if (boss && HordeDirector.Instance == null) GameManager.Instance?.Victory();
+    }
+
+    void TriggerDominoExplosion()
+    {
+        float radiusPx = PassiveRules.DominoRadiusUnits * Units.Px;
+        float dmg = PassiveRules.DominoDamage(MaxHp);
+        Vector2 origin = GlobalPosition;
+
+        GameFeel.PulseRing(this, origin, radiusPx, new Color(1f, 0.55f, 0.16f), 0.24f);
+        GameFeel.WorldBurst(this, origin, new Color(1f, 0.52f, 0.14f), 20, 260f);
+
+        var spawner = EnemySpawner.Instance;
+        if (spawner == null) return;
+
+        // Snapshot evita alterar a lista ativa do spawner durante a iteração.
+        var victims = new List<Enemy>(8);
+        foreach (var other in spawner.Active)
+        {
+            if (other == this || other.IsDead || !IsInstanceValid(other)) continue;
+            float reach = radiusPx + other.Radius;
+            if ((other.GlobalPosition - origin).LengthSquared() <= reach * reach) victims.Add(other);
+        }
+        for (int i = 0; i < victims.Count; i++)
+        {
+            var v = victims[i];
+            if (IsInstanceValid(v) && !v.IsDead) v.TakeDamage(dmg);
+        }
     }
 
     void TriggerExplosion(bool dealBlastDamage)

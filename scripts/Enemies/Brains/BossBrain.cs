@@ -199,7 +199,7 @@ public abstract class BossBrain : EnemyBrain
             if (!hitDone && p != null && toPlayer.Length() <= Self.Radius + p.RadiusPx)
             {
                 hitDone = true;
-                p.TakeDamage(Hit(damageScale));
+                p.TakeDamage(Hit(damageScale), isContact: true);
             }
             if (FreeDistance(Self.GlobalPosition, dir, 0.4f * Units.Px) < 1f) EndStep();
             return dir * speedUnits * Units.Px;
