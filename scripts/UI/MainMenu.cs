@@ -47,7 +47,7 @@ public partial class MainMenu : Control
 
     Control BuildMainPage()
     {
-        var col = Page(-330f, 330f, -330f, 340f);
+        var col = Page(-330f, 330f, -370f, 380f);
 
         var title = new Label { Text = "CASSINO\nSURVIVALS", HorizontalAlignment = HorizontalAlignment.Center };
         title.AddThemeFontSizeOverride("font_size", 92);
@@ -66,6 +66,7 @@ public partial class MainMenu : Control
         col.AddChild(MakeButton("JOGAR", () => GameManager.Instance.StartNewRun(showCutscene: true), true));
         col.AddChild(MakeButton("LOJA", () => { shop.Refresh(); ShowPage(shopPage); }));
         col.AddChild(MakeButton("CONFIGURAÇÕES", () => ShowPage(settingsPage)));
+        col.AddChild(MakeButton("SANDBOX", () => GameManager.Instance.StartEnemySandbox()));
         col.AddChild(MakeButton("SAIR", () => GetTree().Quit()));
         return col;
     }

@@ -3,7 +3,7 @@ using Godot;
 
 /// <summary>
 /// Painel e atalhos de debug do Modo Sandbox (issue #23).
-/// Instanciado exclusivamente quando a flag CLI --enemy-sandbox está ativa; 100% ausente na campanha normal.
+/// Aberto pelo botão SANDBOX do Menu Principal ou pela flag CLI --enemy-sandbox; 100% ausente na campanha normal.
 /// Atalhos: [F1] mostra/oculta painel, [G] Dourado, [I] God Mode, [H] Cura, [F6] Trava, [F7] Fúria, [F8/Backspace] Limpar.
 /// </summary>
 public partial class EnemySandboxUI : CanvasLayer
@@ -12,6 +12,14 @@ public partial class EnemySandboxUI : CanvasLayer
     Button collapsedPill;
     Button goldenButton, godModeButton, forceLockButton, forceFuryButton;
     Label statusLabel, stageLabel, bossInfoLabel;
+
+    const int StatStepPercent = 10;
+    static readonly Color TabActiveColor = new Color(0.35f, 0.95f, 1f);
+
+    readonly List<VBoxContainer> pages = new List<VBoxContainer>();
+    readonly List<Button> pageTabs = new List<Button>();
+    readonly Button[] passiveButtons = new Button[PassiveCatalog.Count];
+    readonly Label[] statLabels = new Label[System.Enum.GetValues(typeof(UpgradeStat)).Length];
 
     bool goldenMode;
     bool godMode;
@@ -29,16 +37,11 @@ public partial class EnemySandboxUI : CanvasLayer
         }
 
         Layer = 8;
-        EnableWeaponSandbox();
         BuildUi();
         RefreshStateLabels();
     }
 
-    void EnableWeaponSandbox()
-    {
-        var ws = PlayerController.Instance?.GetNodeOrNull<WeaponSystem>("WeaponSystem");
-        if (ws != null) ws.SandboxMode = true;
-    }
+    static WeaponSystem CurrentWeapons() => PlayerController.Instance?.GetNodeOrNull<WeaponSystem>("WeaponSystem");
 
     public override void _Process(double delta)
     {
@@ -93,7 +96,7 @@ public partial class EnemySandboxUI : CanvasLayer
         {
             Text = "SANDBOX [F1]",
             AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 0f, AnchorBottom = 0f,
-            OffsetLeft = -180f, OffsetRight = -16f, OffsetTop = 148f, OffsetBottom = 186f,
+            OffsetLeft = -180f, OffsetRight = -16f, OffsetTop = 200f, OffsetBottom = 238f,
             FocusMode = Control.FocusModeEnum.None,
             Visible = false,
         };
@@ -104,7 +107,7 @@ public partial class EnemySandboxUI : CanvasLayer
         panel = new PanelContainer
         {
             AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 0f, AnchorBottom = 1f,
-            OffsetLeft = -340f, OffsetRight = -16f, OffsetTop = 144f, OffsetBottom = -140f,
+            OffsetLeft = -340f, OffsetRight = -16f, OffsetTop = 196f, OffsetBottom = -140f,
         };
         panel.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
@@ -136,7 +139,7 @@ public partial class EnemySandboxUI : CanvasLayer
         var hideBtn = MakeSmallButton("F1 −", TogglePanel);
         headerRow.AddChild(hideBtn);
 
-        statusLabel = MakeLabel("Pronto · [1-8/Q/E] armas", 13, new Color(0.78f, 0.84f, 0.92f));
+        statusLabel = MakeLabel("Pronto · [1-2/Scroll] troca de arma", 13, new Color(0.78f, 0.84f, 0.92f));
         col.AddChild(statusLabel);
 
         // Opções de spawn e jogador
@@ -159,20 +162,61 @@ public partial class EnemySandboxUI : CanvasLayer
         stageRow.AddChild(MakeSmallButton("+", () => ChangeStage(1)));
         stageRow.AddChild(MakeSmallButton("CURAR [H]", HealPlayer));
 
-        var weaponRow = new HBoxContainer();
-        weaponRow.AddThemeConstantOverride("separation", 6);
-        col.AddChild(weaponRow);
-        weaponRow.AddChild(MakeLabel("Arma:", 13, new Color(0.85f, 0.85f, 0.9f)));
-        weaponRow.AddChild(MakeButton("Nv 1", () => SetSelectedWeaponLevel(1)));
-        weaponRow.AddChild(MakeButton("Nv 5", () => SetSelectedWeaponLevel(5)));
-        weaponRow.AddChild(MakeButton("Nv 10 ★", () => SetSelectedWeaponLevel(10)));
+        var chipsRow = new HBoxContainer();
+        chipsRow.AddThemeConstantOverride("separation", 6);
+        col.AddChild(chipsRow);
+        var chipsButton = MakeButton("+10 FICHAS", () => GiveChips(10));
+        chipsButton.AddThemeColorOverride("font_color", GameFeel.Gold);
+        chipsRow.AddChild(chipsButton);
+        chipsRow.AddChild(MakeButton("+50 FICHAS", () => GiveChips(50)));
+
+        var tabRow = new GridContainer { Columns = 3 };
+        tabRow.AddThemeConstantOverride("h_separation", 4);
+        tabRow.AddThemeConstantOverride("v_separation", 4);
+        col.AddChild(tabRow);
+        var enemiesPage = AddPage(col, tabRow, "INIMIGOS");
+        var weaponsPage = AddPage(col, tabRow, "ARMAS");
+        var passivesPage = AddPage(col, tabRow, "PASSIVAS");
+        var statsPage = AddPage(col, tabRow, "ATRIBUTOS");
+        var roomsPage = AddPage(col, tabRow, "SALAS");
+        BuildPassivesPage(passivesPage);
+        BuildStatsPage(statsPage);
+        BuildRoomsPage(roomsPage);
+        ShowPage(0);
+
+        weaponsPage.AddChild(MakeSectionHeader("ARMAS (2 SLOTS · PEGAR TROCA A DA MÃO)"));
+        foreach (string path in WeaponSystem.OfficialWeaponPaths)
+        {
+            var data = GD.Load<WeaponData>(path);
+            if (data == null) continue;
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 4);
+            weaponsPage.AddChild(row);
+            var name = MakeLabel(data.WeaponName, 13, new Color(0.85f, 0.85f, 0.9f));
+            name.AutowrapMode = TextServer.AutowrapMode.Off;
+            name.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            row.AddChild(name);
+            row.AddChild(MakeSmallButton("Pegar", () => GiveWeapon(data, 0)));
+            row.AddChild(MakeSmallButton("+1", () => GiveWeapon(data, 1)));
+            row.AddChild(MakeSmallButton("Máx ★", () => GiveWeapon(data, WeaponInstance.MaxLevel)));
+        }
+
+        var levelRow = new HBoxContainer();
+        levelRow.AddThemeConstantOverride("separation", 6);
+        weaponsPage.AddChild(levelRow);
+        var levelLabel = MakeLabel("Na mão:", 13, new Color(0.85f, 0.85f, 0.9f));
+        levelLabel.AutowrapMode = TextServer.AutowrapMode.Off;
+        levelRow.AddChild(levelLabel);
+        levelRow.AddChild(MakeButton("Nv 1", () => SetSelectedWeaponLevel(1)));
+        levelRow.AddChild(MakeButton("Nv 5", () => SetSelectedWeaponLevel(5)));
+        levelRow.AddChild(MakeButton("Nv 10 ★", () => SetSelectedWeaponLevel(10)));
 
         // 7 arquétipos de inimigos
-        col.AddChild(MakeSectionHeader("INIMIGOS (7 ARQUÉTIPOS)"));
+        enemiesPage.AddChild(MakeSectionHeader("INIMIGOS (7 ARQUÉTIPOS)"));
         var enemyGrid = new GridContainer { Columns = 2 };
         enemyGrid.AddThemeConstantOverride("h_separation", 6);
         enemyGrid.AddThemeConstantOverride("v_separation", 6);
-        col.AddChild(enemyGrid);
+        enemiesPage.AddChild(enemyGrid);
         foreach (var opt in EnemySandboxRules.Enemies)
         {
             var captured = opt;
@@ -180,21 +224,21 @@ public partial class EnemySandboxUI : CanvasLayer
         }
 
         // 3 Bosses
-        col.AddChild(MakeSectionHeader("BOSSES (OFICIAIS)"));
+        enemiesPage.AddChild(MakeSectionHeader("BOSSES (OFICIAIS)"));
         foreach (var bossOpt in EnemySandboxRules.Bosses)
         {
             var captured = bossOpt;
-            col.AddChild(MakeButton($"Invocar {captured.Label}", () => SpawnBoss(captured)));
+            enemiesPage.AddChild(MakeButton($"Invocar {captured.Label}", () => SpawnBoss(captured)));
         }
 
         // Transições de Trava de Fase / Fúria
-        col.AddChild(MakeSectionHeader("TRANSIÇÕES DO BOSS"));
+        enemiesPage.AddChild(MakeSectionHeader("TRANSIÇÕES DO BOSS"));
         bossInfoLabel = MakeLabel("Nenhum boss ativo", 13, new Color(0.85f, 0.8f, 0.7f));
-        col.AddChild(bossInfoLabel);
+        enemiesPage.AddChild(bossInfoLabel);
 
         var bossCtrlRow = new HBoxContainer();
         bossCtrlRow.AddThemeConstantOverride("separation", 6);
-        col.AddChild(bossCtrlRow);
+        enemiesPage.AddChild(bossCtrlRow);
         forceLockButton = MakeButton("TRAVA [F6]", ForceBossLock);
         forceFuryButton = MakeButton("FÚRIA [F7]", ForceBossFury);
         bossCtrlRow.AddChild(forceLockButton);
@@ -203,7 +247,170 @@ public partial class EnemySandboxUI : CanvasLayer
         // Limpar arena
         var clearBtn = MakeButton("LIMPAR ARENA [F8 / Backspace]", ClearArena);
         clearBtn.AddThemeColorOverride("font_color", new Color(1f, 0.45f, 0.45f));
-        col.AddChild(clearBtn);
+        enemiesPage.AddChild(clearBtn);
+    }
+
+    VBoxContainer AddPage(VBoxContainer parent, GridContainer tabRow, string title)
+    {
+        int index = pages.Count;
+        var page = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        page.AddThemeConstantOverride("separation", 8);
+        parent.AddChild(page);
+        pages.Add(page);
+
+        var tab = MakeButton(title, () => ShowPage(index));
+        tab.AddThemeFontSizeOverride("font_size", 12);
+        tabRow.AddChild(tab);
+        pageTabs.Add(tab);
+        return page;
+    }
+
+    void ShowPage(int index)
+    {
+        for (int i = 0; i < pages.Count; i++)
+        {
+            bool active = i == index;
+            pages[i].Visible = active;
+            pageTabs[i].AddThemeColorOverride("font_color", active ? TabActiveColor : new Color(0.7f, 0.7f, 0.78f));
+        }
+        RefreshPassives();
+        RefreshStats();
+    }
+
+    void BuildPassivesPage(VBoxContainer page)
+    {
+        page.AddChild(MakeSectionHeader("PASSIVAS DA ROLETA (CLIQUE LIGA/DESLIGA)"));
+        for (int i = 0; i < PassiveCatalog.Count; i++)
+        {
+            var passive = (Passive)i;
+            var button = MakeButton(PassiveCatalog.Name(passive), () => TogglePassive(passive));
+            button.TooltipText = PassiveCatalog.Description(passive);
+            page.AddChild(button);
+            passiveButtons[i] = button;
+            var description = MakeLabel(PassiveCatalog.Description(passive), 11, new Color(0.68f, 0.68f, 0.76f));
+            page.AddChild(description);
+        }
+    }
+
+    void BuildStatsPage(VBoxContainer page)
+    {
+        page.AddChild(MakeSectionHeader($"ATRIBUTOS DA RUN (±{StatStepPercent}% POR CLIQUE)"));
+        foreach (UpgradeStat stat in System.Enum.GetValues(typeof(UpgradeStat)))
+        {
+            var captured = stat;
+            var row = new HBoxContainer();
+            row.AddThemeConstantOverride("separation", 4);
+            page.AddChild(row);
+            var label = MakeLabel("", 13, new Color(0.85f, 0.85f, 0.9f));
+            label.AutowrapMode = TextServer.AutowrapMode.Off;
+            label.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+            row.AddChild(label);
+            statLabels[(int)stat] = label;
+            row.AddChild(MakeSmallButton($"-{StatStepPercent}%", () => ChangeStat(captured, -StatStepPercent)));
+            row.AddChild(MakeSmallButton($"+{StatStepPercent}%", () => ChangeStat(captured, StatStepPercent)));
+        }
+
+        page.AddChild(MakeSectionHeader("BEBIDAS"));
+        var drinkRow = new HBoxContainer();
+        drinkRow.AddThemeConstantOverride("separation", 4);
+        page.AddChild(drinkRow);
+        foreach (DrinkType drink in System.Enum.GetValues(typeof(DrinkType)))
+        {
+            var captured = drink;
+            drinkRow.AddChild(MakeButton(DrinkRules.Name(captured), () =>
+            {
+                RunState.Consume(captured);
+                SetStatus($"Bebida: {DrinkRules.Name(captured)}");
+            }));
+        }
+    }
+
+    void BuildRoomsPage(VBoxContainer page)
+    {
+        page.AddChild(MakeSectionHeader("IR PARA A SALA (SEM HORDA, MANTÉM A BUILD)"));
+        for (int act = 1; act <= 3; act++)
+        {
+            var theme = CampaignRules.GetActTheme(act);
+            page.AddChild(MakeButton($"Ato {act}: {theme.Name}", () => GoToRoom(theme.NormalScenePath)));
+        }
+        page.AddChild(MakeButton("Arena do Boss", () => GoToRoom(CampaignRules.BossScenePath)));
+        page.AddChild(MakeButton("Sala de Descanso", () => GoToRoom(GameManager.LoungeScenePath)));
+        page.AddChild(MakeLabel("A porta de saída de qualquer sala volta para a Arena do Boss.", 11, new Color(0.68f, 0.68f, 0.76f)));
+
+        page.AddChild(MakeSectionHeader("RECURSOS (PARA AS ESTAÇÕES DA SALA)"));
+        var row = new HBoxContainer();
+        row.AddThemeConstantOverride("separation", 4);
+        page.AddChild(row);
+        row.AddChild(MakeButton("+10 fichas", () => GiveChips(10)));
+        row.AddChild(MakeButton("+$100", () =>
+        {
+            GameManager.Instance?.AddDollars(100);
+            SetStatus($"$ da run: {GameManager.Instance?.RunDollars}");
+        }));
+    }
+
+    void GiveChips(int amount)
+    {
+        var gm = GameManager.Instance;
+        if (gm == null) return;
+        gm.AddChips(amount);
+        SetStatus($"Fichas: {gm.Chips}");
+    }
+
+    void GoToRoom(string scenePath)
+    {
+        GameManager.Instance?.SandboxGoTo(scenePath);
+    }
+
+    static string StatName(UpgradeStat stat) => stat switch
+    {
+        UpgradeStat.MaxHp => "Vida máx",
+        UpgradeStat.MoveSpeed => "Velocidade",
+        UpgradeStat.DashCooldown => "Recarga dash",
+        UpgradeStat.Damage => "Dano",
+        UpgradeStat.Magazine => "Pente",
+        UpgradeStat.Reload => "Recarga arma",
+        _ => stat.ToString(),
+    };
+
+    void TogglePassive(Passive passive)
+    {
+        bool had = RunState.Has(passive);
+        if (had) RunState.RemovePassive(passive);
+        else RunState.AddPassive(passive);
+        RefreshPassives();
+        SetStatus($"{PassiveCatalog.Name(passive)} {(had ? "desligada" : "ligada")}");
+    }
+
+    void ChangeStat(UpgradeStat stat, int percent)
+    {
+        int current = Mathf.RoundToInt(RunState.Bonus(stat) * 100f);
+        int delta = Mathf.Max(percent, -current);
+        if (delta == 0) return;
+        RunState.ApplyUpgrade(new UpgradeResult(UpgradeRoll.TargetOf(stat), stat, delta));
+        RefreshStats();
+        SetStatus($"{StatName(stat)}: +{current + delta}%");
+    }
+
+    void RefreshPassives()
+    {
+        for (int i = 0; i < passiveButtons.Length; i++)
+        {
+            var button = passiveButtons[i];
+            if (button == null) continue;
+            bool on = RunState.Has((Passive)i);
+            button.Text = on ? $"✓ {PassiveCatalog.Name((Passive)i)}" : PassiveCatalog.Name((Passive)i);
+            button.AddThemeColorOverride("font_color", on ? GameFeel.Gold : Colors.White);
+        }
+    }
+
+    void RefreshStats()
+    {
+        foreach (UpgradeStat stat in System.Enum.GetValues(typeof(UpgradeStat)))
+        {
+            var label = statLabels[(int)stat];
+            if (label != null) label.Text = $"{StatName(stat)}: +{Mathf.RoundToInt(RunState.Bonus(stat) * 100f)}%";
+        }
     }
 
     static Label MakeLabel(string text, int size, Color color)
@@ -285,9 +492,26 @@ public partial class EnemySandboxUI : CanvasLayer
         SetStatus("HP restaurado (100%)");
     }
 
+    void GiveWeapon(WeaponData data, int extraLevels)
+    {
+        var ws = CurrentWeapons();
+        if (ws == null) return;
+        var owned = ws.Find(data);
+        if (owned != null)
+        {
+            if (extraLevels > 0) ws.AddOrUpgrade(data, extraLevels);
+            SetStatus($"{data.WeaponName} Nv {owned.Level}");
+            return;
+        }
+        int level = Mathf.Max(1, extraLevels);
+        if (ws.NeedsSlotReplacement(data)) ws.ReplaceSlot(ws.Selected, data, level);
+        else ws.AddOrUpgrade(data, level);
+        SetStatus($"Pegou {data.WeaponName} (Nv {level})");
+    }
+
     void SetSelectedWeaponLevel(int level)
     {
-        var ws = PlayerController.Instance?.GetNodeOrNull<WeaponSystem>("WeaponSystem");
+        var ws = CurrentWeapons();
         if (ws == null || ws.Weapons.Count == 0) return;
         int idx = Mathf.Clamp(ws.Selected, 0, ws.Weapons.Count - 1);
         var data = ws.Weapons[idx].Data;

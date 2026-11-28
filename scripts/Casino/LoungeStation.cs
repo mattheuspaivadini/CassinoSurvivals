@@ -116,9 +116,12 @@ public partial class LoungeStation : Node2D
             Activate(gm);
     }
 
+    static bool SandboxIgnoresLimits => GameManager.Instance?.EnemySandboxActive == true;
+
     public bool CanInteract(int currentChips)
     {
         if (IsRemoved || NoPassivesLeft) return false;
+        if (SandboxIgnoresLimits) return currentChips >= Cost;
         int usesInRun = StationType == LoungeStationType.Roulette ? RouletteUsesInRun : 0;
         int runLimit = MaxUsesPerRun > 0 ? MaxUsesPerRun : LoungeRules.RouletteDefaultRunLimit;
         return LoungeRules.CanUse(StationType, currentChips, UsesInRoom, usesInRun, CurrentStage, Cost, runLimit);
@@ -153,12 +156,12 @@ public partial class LoungeStation : Node2D
             return 2;
         }
         int usesInRun = StationType == LoungeStationType.Roulette ? RouletteUsesInRun : 0;
-        if (MaxUsesPerRun > 0 && usesInRun >= MaxUsesPerRun)
+        if (!SandboxIgnoresLimits && MaxUsesPerRun > 0 && usesInRun >= MaxUsesPerRun)
         {
             text = $"LIMITE DA RUN ({usesInRun}/{MaxUsesPerRun})";
             return 2;
         }
-        if (MaxUsesPerRoom > 0 && UsesInRoom >= MaxUsesPerRoom)
+        if (!SandboxIgnoresLimits && MaxUsesPerRoom > 0 && UsesInRoom >= MaxUsesPerRoom)
         {
             text = $"USADA NESTA SALA ({UsesInRoom}/{MaxUsesPerRoom})";
             return 3;
