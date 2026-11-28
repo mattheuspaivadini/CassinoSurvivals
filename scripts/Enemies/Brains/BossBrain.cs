@@ -21,7 +21,7 @@ public abstract class BossBrain : EnemyBrain
     readonly List<Enemy> summons = new List<Enemy>();
     Step current;
     float stepTimer, idleTimer = 1.5f, windowTimer, takenThisSecond, shieldAngle;
-    bool running, lockDone, lockPending;
+    bool running, lockDone, lockPending, defeated;
 
     public bool Invulnerable { get; private set; }
     public bool Fury { get; private set; }
@@ -124,6 +124,7 @@ public abstract class BossBrain : EnemyBrain
     public override void OnDeath()
     {
         // Os reforços somem com o chefe para a sala fechar sem caça aos restos.
+        defeated = true;
         var copy = summons.ToArray();
         summons.Clear();
         foreach (var e in copy)
@@ -199,7 +200,8 @@ public abstract class BossBrain : EnemyBrain
         if (n <= 0) return;
 
         var director = HordeDirector.Instance;
-        if (director != null && director.SummonAtDoors(kind, n, e => summons.Add(e))) return;
+        // Reforço que ainda estava na fila da porta quando o chefe caiu some ao nascer.
+        if (director != null && director.SummonAtDoors(kind, n, e => { if (defeated) e.Kill(); else summons.Add(e); })) return;
 
         var data = EnemyCatalog.Load(kind);
         if (data == null || EnemySpawner.Instance == null) return;
