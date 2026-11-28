@@ -84,7 +84,9 @@ public partial class LoungeStation : Node2D
         lbl.AddThemeFontSizeOverride("font_size", 16);
         lbl.AddThemeColorOverride("font_color", new Color(1f, 0.45f, 0.35f));
         spot.AddChild(lbl);
-        parent.AddChild(spot);
+        // Chamado no _Ready: o pai ainda está montando os filhos, então o AddChild direto falha
+        // e os "fios soltos" não apareciam. Adia para o fim do frame.
+        parent.CallDeferred(Node.MethodName.AddChild, spot);
     }
 
     public override void _Process(double delta)
