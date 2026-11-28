@@ -18,7 +18,7 @@ public enum Passive
     SangueFrio,
 }
 
-/// <summary>Nomes, efeitos e sorteio sem repetição. Os efeitos em combate (exceto Open Bar) são da issue #21.</summary>
+/// <summary>Nomes, descrições e sorteio sem repetição das 12 Passivas Únicas (regras de combate em PassiveRules).</summary>
 public static class PassiveCatalog
 {
     public const int Count = 12;

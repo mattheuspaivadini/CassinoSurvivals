@@ -25,6 +25,11 @@ public static class RunState
     public static float? SavedHp { get; set; }
     public static readonly List<(string Path, int Level)> SavedWeapons = new List<(string, int)>();
     public static int SavedSelectedWeapon { get; set; }
+    /// <summary>Recarga restante do Blefe Perfeito (0 = próximo dash imune a contato).</summary>
+    public static float PerfectBluffCooldownLeft { get; private set; }
+    public static bool IsPerfectBluffReady => Has(Passive.BlefePerfeito) && PerfectBluffCooldownLeft <= 0f;
+    /// <summary>Contador de inimigos comuns abatidos para Troco em Sangue (cura 5% a cada 20).</summary>
+    public static int BloodChangeKillCount { get; private set; }
 
     public static void Reset()
     {
@@ -34,6 +39,8 @@ public static class RunState
         SavedHp = null;
         SavedWeapons.Clear();
         SavedSelectedWeapon = 0;
+        PerfectBluffCooldownLeft = 0f;
+        BloodChangeKillCount = 0;
         Changed?.Invoke();
     }
 
@@ -87,6 +94,8 @@ public static class RunState
     {
         for (int i = 0; i < drinkTimers.Length; i++)
             if (drinkTimers[i] > 0f) drinkTimers[i] = Math.Max(0f, drinkTimers[i] - dt);
+        if (PerfectBluffCooldownLeft > 0f)
+            PerfectBluffCooldownLeft = Math.Max(0f, PerfectBluffCooldownLeft - dt);
     }
 
     // ---------- Melhorias (Caça-níquel de Melhorias) ----------
@@ -105,7 +114,40 @@ public static class RunState
 
     public static void AddPassive(Passive p)
     {
-        if (passives.Add(p)) Changed?.Invoke();
+        if (!passives.Add(p)) return;
+        if (p == Passive.BlefePerfeito) PerfectBluffCooldownLeft = 0f;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Blefe Perfeito: consome a carga pronta ao iniciar o dash e inicia recarga de 15s.</summary>
+    public static bool TryConsumePerfectBluff()
+    {
+        if (!IsPerfectBluffReady) return false;
+        PerfectBluffCooldownLeft = PassiveRules.PerfectBluffCooldown;
+        return true;
+    }
+
+    /// <summary>Troco em Sangue: 3% por Dourado e 5% a cada 20 inimigos comuns abatidos.</summary>
+    public static float RegisterKillForBloodChange(bool isGolden)
+    {
+        if (!Has(Passive.TrocoEmSangue)) return 0f;
+        if (isGolden) return PassiveRules.BloodChangeGoldenHeal;
+        BloodChangeKillCount++;
+        if (BloodChangeKillCount < PassiveRules.BloodChangeCommonKills) return 0f;
+        BloodChangeKillCount -= PassiveRules.BloodChangeCommonKills;
+        return PassiveRules.BloodChangeCommonHeal;
+    }
+
+    /// <summary>Sangue Frio: até +35% de velocidade e cadência conforme o HP do jogador cai.</summary>
+    public static float ColdBloodBonus
+    {
+        get
+        {
+            if (!Has(Passive.SangueFrio)) return 0f;
+            var p = PlayerController.Instance;
+            if (p == null || !Godot.GodotObject.IsInstanceValid(p)) return 0f;
+            return PassiveRules.ColdBloodBonus(p.CurrentHp, p.MaxHp);
+        }
     }
 
     // ---------- Derivados lidos pelo combate ----------
@@ -114,11 +156,14 @@ public static class RunState
     public static float DamageBonus =>
         Bonus(UpgradeStat.Damage) + (IsActive(DrinkType.Damage) ? DrinkRules.DamageBase * Efficiency : 0f);
 
-    public static float FireRateMultiplier =>
-        1f + (IsActive(DrinkType.Speed) ? DrinkRules.FireRateBase * Efficiency : 0f);
+    public static float FireRateMultiplierFor(float coldBloodBonus) =>
+        1f + (IsActive(DrinkType.Speed) ? DrinkRules.FireRateBase * Efficiency : 0f) + Math.Max(0f, coldBloodBonus);
 
-    public static float MoveSpeedMultiplier => Math.Min(MaxMoveSpeedMultiplier,
-        1f + Bonus(UpgradeStat.MoveSpeed) + (IsActive(DrinkType.Speed) ? DrinkRules.MoveBase * Efficiency : 0f));
+    public static float MoveSpeedMultiplierFor(float coldBloodBonus) => Math.Min(MaxMoveSpeedMultiplier,
+        1f + Bonus(UpgradeStat.MoveSpeed) + (IsActive(DrinkType.Speed) ? DrinkRules.MoveBase * Efficiency : 0f) + Math.Max(0f, coldBloodBonus));
+
+    public static float FireRateMultiplier => FireRateMultiplierFor(ColdBloodBonus);
+    public static float MoveSpeedMultiplier => MoveSpeedMultiplierFor(ColdBloodBonus);
 
     public static float DashCooldownMultiplier => Math.Max(MinTimeMultiplier, 1f - Bonus(UpgradeStat.DashCooldown));
     public static float MagazineMultiplier => 1f + Bonus(UpgradeStat.Magazine);
