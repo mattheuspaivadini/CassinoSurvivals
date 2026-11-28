@@ -76,6 +76,8 @@ public partial class HUD : CanvasLayer
         BuildPlayerHpBar();
         UpdateHp(PlayerController.Instance.CurrentHp, PlayerController.Instance.MaxHp);
         bannerText.Visible = false;
+        if (gm.InLounge && gm.CurrentStage == 14)
+            ShowBanner("AS MÁQUINAS DE CAÇA-NÍQUEL SUMIRAM!\nSÓ RESTAM FIOS SOLTOS... O BOSS FINAL TE ESPERA!", new Color(1f, 0.35f, 0.25f), 6.5f);
         BuildBossBar();
     }
 
@@ -355,7 +357,11 @@ public partial class HUD : CanvasLayer
         var gm = GameManager.Instance;
         if (EnemySpawner.Instance == null)
         {
-            timerText.Text = "SALA DE DESCANSO  |  SAÍDA SUPERIOR ABERTA";
+            timerText.Text = gm.CampaignActive && gm.CurrentStage == 14
+                ? "SALA DE DESCANSO — MÁQUINAS SUMIRAM! SIGA PARA O BOSS FINAL"
+                : gm.CampaignActive
+                    ? $"SALA DE DESCANSO (APÓS FASE {gm.CurrentStage}/15)  |  SAÍDA SUPERIOR ABERTA"
+                    : "SALA DE DESCANSO  |  SAÍDA SUPERIOR ABERTA";
             return;
         }
         if (EnemySpawner.Instance.HasBossSpawned) { timerText.Text = "TIGRINHO EM CAMPO!"; return; }

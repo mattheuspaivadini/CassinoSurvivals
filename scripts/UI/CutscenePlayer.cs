@@ -95,6 +95,7 @@ public partial class CutscenePlayer : Control
 
     void StartGame()
     {
+        GameManager.Instance?.ActivateCampaignAt(1);
         GameManager.Instance?.SetPaused(false);
         GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, NextScene);
     }

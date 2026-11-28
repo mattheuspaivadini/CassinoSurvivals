@@ -22,13 +22,38 @@ public static class RunState
     static readonly HashSet<Passive> passives = new HashSet<Passive>();
 
     public static IReadOnlyCollection<Passive> Passives => passives;
+    public static float? SavedHp { get; set; }
+    public static readonly List<(string Path, int Level)> SavedWeapons = new List<(string, int)>();
+    public static int SavedSelectedWeapon { get; set; }
 
     public static void Reset()
     {
         Array.Clear(drinkTimers, 0, drinkTimers.Length);
         Array.Clear(bonuses, 0, bonuses.Length);
         passives.Clear();
+        SavedHp = null;
+        SavedWeapons.Clear();
+        SavedSelectedWeapon = 0;
         Changed?.Invoke();
+    }
+
+    /// <summary>Guarda HP atual e armas equipadas antes de trocar entre Arena e Sala de Descanso.</summary>
+    public static void SavePlayerBuild()
+    {
+        var p = PlayerController.Instance;
+        if (p == null || !Godot.GodotObject.IsInstanceValid(p)) return;
+        SavedHp = p.CurrentHp;
+
+        var ws = p.GetNodeOrNull<WeaponSystem>("WeaponSystem");
+        if (ws == null || ws.Weapons.Count == 0) return;
+        SavedWeapons.Clear();
+        for (int i = 0; i < ws.Weapons.Count; i++)
+        {
+            var w = ws.Weapons[i];
+            if (w.Data != null && !string.IsNullOrEmpty(w.Data.ResourcePath))
+                SavedWeapons.Add((w.Data.ResourcePath, w.Level));
+        }
+        SavedSelectedWeapon = ws.Selected;
     }
 
     // ---------- Bebidas ----------

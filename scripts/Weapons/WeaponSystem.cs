@@ -81,6 +81,22 @@ public partial class WeaponSystem : Node
             firePlayers.Add(player);
         }
 
+        if (RunState.SavedWeapons.Count > 0)
+        {
+            for (int i = 0; i < RunState.SavedWeapons.Count; i++)
+            {
+                var (path, level) = RunState.SavedWeapons[i];
+                var data = GD.Load<WeaponData>(path);
+                if (data != null) AddOrUpgrade(data, level);
+            }
+            if (Weapons.Count > 0)
+            {
+                Selected = Mathf.Clamp(RunState.SavedSelectedWeapon, 0, Weapons.Count - 1);
+                EmitSignal(SignalName.WeaponsChanged);
+            }
+            return;
+        }
+
         if (StartingWeapons == null) return;
         foreach (var w in StartingWeapons) AddOrUpgrade(w, 1);
     }

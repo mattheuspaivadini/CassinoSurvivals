@@ -14,6 +14,7 @@ public partial class ExitDoor : StaticBody2D
 
     CollisionShape2D shape;
     CanvasItem bars;
+    bool triggered;
 
     public override void _Ready()
     {
@@ -44,6 +45,8 @@ public partial class ExitDoor : StaticBody2D
 
     void OnBodyEntered(Node2D body)
     {
-        if (IsOpen && body is PlayerController) GameManager.Instance.Victory();
+        if (triggered || !IsOpen || body is not PlayerController) return;
+        triggered = true;
+        GameManager.Instance.AdvanceFromExit();
     }
 }

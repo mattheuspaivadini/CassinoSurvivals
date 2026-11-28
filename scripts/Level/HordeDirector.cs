@@ -101,6 +101,18 @@ public partial class HordeDirector : Node
         RegisterKind(EnemyKind.CartaPaus, PausType);
         RegisterKind(EnemyKind.CartaCopas, CopasType);
 
+        var gm = GameManager.Instance;
+        if (gm != null)
+        {
+            if (!gm.CampaignActive && StartStage == 1 && EndStage == CampaignRules.TotalStages)
+                gm.ActivateCampaignAt(1);
+            if (gm.CampaignActive)
+            {
+                StartStage = gm.CurrentStage;
+                EndStage = gm.CurrentStage;
+            }
+        }
+
         int initialStage = Mathf.Clamp(StartStage, 1, CampaignRules.TotalStages);
         EndStage = Mathf.Clamp(EndStage, initialStage, CampaignRules.TotalStages);
         StartStage = initialStage;
