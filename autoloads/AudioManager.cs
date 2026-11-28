@@ -44,7 +44,7 @@ public partial class AudioManager : Node
     /// <summary>Tempo de troca entre as trilhas (s).</summary>
     [Export] public float MusicFade { get; set; } = 0.8f;
 
-    AudioStreamPlayer source, music, slotSpin;
+    AudioStreamPlayer source, enemySource, music, slotSpin;
 
     public const string MusicBus = "Music";
     public const string SfxBus = "SFX";
@@ -61,6 +61,9 @@ public partial class AudioManager : Node
         source.Bus = SfxBus;
         // Polifônico: trocar o Stream de um player comum cortaria o efeito anterior.
         source.Stream = new AudioStreamPolyphonic { Polyphony = 16 };
+        // Vozes à parte: a horda não pode ocupar as do jogador e do cassino (voz cheia é descartada em silêncio).
+        enemySource = new AudioStreamPlayer { Bus = SfxBus, Stream = new AudioStreamPolyphonic { Polyphony = 16 } };
+        AddChild(enemySource);
         // Cópia do clipe: o loop não pode vazar para o RouletteSpin, que usa o mesmo arquivo.
         var spinClip = (AudioStream)SlotSpin?.Duplicate();
         if (spinClip is AudioStreamMP3 spinMp3) spinMp3.Loop = true;
@@ -163,16 +166,18 @@ public partial class AudioManager : Node
         if (music.GetPlaybackPosition() >= MainLoopEnd) music.Seek(MainLoopStart);
     }
 
-    void Play(AudioStream clip, float volumeDb = 0f)
+    void Play(AudioStream clip, float volumeDb = 0f) => PlayOn(source, clip, volumeDb);
+
+    static void PlayOn(AudioStreamPlayer player, AudioStream clip, float volumeDb = 0f)
     {
         if (clip == null) return;
-        if (!source.Playing) source.Play();
-        ((AudioStreamPlaybackPolyphonic)source.GetStreamPlayback()).PlayStream(clip, volumeDb: volumeDb);
+        if (!player.Playing) player.Play();
+        ((AudioStreamPlaybackPolyphonic)player.GetStreamPlayback()).PlayStream(clip, volumeDb: volumeDb);
     }
 
     public void PlayShoot() => Play(Shoot);
-    public void PlayEnemyHit() => Play(EnemyHit);
-    public void PlayEnemyDeath() => Play(EnemyDeath);
+    public void PlayEnemyHit() => PlayOn(enemySource, EnemyHit);
+    public void PlayEnemyDeath() => PlayOn(enemySource, EnemyDeath);
     public void PlayPlayerHurt() => Play(PlayerHurt);
     public void PlayPickup() => Play(Pickup);
     public void PlayHeal() => Play(Heal);
