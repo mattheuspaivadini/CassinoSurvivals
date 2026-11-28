@@ -6,6 +6,7 @@ public static class EnemyCatalog
     public const string RainhaPath = "res://resources/enemies/Rainha.tres";
     public const string ReiPath = "res://resources/enemies/ReiDePaus.tres";
     public const string TigrinhoPath = "res://resources/enemies/Tigrinho.tres";
+    public const string MaquinaPath = "res://resources/enemies/MaquinaCacaNiquel.tres";
 
     public static string PathFor(EnemyKind kind) => kind switch
     {
@@ -23,7 +24,8 @@ public static class EnemyCatalog
     {
         BossKind.Rainha => RainhaPath,
         BossKind.Rei => ReiPath,
-        _ => TigrinhoPath, // decisão do grupo: o chefe final (F15) é o Tigrinho
+        BossKind.MaquinaCacaNiquel => MaquinaPath,
+        _ => TigrinhoPath,
     };
 
     public static EnemyData Load(EnemyKind kind)

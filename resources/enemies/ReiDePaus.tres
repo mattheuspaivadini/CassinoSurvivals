@@ -8,7 +8,7 @@
 script = ExtResource("1_s")
 ChaseSheet = ExtResource("2_r")
 ChaseBackSheet = ExtResource("3_r")
-EnemyName = "O Rei de Paus"
+EnemyName = "Rei Tigre"
 Color = Color(1, 1, 1, 1)
 Scale = 2.0
 Mass = 200.0

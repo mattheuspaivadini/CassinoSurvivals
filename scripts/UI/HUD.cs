@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text;
 using Godot;
 
@@ -17,15 +18,22 @@ public partial class HUD : CanvasLayer
     Label hpText, scoreText, chipsText, dollarsText, timerText, bannerText;
     RichTextLabel weaponsText;
     float refreshTimer, bannerTimer;
+    sealed class BossBarView
+    {
+        public Control Root;
+        public TextureProgressBar Fill;
+        public Label Name;
+    }
+
     // Barra de HP do boss (topo central), montada em código.
-    Control bossBar, queenBossBar;
+    Control bossBar;
     ColorRect bossFill;
-    TextureProgressBar queenBossFill;
-    Label bossName, queenBossName;
+    Label bossName;
+    readonly Dictionary<EnemyBehavior, BossBarView> customBossBars = new Dictionary<EnemyBehavior, BossBarView>();
     const float BossBarWidth = 760f;
-    const float QueenBarScale = 4f;
-    const float QueenFillOffsetX = 27f;
-    const float QueenFillOffsetY = 18f;
+    const float BossBarScale = 4f;
+    const float BossFillOffsetX = 27f;
+    const float BossFillOffsetY = 18f;
 
     public override void _Ready()
     {
@@ -50,8 +58,6 @@ public partial class HUD : CanvasLayer
         gm.DollarsChanged += UpdateDollars;
         UpdateDollars(gm.RunDollars);
         PlayerController.Instance.HpChanged += UpdateHp;
-        if (EnemySpawner.Instance != null)
-            EnemySpawner.Instance.BossSpawned += ShowBossBanner;
         if (Horde != null)
         {
             Horde.Cleared += ShowClearedBanner;
@@ -93,54 +99,62 @@ public partial class HUD : CanvasLayer
         bossBar.AddChild(bossName);
         AddChild(bossBar);
 
-        var frameTex = LoadTexture("res://assets/sprites/queen_healthbar_frame_empty.png");
-        var fillTex = LoadTexture("res://assets/sprites/queen_healthbar_fill.png");
-        if (frameTex != null && fillTex != null)
+        BuildCustomBossBar(EnemyBehavior.Rainha, "res://assets/sprites/queen_healthbar_frame_empty.png", "res://assets/sprites/queen_healthbar_fill.png");
+        BuildCustomBossBar(EnemyBehavior.Rei, "res://assets/sprites/king_healthbar_frame_empty.png", "res://assets/sprites/king_healthbar_fill.png");
+        BuildCustomBossBar(EnemyBehavior.MaquinaCacaNiquel, "res://assets/sprites/slot_healthbar_frame_empty.png", "res://assets/sprites/slot_healthbar_fill.png");
+    }
+
+    void BuildCustomBossBar(EnemyBehavior behavior, string framePath, string fillPath)
+    {
+        var frameTex = LoadTexture(framePath);
+        var fillTex = LoadTexture(fillPath);
+        if (frameTex == null || fillTex == null) return;
+
+        float w = frameTex.GetWidth() * BossBarScale;
+        float h = frameTex.GetHeight() * BossBarScale;
+        var root = new Control
         {
-            float w = frameTex.GetWidth() * QueenBarScale;
-            float h = frameTex.GetHeight() * QueenBarScale;
-            queenBossBar = new Control
-            {
-                AnchorLeft = 0.5f, AnchorRight = 0.5f,
-                OffsetLeft = -w / 2f, OffsetRight = w / 2f, OffsetTop = 64f, OffsetBottom = 64f + h,
-                MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
-            };
-            queenBossBar.AddChild(new TextureRect
-            {
-                Texture = frameTex,
-                TextureFilter = Control.TextureFilterEnum.Nearest,
-                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-                StretchMode = TextureRect.StretchModeEnum.Scale,
-                Size = new Vector2(w, h),
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-            });
-            queenBossFill = new TextureProgressBar
-            {
-                TextureProgress = fillTex,
-                TextureFilter = Control.TextureFilterEnum.Nearest,
-                NinePatchStretch = false,
-                FillMode = (int)TextureProgressBar.FillModeEnum.LeftToRight,
-                MinValue = 0,
-                MaxValue = 1,
-                Step = 0.001,
-                Value = 1,
-                Position = new Vector2(QueenFillOffsetX * QueenBarScale, QueenFillOffsetY * QueenBarScale),
-                Size = new Vector2(fillTex.GetWidth(), fillTex.GetHeight()),
-                Scale = Vector2.One * QueenBarScale,
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-            };
-            queenBossBar.AddChild(queenBossFill);
-            queenBossName = new Label
-            {
-                HorizontalAlignment = HorizontalAlignment.Center,
-                Position = new Vector2(QueenFillOffsetX * QueenBarScale, 32f),
-                Size = new Vector2(fillTex.GetWidth() * QueenBarScale, 28f),
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-            };
-            queenBossName.AddThemeFontSizeOverride("font_size", 20);
-            queenBossBar.AddChild(queenBossName);
-            AddChild(queenBossBar);
-        }
+            AnchorLeft = 0.5f, AnchorRight = 0.5f,
+            OffsetLeft = -w / 2f, OffsetRight = w / 2f, OffsetTop = 64f, OffsetBottom = 64f + h,
+            MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
+        };
+        root.AddChild(new TextureRect
+        {
+            Texture = frameTex,
+            TextureFilter = Control.TextureFilterEnum.Nearest,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            Size = new Vector2(w, h),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        var fill = new TextureProgressBar
+        {
+            TextureProgress = fillTex,
+            TextureFilter = Control.TextureFilterEnum.Nearest,
+            NinePatchStretch = false,
+            FillMode = (int)TextureProgressBar.FillModeEnum.LeftToRight,
+            MinValue = 0,
+            MaxValue = 1,
+            Step = 0.001,
+            Value = 1,
+            Position = new Vector2(BossFillOffsetX * BossBarScale, BossFillOffsetY * BossBarScale),
+            Size = new Vector2(fillTex.GetWidth(), fillTex.GetHeight()),
+            Scale = Vector2.One * BossBarScale,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        root.AddChild(fill);
+        var nameLabel = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Position = new Vector2(BossFillOffsetX * BossBarScale, 32f),
+            Size = new Vector2(fillTex.GetWidth() * BossBarScale, 28f),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        nameLabel.AddThemeFontSizeOverride("font_size", 20);
+        root.AddChild(nameLabel);
+        AddChild(root);
+
+        customBossBars[behavior] = new BossBarView { Root = root, Fill = fill, Name = nameLabel };
     }
 
     /// <summary>Mostra o boss vivo da sala; dourada enquanto ele está invulnerável (Trava de Fase).</summary>
@@ -152,9 +166,12 @@ public partial class HUD : CanvasLayer
             foreach (var e in spawner.Active)
                 if (e.Data != null && e.Data.IsBoss && !e.IsDead) { boss = e; break; }
 
-        bool useQueenBar = boss != null && boss.Data.Behavior == EnemyBehavior.Rainha && queenBossBar != null;
-        bossBar.Visible = boss != null && !useQueenBar;
-        if (queenBossBar != null) queenBossBar.Visible = useQueenBar;
+        BossBarView activeCustom = null;
+        if (boss != null) customBossBars.TryGetValue(boss.Data.Behavior, out activeCustom);
+
+        bossBar.Visible = boss != null && activeCustom == null;
+        foreach (var view in customBossBars.Values)
+            view.Root.Visible = view == activeCustom;
         if (boss == null) return;
 
         float frac = boss.MaxHp > 0f ? Mathf.Clamp(boss.Hp / boss.MaxHp, 0f, 1f) : 0f;
@@ -162,11 +179,11 @@ public partial class HUD : CanvasLayer
         bool fury = boss.Brain is BossBrain bf && bf.Fury;
         string label = shielded ? $"{boss.Data.EnemyName.ToUpper()}  —  PROTEGIDO" : boss.Data.EnemyName.ToUpper();
 
-        if (useQueenBar)
+        if (activeCustom != null)
         {
-            queenBossFill.Value = frac;
-            queenBossFill.Modulate = shielded ? new Color(1f, 0.88f, 0.35f) : Colors.White;
-            queenBossName.Text = label;
+            activeCustom.Fill.Value = frac;
+            activeCustom.Fill.Modulate = shielded ? new Color(1f, 0.88f, 0.35f) : Colors.White;
+            activeCustom.Name.Text = label;
             return;
         }
 
@@ -292,16 +309,6 @@ public partial class HUD : CanvasLayer
     {
         string label = CampaignRules.ForStage(round).StageLabel;
         ShowBanner(boss ? $"{label} — BOSS!" : label, boss ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 1f, 1f), 2f);
-    }
-
-    void ShowBossBanner()
-    {
-        string name = "O TIGRINHO";
-        var spawner = EnemySpawner.Instance;
-        if (spawner != null)
-            foreach (var e in spawner.Active)
-                if (e.Data != null && e.Data.IsBoss) { name = e.Data.EnemyName.ToUpper(); break; }
-        ShowBanner($"{name} CHEGOU!", new Color(1f, 0.5f, 0f));
     }
 
     void ShowBanner(string text, Color color, float seconds = 4f)

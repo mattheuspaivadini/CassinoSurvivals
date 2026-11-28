@@ -36,8 +36,8 @@ public partial class Enemy : RigidBody2D
     AnimatedSprite2D sprite;
     CollisionShape2D shape;
     Vector2 baseSpriteScale = Vector2.One;
-    string currentAnim;
-    float hp, hpMultiplierUsed = 1f, damageMultiplierUsed = 1f, contactTimer, flashTimer, flankAngle, fuseTimer;
+    string currentAnim, overrideAnim;
+    float hp, hpMultiplierUsed = 1f, damageMultiplierUsed = 1f, contactTimer, flashTimer, flankAngle, fuseTimer, overrideAnimTimer;
     Vector2 entry;
     bool entering, fusing, dead;
 
@@ -63,6 +63,8 @@ public partial class Enemy : RigidBody2D
         contactTimer = 0f;
         flashTimer = 0f;
         currentAnim = null;
+        overrideAnim = null;
+        overrideAnimTimer = 0f;
 
         CollisionLayer = 4;
         CollisionMask = 7;
@@ -147,9 +149,14 @@ public partial class Enemy : RigidBody2D
         LinearVelocity = snap ? desired : LinearVelocity.Lerp(desired, Mathf.Min(1f, Steering * dt));
 
         if (attackTimer > 0f) attackTimer -= dt;
+        if (overrideAnimTimer > 0f) overrideAnimTimer -= dt;
         bool facingPlayer = Brain != null && Brain.FacePlayer;
         Vector2 look = facingPlayer ? toPlayer : LinearVelocity;
-        if (LinearVelocity.LengthSquared() > 16f || facingPlayer)
+        if (overrideAnimTimer > 0f && !string.IsNullOrEmpty(overrideAnim) && sprite.SpriteFrames.HasAnimation(overrideAnim))
+        {
+            PlayAnim(overrideAnim);
+        }
+        else if (LinearVelocity.LengthSquared() > 16f || facingPlayer)
         {
             bool back = sprite.SpriteFrames.HasAnimation("chase_back") && look.Y < 0f && Mathf.Abs(look.Y) > Mathf.Abs(look.X);
             if (attackTimer > 0f && sprite.SpriteFrames.HasAnimation("attack"))
@@ -158,7 +165,7 @@ public partial class Enemy : RigidBody2D
         }
         else if (sprite.SpriteFrames.HasAnimation("idle")) PlayAnim("idle");
 
-        if (Mathf.Abs(look.X) > 12f) sprite.FlipH = look.X < 0f;
+        if ((Brain == null || Brain.AllowFlipH) && Mathf.Abs(look.X) > 12f) sprite.FlipH = look.X < 0f;
 
         if (Brain != null && Brain.NeedsRedraw) QueueRedraw();
 
@@ -207,6 +214,16 @@ public partial class Enemy : RigidBody2D
 
     /// <summary>Toca a animação de ataque (se houver) por alguns instantes.</summary>
     public void PlayAttack(float seconds = 0.35f) => attackTimer = seconds;
+
+    /// <summary>Toca uma animação nomeada (ex.: habilidades de boss) por <paramref name="seconds"/>.</summary>
+    public void PlaySpecialAnim(string name, float seconds)
+    {
+        if (sprite?.SpriteFrames == null || !sprite.SpriteFrames.HasAnimation(name)) return;
+        overrideAnim = name;
+        overrideAnimTimer = seconds;
+        currentAnim = name;
+        sprite.Play(name);
+    }
 
     /// <summary>Morte sem recompensa e sem explosão (invocados quando o dono cai).</summary>
     public void Kill() => ResolveDeath(killedByPlayer: false, explode: false);

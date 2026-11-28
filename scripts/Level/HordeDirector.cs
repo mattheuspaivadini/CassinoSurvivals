@@ -280,23 +280,18 @@ public partial class HordeDirector : Node
         data.ChipDrops = spec.BossChips;
         data.Dollars = spec.BossDollars;
 
-        Vector2 playerPos = PlayerController.Instance.GlobalPosition;
-        var candidateDoors = BossSpawnPoint != null
-            ? doors.Where(d => d.GlobalPosition.Y <= 0f).DefaultIfEmpty(doors[0])
-            : doors;
-        var door = candidateDoors.OrderByDescending(d => d.GlobalPosition.DistanceSquaredTo(playerPos)).First();
-        door.Enqueue(d =>
-        {
-            // O boss é largo: nasce mais para dentro para não ficar preso na parede.
-            float inset = data.Scale * 0.5f + 0.5f;
-            var boss = EnemySpawner.Instance.Spawn(data, d.GlobalPosition + d.InwardDir * inset * Units.Px, 1f, damageMultiplier: spec.DamageMultiplier);
-            Vector2 entryTarget = BossSpawnPoint != null
-                ? BossSpawnPoint.GlobalPosition
-                : d.GlobalPosition + d.InwardDir * (inset + 2f) * Units.Px;
-            boss.SetEntry(entryTarget);
-            roundSpawned++;
-            EnemySpawner.Instance.AnnounceBoss();
-        });
+        // O boss sai diretamente pela porta superior (Saída) para entrar em campo imediatamente.
+        float inset = data.Scale * 0.5f + 0.6f;
+        Vector2 spawnPos = Exit != null
+            ? Exit.GlobalPosition + new Vector2(0f, inset * Units.Px)
+            : (BossSpawnPoint != null ? BossSpawnPoint.GlobalPosition : Vector2.Zero);
+        Vector2 entryTarget = BossSpawnPoint != null
+            ? BossSpawnPoint.GlobalPosition
+            : spawnPos + new Vector2(0f, 2.5f * Units.Px);
+        var boss = EnemySpawner.Instance.Spawn(data, spawnPos, 1f, damageMultiplier: spec.DamageMultiplier);
+        boss.SetEntry(entryTarget);
+        roundSpawned++;
+        EnemySpawner.Instance.AnnounceBoss();
     }
 
     void OnExtraEnemySpawned()

@@ -17,6 +17,7 @@ public abstract class EnemyBrain
     public float ContactScale { get; protected set; } = 1f;
     /// <summary>Sprite olha para o jogador mesmo parado (atiradores, bosses).</summary>
     public virtual bool FacePlayer => false;
+    public virtual bool AllowFlipH => true;
     public virtual bool NeedsRedraw => false;
 
     public static EnemyBrain Create(EnemyBehavior behavior) => behavior switch
@@ -27,6 +28,7 @@ public abstract class EnemyBrain
         EnemyBehavior.Rainha => new RainhaBrain(),
         EnemyBehavior.Rei => new ReiBrain(),
         EnemyBehavior.Tigrinho => new TigrinhoBrain(),
+        EnemyBehavior.MaquinaCacaNiquel => new MaquinaCacaNiquelBrain(),
         _ => null,
     };
 

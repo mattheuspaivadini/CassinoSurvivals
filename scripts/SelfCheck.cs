@@ -229,17 +229,17 @@ public static class SelfCheck
 
         var rainha = EnemyCatalog.LoadBoss(BossKind.Rainha);
         var rei = EnemyCatalog.LoadBoss(BossKind.Rei);
-        var tigre = EnemyCatalog.LoadBoss(CampaignRules.ForStage(15).Boss);
+        var maquina = EnemyCatalog.LoadBoss(CampaignRules.ForStage(15).Boss);
         Check(rainha.Behavior == EnemyBehavior.Rainha && rainha.IsBoss, "F5: A Rainha");
-        Check(rei.Behavior == EnemyBehavior.Rei && rei.IsBoss, "F10: O Rei de Paus");
-        Check(tigre.Behavior == EnemyBehavior.Tigrinho && tigre.EnemyName == "Tigrinho", "F15: Tigrinho é o chefe final");
+        Check(rei.Behavior == EnemyBehavior.Rei && rei.IsBoss, "F10: O Rei Tigrinho");
+        Check(maquina.Behavior == EnemyBehavior.MaquinaCacaNiquel && maquina.EnemyName == "Máquina de Caça-Níquel", "F15: Máquina de Caça-Níquel é o chefe final");
         var rf = rainha.GetOrBuildFrames().GetFrameTexture("chase", 0) as Godot.AtlasTexture;
         Check(rf != null && Near(rf.Region.Size.Y, 51f) && Near(rf.Region.Size.X, 32f), "frames da Rainha 32x51");
 
         var summon = EnemyData.CreateSummon(EnemyData.CreateGoldenVariant(EnemyCatalog.Load(EnemyKind.Ficha)));
         Check(!summon.IsGolden && summon.Dollars == 0 && !summon.GuaranteedChip && summon.ChipDropChance == 0f && summon.DrinkDropChance == 0f, "invocado: nunca Dourado, $0 e sem drop");
 
-        Check(EnemyBrain.Create(EnemyBehavior.Tigrinho) is TigrinhoBrain && EnemyBrain.Create(EnemyBehavior.Chase) == null, "cérebros por comportamento");
+        Check(EnemyBrain.Create(EnemyBehavior.MaquinaCacaNiquel) is MaquinaCacaNiquelBrain && EnemyBrain.Create(EnemyBehavior.Chase) == null, "cérebros por comportamento");
     }
 
     static void BestiarioEVariantes()

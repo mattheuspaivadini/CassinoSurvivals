@@ -17,15 +17,20 @@ public abstract class BossBrain : EnemyBrain
         public StepTick Tick;
     }
 
+    static readonly float[] DefaultLocks = { EnemyRules.LockHpFraction };
     readonly Queue<Step> steps = new Queue<Step>();
     readonly List<Enemy> summons = new List<Enemy>();
     Step current;
     float stepTimer, idleTimer = 1.5f, windowTimer, takenThisSecond, shieldAngle;
-    bool running, lockDone, lockPending, defeated;
+    int nextLockIndex;
+    bool running, lockPending, defeated;
 
     public bool Invulnerable { get; private set; }
     public bool Fury { get; private set; }
     protected bool InLock { get; private set; }
+    protected int LockIndex { get; private set; }
+    protected virtual float FuryThreshold => EnemyRules.FuryHpFraction;
+    protected virtual float[] LockThresholds => DefaultLocks;
 
     public override bool FacePlayer => true;
     public override bool NeedsRedraw => true;
@@ -45,7 +50,7 @@ public abstract class BossBrain : EnemyBrain
         if (windowTimer >= 1f) { windowTimer = 0f; takenThisSecond = 0f; }
         shieldAngle += dt * 2.5f;
 
-        if (!Fury && Self.Hp <= Self.MaxHp * EnemyRules.FuryHpFraction)
+        if (!Fury && Self.Hp <= Self.MaxHp * FuryThreshold)
         {
             Fury = true;
             OnFury();
@@ -95,7 +100,8 @@ public abstract class BossBrain : EnemyBrain
     void StartLock()
     {
         lockPending = false;
-        lockDone = true;
+        LockIndex = nextLockIndex;
+        nextLockIndex++;
         steps.Clear();
         running = false;
         Invulnerable = true;
@@ -109,10 +115,11 @@ public abstract class BossBrain : EnemyBrain
         if (Invulnerable) return 0f;
         float effective = EnemyRules.ApplyDpsCap(takenThisSecond, amount, Data.BossDpsCap);
         takenThisSecond += amount;
-        if (!lockDone)
+        if (nextLockIndex < LockThresholds.Length)
         {
-            effective = EnemyRules.ClampToLock(Self.Hp, Self.MaxHp, EnemyRules.LockHpFraction, effective);
-            if (Self.Hp - effective <= Self.MaxHp * EnemyRules.LockHpFraction + 0.01f)
+            float frac = LockThresholds[nextLockIndex];
+            effective = EnemyRules.ClampToLock(Self.Hp, Self.MaxHp, frac, effective);
+            if (Self.Hp - effective <= Self.MaxHp * frac + 0.01f)
             {
                 lockPending = true;
                 Invulnerable = true; // a barra trava no marco já neste golpe
@@ -172,13 +179,18 @@ public abstract class BossBrain : EnemyBrain
     }
 
     /// <summary>Investida em linha: aviso e depois corrida até a parede; acerta o jogador 1x na passagem.</summary>
-    protected void ChargeAttack(Vector2 dir, float warnSeconds, float speedUnits, float maxUnits, float damageScale, float stunSeconds)
+    protected void ChargeAttack(Vector2 dir, float warnSeconds, float speedUnits, float maxUnits, float damageScale, float stunSeconds, string chargeAnim = null, string stunAnim = null)
     {
         Vector2 from = Self.GlobalPosition;
         float len = FreeDistance(from, dir, maxUnits * Units.Px);
         bool hitDone = false;
+        float chargeTime = len / (speedUnits * Units.Px) + 0.15f;
         Then(warnSeconds, () => Telegraph.Line(Self, from, from + dir * len, Self.Radius, warnSeconds, null, () => Self.IsDead));
-        Then(len / (speedUnits * Units.Px) + 0.15f, () => { ContactDamage = false; }, (dt, toPlayer) =>
+        Then(chargeTime, () =>
+        {
+            ContactDamage = false;
+            if (chargeAnim != null) Self.PlaySpecialAnim(chargeAnim, chargeTime);
+        }, (dt, toPlayer) =>
         {
             var p = Player;
             if (!hitDone && p != null && toPlayer.Length() <= Self.Radius + p.RadiusPx)
@@ -189,7 +201,12 @@ public abstract class BossBrain : EnemyBrain
             if (FreeDistance(Self.GlobalPosition, dir, 0.4f * Units.Px) < 1f) EndStep();
             return dir * speedUnits * Units.Px;
         });
-        Then(stunSeconds, () => { ContactDamage = true; AudioManager.Instance?.PlayEnemyHit(); });
+        Then(stunSeconds, () =>
+        {
+            ContactDamage = true;
+            if (stunAnim != null) Self.PlaySpecialAnim(stunAnim, stunSeconds);
+            AudioManager.Instance?.PlayEnemyHit();
+        });
     }
 
     /// <summary>Reforços pelas portas (sem $ e sem drop), respeitando o teto simultâneo.</summary>
