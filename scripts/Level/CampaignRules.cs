@@ -484,7 +484,7 @@ public static class CampaignRules
     {
         float width = halfExtentsUnits.X * 2f;
         float height = halfExtentsUnits.Y * 2f;
-        if (width < 50f || height < 40f)
+        if (width < 40f || height < 40f)
         {
             error = $"Arena normal muito pequena ({width:0.0}x{height:0.0}u)";
             return false;
