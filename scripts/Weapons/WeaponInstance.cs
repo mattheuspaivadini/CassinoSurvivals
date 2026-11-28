@@ -11,6 +11,7 @@ public class WeaponInstance
 
     public int Level { get; private set; }
     public int Ammo { get; private set; }
+    public bool IsGolden => Level >= MaxLevel;
     public bool IsReloading => reloadTimer > 0f;
     public float ReloadProgress => IsReloading ? 1f - reloadTimer / reloadDuration : 1f;
     /// <summary>Pente com o bônus de "Balas no Pente" do Caça-níquel de Melhorias.</summary>
@@ -47,7 +48,7 @@ public class WeaponInstance
         if (fireTimer > 0f) fireTimer -= dt;
         if (!hasTarget || fireTimer > 0f || Ammo <= 0) return false;
 
-        fireTimer = Data.FireInterval / RunState.FireRateMultiplier; // Bebida de Velocidade
+        fireTimer = Data.FireIntervalAt(Level) / RunState.FireRateMultiplier; // Marco Nv 5 + Bebida de Velocidade
         Ammo--;
         if (Ammo <= 0) reloadTimer = reloadDuration = Data.ReloadTime(Level) * RunState.ReloadMultiplier;
         return true;
