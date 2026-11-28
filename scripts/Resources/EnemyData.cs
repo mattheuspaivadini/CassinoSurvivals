@@ -1,7 +1,7 @@
 using Godot;
 
 /// <summary>Cérebro que controla o inimigo. Chase = perseguição padrão (Ficha, Fichona, Garrafa, Paus).</summary>
-public enum EnemyBehavior { Chase, Espadas, Ouros, Copas, Rainha, Rei, Tigrinho }
+public enum EnemyBehavior { Chase, Espadas, Ouros, Copas, Rainha, Rei, Tigrinho, MaquinaCacaNiquel }
 
 /// <summary>Tipo de inimigo (comum, Dourado/elite ou boss). Uma única cena lê estes dados no spawn.</summary>
 [GlobalClass]
@@ -114,11 +114,41 @@ public partial class EnemyData : Resource
         int size = Mathf.Max(1, FrameSize);
         AddSheetAnimation(frames, "idle", IdleSheet, IdleFrames, size, Mathf.Max(1f, AnimFps * 0.8f), loop: true, FrameHeight > 0 ? FrameHeight : size);
         int height = FrameHeight > 0 ? FrameHeight : size;
-        AddSheetAnimation(frames, "chase", ChaseSheet, ChaseFrames, size, AnimFps, loop: true, height);
-        AddSheetAnimation(frames, "chase_back", ChaseBackSheet, ChaseFrames, size, AnimFps, loop: true, height);
-        AddVerticalAnimation(frames, "attack", AttackSheet, AnimFps);
-        AddVerticalAnimation(frames, "attack_back", AttackBackSheet, AnimFps);
+        Texture2D chaseSheet = Behavior == EnemyBehavior.Rei
+            ? (LoadTexture("res://assets/sprites/spritesheet_tigre_frente.png") ?? ChaseSheet)
+            : ChaseSheet;
+        Texture2D chaseBackSheet = Behavior == EnemyBehavior.Rei
+            ? (LoadTexture("res://assets/sprites/spritesheet_tigre_costas.png") ?? ChaseBackSheet)
+            : ChaseBackSheet;
+        if (Behavior != EnemyBehavior.MaquinaCacaNiquel)
+        {
+            AddSheetAnimation(frames, "chase", chaseSheet, ChaseFrames, size, AnimFps, loop: true, height);
+            AddSheetAnimation(frames, "chase_back", chaseBackSheet, ChaseFrames, size, AnimFps, loop: true, height);
+        }
+        Texture2D attackSheet = AttackSheet ?? (Behavior == EnemyBehavior.Rainha ? LoadTexture("res://assets/sprites/spritesheet_rainha_ataque.png") : null);
+        AddAttackAnimation(frames, "attack", attackSheet, size, height, AnimFps);
+        AddAttackAnimation(frames, "attack_back", AttackBackSheet, size, height, AnimFps);
         AddSheetAnimation(frames, "death", DeathSheet, DeathFrames, size, AnimFps * 1.15f, loop: false, FrameHeight > 0 ? FrameHeight : size);
+
+        if (Behavior == EnemyBehavior.Rei)
+        {
+            AddSheetAnimation(frames, "cajado", LoadTexture("res://assets/sprites/tigre_cajado.png"), 8, 48, 10f, loop: false, 60);
+            AddSheetAnimation(frames, "ombrada", LoadTexture("res://assets/sprites/tigre_ombrada.png"), 5, 48, 10f, loop: true, 60);
+            AddSheetAnimation(frames, "colisao", LoadTexture("res://assets/sprites/tigre_colisao.png"), 7, 48, 10f, loop: false, 60);
+        }
+        else if (Behavior == EnemyBehavior.MaquinaCacaNiquel)
+        {
+            AddSheetAnimation(frames, "chase", LoadTexture("res://assets/sprites/spritesheet_niquel_frente.png"), 6, 32, 10f, loop: true, 61);
+            AddSheetAnimation(frames, "chase_back", LoadTexture("res://assets/sprites/spritesheet_niquel_costas.png"), 6, 32, 10f, loop: true, 61);
+            AddSheetAnimation(frames, "spin", LoadTexture("res://assets/sprites/slot_giro_loop.png"), 12, 32, 12f, loop: true, 55);
+            AddSheetAnimation(frames, "trans_espadas", LoadTexture("res://assets/sprites/slot_transicao_espadas.png"), 21, 32, 18f, loop: false, 55);
+            AddSheetAnimation(frames, "final_espadas", LoadTexture("res://assets/sprites/slot_final_espadas.png"), 1, 32, 1f, loop: true, 55);
+            AddSheetAnimation(frames, "trans_bombas", LoadTexture("res://assets/sprites/slot_transicao_bombas.png"), 21, 32, 18f, loop: false, 55);
+            AddSheetAnimation(frames, "final_bombas", LoadTexture("res://assets/sprites/slot_final_bombas.png"), 1, 32, 1f, loop: true, 55);
+            AddSheetAnimation(frames, "trans_fichas", LoadTexture("res://assets/sprites/slot_transicao_fichas.png"), 21, 32, 18f, loop: false, 55);
+            AddSheetAnimation(frames, "final_fichas", LoadTexture("res://assets/sprites/slot_final_fichas.png"), 1, 32, 1f, loop: true, 55);
+            AddSheetAnimation(frames, "trans_777", LoadTexture("res://assets/sprites/slot_transicao_777.png"), 21, 32, 18f, loop: false, 55);
+        }
 
         if (!frames.HasAnimation("chase") && Sprite != null)
         {
@@ -149,6 +179,27 @@ public partial class EnemyData : Resource
                 Region = new Rect2(i * frameSize, 0, frameSize, frameHeight)
             });
         }
+    }
+
+    static Texture2D LoadTexture(string resPath)
+    {
+        var tex = ResourceLoader.Exists(resPath) ? GD.Load<Texture2D>(resPath) : null;
+        if (tex != null) return tex;
+
+        string abs = ProjectSettings.GlobalizePath(resPath);
+        if (!System.IO.File.Exists(abs)) return null;
+        var img = new Image();
+        if (img.Load(abs) != Error.Ok) return null;
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    static void AddAttackAnimation(SpriteFrames frames, string name, Texture2D sheet, int frameSize, int frameHeight, float fps)
+    {
+        if (sheet == null) return;
+        if (sheet.GetWidth() > sheet.GetHeight())
+            AddSheetAnimation(frames, name, sheet, 0, frameSize, fps, loop: true, frameHeight);
+        else
+            AddVerticalAnimation(frames, name, sheet, fps);
     }
 
     static void AddVerticalAnimation(SpriteFrames frames, string name, Texture2D sheet, float fps)
@@ -185,6 +236,7 @@ public partial class EnemyData : Resource
         g.EnemyName = source.EnemyName + " (Dourado)";
         g.MaxHp = source.MaxHp * GoldenHpMultiplier;
         g.ContactDamage = source.ContactDamage * GoldenDamageMultiplier;
+        g.ProjectileDamage = source.ProjectileDamage * GoldenDamageMultiplier;
         g.ExplosionDamage = source.ExplosionDamage * GoldenDamageMultiplier;
         g.PuddleDamagePerSecond = source.PuddleDamagePerSecond * GoldenDamageMultiplier;
         g.PuddleDuration = source.GoldenPuddleDuration > 0f ? source.GoldenPuddleDuration : 6f;

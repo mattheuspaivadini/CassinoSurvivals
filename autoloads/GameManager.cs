@@ -7,6 +7,9 @@ public enum GameState { Playing, Paused, GameOver, Victory }
 /// <summary>Estado global da partida: pontos, fichas, tempo, pausa e fim de jogo. A UI só escuta os signals.</summary>
 public partial class GameManager : Node
 {
+    public const string CutsceneScenePath = "res://scenes/Cutscene.tscn";
+    public const string LoungeScenePath = "res://scenes/levels/SalaDescanso.tscn";
+
     public static GameManager Instance { get; private set; }
 
     /// <summary>Segundos de partida até o Tigrinho aparecer.</summary>
@@ -28,6 +31,9 @@ public partial class GameManager : Node
     public const int CashOutPerChip = 10;
     public float Elapsed { get; private set; }
     public GameState State { get; private set; }
+    public int CurrentStage { get; private set; } = 1;
+    public bool InLounge { get; private set; }
+    public bool CampaignActive { get; private set; }
 
     public bool IsBossTime =>
         Elapsed >= BossSpawnTime || (BossScoreThreshold > 0 && Score >= BossScoreThreshold);
@@ -107,15 +113,68 @@ public partial class GameManager : Node
         return true;
     }
 
-    /// <summary>Este nó sobrevive ao reload da cena (autoload), então o estado é zerado à mão.</summary>
-    public void Restart()
+    public void ActivateCampaignAt(int stage)
     {
-        Score = Chips = 0;
-        RunDollars = CashedOutChips = 0;
+        CurrentStage = Mathf.Clamp(stage, 1, CampaignRules.TotalStages);
+        InLounge = false;
+        CampaignActive = true;
+    }
+
+    public void StartNewRun(bool showCutscene = true)
+    {
+        Score = Chips = RunDollars = CashedOutChips = 0;
         Elapsed = 0f;
+        CurrentStage = 1;
+        InLounge = false;
+        CampaignActive = true;
+        LoungeStation.RouletteUsesInRun = 0;
         RunState.Reset();
         State = GameState.Playing;
         GetTree().Paused = false;
-        GetTree().ReloadCurrentScene();
+        string target = showCutscene ? CutsceneScenePath : CampaignRules.ForStage(1).ScenePath;
+        GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, target);
+    }
+
+    public void AdvanceFromExit()
+    {
+        if (!CampaignActive)
+        {
+            Victory();
+            return;
+        }
+        if (InLounge)
+        {
+            CurrentStage = Mathf.Clamp(CurrentStage + 1, 1, CampaignRules.TotalStages);
+            InLounge = false;
+            RunState.SavePlayerBuild();
+            GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, CampaignRules.ForStage(CurrentStage).ScenePath);
+            return;
+        }
+        if (CurrentStage >= CampaignRules.TotalStages)
+        {
+            Victory();
+            return;
+        }
+        RunState.SavePlayerBuild();
+        InLounge = true;
+        GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, LoungeScenePath);
+    }
+
+    /// <summary>Este nó sobrevive ao reload da cena (autoload), então o estado é zerado à mão.</summary>
+    public void Restart()
+    {
+        string scene = GetTree().CurrentScene?.SceneFilePath;
+        if (!CampaignActive && scene == "res://scenes/Main.tscn")
+        {
+            Score = Chips = 0;
+            RunDollars = CashedOutChips = 0;
+            Elapsed = 0f;
+            RunState.Reset();
+            State = GameState.Playing;
+            GetTree().Paused = false;
+            GetTree().ReloadCurrentScene();
+            return;
+        }
+        StartNewRun(showCutscene: false);
     }
 }

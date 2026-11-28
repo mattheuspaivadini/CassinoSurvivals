@@ -31,6 +31,10 @@ public partial class LoungeStation : Node2D
 
     public override void _Ready()
     {
+        var gm = GameManager.Instance;
+        if (gm != null && gm.CampaignActive)
+            CurrentStage = gm.CurrentStage;
+
         Cost = LoungeRules.GetCost(StationType, Cost);
         MaxUsesPerRoom = LoungeRules.GetMaxUsesPerRoom(StationType);
         MaxUsesPerRun = StationType == LoungeStationType.Roulette
@@ -48,10 +52,39 @@ public partial class LoungeStation : Node2D
                 foreach (Node child in VisualObstacle.GetChildren())
                     if (child is CollisionShape2D cs) cs.SetDeferred(CollisionShape2D.PropertyName.Disabled, true);
             }
+            SpawnVanishedDebris();
             return;
         }
 
         RefreshTitleLabel();
+    }
+
+    void SpawnVanishedDebris()
+    {
+        var parent = GetParent();
+        if (parent == null) return;
+        var spot = new Node2D { Position = Position };
+        spot.AddChild(new ColorRect
+        {
+            Color = new Color(0.08f, 0.04f, 0.10f, 0.85f),
+            Position = new Vector2(-46f, -24f),
+            Size = new Vector2(92f, 48f),
+        });
+        var wire1 = new ColorRect { Color = new Color(1f, 0.25f, 0.35f, 0.9f), Position = new Vector2(-24f, -4f), Size = new Vector2(26f, 4f) };
+        var wire2 = new ColorRect { Color = new Color(0.25f, 0.85f, 1f, 0.9f), Position = new Vector2(4f, 4f), Size = new Vector2(24f, 4f) };
+        spot.AddChild(wire1);
+        spot.AddChild(wire2);
+        var lbl = new Label
+        {
+            Text = "FIOS SOLTOS...",
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Position = new Vector2(-80f, -52f),
+            Size = new Vector2(160f, 24f),
+        };
+        lbl.AddThemeFontSizeOverride("font_size", 16);
+        lbl.AddThemeColorOverride("font_color", new Color(1f, 0.45f, 0.35f));
+        spot.AddChild(lbl);
+        parent.AddChild(spot);
     }
 
     public override void _Process(double delta)

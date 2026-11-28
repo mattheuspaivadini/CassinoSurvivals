@@ -19,6 +19,9 @@ public partial class LoungeModalUI : CanvasLayer
     Label title, body, result;
     HBoxContainer optionsRow;
     readonly List<Button> options = new List<Button>(3);
+    readonly List<TextureRect> optionIcons = new List<TextureRect>(3);
+    readonly List<Label> optionLabels = new List<Label>(3);
+    readonly Dictionary<string, Texture2D> texCache = new Dictionary<string, Texture2D>();
     Button actionButton, closeButton;
     bool busy;
 
@@ -55,7 +58,7 @@ public partial class LoungeModalUI : CanvasLayer
         var box = new PanelContainer
         {
             AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
-            OffsetLeft = -560f, OffsetRight = 560f, OffsetTop = -300f, OffsetBottom = 300f,
+            OffsetLeft = -560f, OffsetRight = 560f, OffsetTop = -345f, OffsetBottom = 345f,
         };
         box.AddThemeStyleboxOverride("panel", new StyleBoxFlat
         {
@@ -81,16 +84,47 @@ public partial class LoungeModalUI : CanvasLayer
             int idx = i;
             var b = new Button
             {
-                CustomMinimumSize = new Vector2(320f, 220f),
+                CustomMinimumSize = new Vector2(310f, 340f),
                 FocusMode = Control.FocusModeEnum.None,
-                AutowrapMode = TextServer.AutowrapMode.WordSmart,
                 ClipText = false,
             };
-            b.AddThemeFontSizeOverride("font_size", 26);
-            b.AddThemeFontOverride("font", new SystemFont { FontWeight = 700 });
             b.Pressed += () => OnOption(idx);
+
+            var inner = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+            inner.SetAnchorsPreset(Control.LayoutPreset.FullRect);
+            inner.OffsetLeft = 12f; inner.OffsetRight = -12f;
+            inner.OffsetTop = 12f; inner.OffsetBottom = -12f;
+            inner.AddThemeConstantOverride("separation", 8);
+            b.AddChild(inner);
+
+            var icon = new TextureRect
+            {
+                CustomMinimumSize = new Vector2(210f, 210f),
+                SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+                Visible = false,
+            };
+            inner.AddChild(icon);
+
+            var lbl = new Label
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                AutowrapMode = TextServer.AutowrapMode.WordSmart,
+                SizeFlagsVertical = Control.SizeFlags.ExpandFill,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            lbl.AddThemeFontSizeOverride("font_size", 19);
+            lbl.AddThemeFontOverride("font", new SystemFont { FontWeight = 700 });
+            inner.AddChild(lbl);
+
             optionsRow.AddChild(b);
             options.Add(b);
+            optionIcons.Add(icon);
+            optionLabels.Add(lbl);
         }
 
         result = MakeLabel(28, Colors.White);
@@ -178,6 +212,75 @@ public partial class LoungeModalUI : CanvasLayer
         else if (station.StationType == LoungeStationType.Roulette) SpinRoulette();
     }
 
+    void SetOptionCard(int i, string text, string texPath)
+    {
+        var tex = LoadTexture(texPath);
+        optionIcons[i].Texture = tex;
+        optionIcons[i].Visible = tex != null;
+        optionLabels[i].Text = text;
+    }
+
+    Texture2D LoadTexture(string resPath)
+    {
+        if (string.IsNullOrEmpty(resPath)) return null;
+        if (texCache.TryGetValue(resPath, out var cached)) return cached;
+        var tex = ResourceLoader.Exists(resPath) ? GD.Load<Texture2D>(resPath) : null;
+        if (tex == null)
+        {
+            string abs = ProjectSettings.GlobalizePath(resPath);
+            if (System.IO.File.Exists(abs))
+            {
+                var img = new Image();
+                if (img.Load(abs) == Error.Ok) tex = ImageTexture.CreateFromImage(img);
+            }
+        }
+        texCache[resPath] = tex;
+        return tex;
+    }
+
+    static string DrinkFramePath(DrinkType t) => t switch
+    {
+        DrinkType.Heal => "res://assets/molduras/bar/cura.png",
+        DrinkType.Damage => "res://assets/molduras/bar/dano.png",
+        _ => "res://assets/molduras/bar/velocidade.png",
+    };
+
+    static string WhoFramePath(UpgradeTarget target)
+    {
+        if (target == UpgradeTarget.Player) return "res://assets/molduras/quem/player.png";
+        var ws = PlayerController.Instance?.GetNodeOrNull<WeaponSystem>("WeaponSystem");
+        WeaponData active = ws != null && ws.Weapons.Count > 0
+            ? ws.Weapons[Mathf.Clamp(ws.Selected, 0, ws.Weapons.Count - 1)].Data
+            : null;
+        return SlotMachineUI.WeaponFramePath(active);
+    }
+
+    static string WhatFramePath(UpgradeStat stat) => stat switch
+    {
+        UpgradeStat.MaxHp => "res://assets/molduras/o_que/vida.png",
+        UpgradeStat.MoveSpeed => "res://assets/molduras/o_que/velocidade.png",
+        UpgradeStat.DashCooldown => "res://assets/molduras/o_que/dash.png",
+        UpgradeStat.Damage => "res://assets/molduras/o_que/dano.png",
+        UpgradeStat.Magazine => "res://assets/molduras/o_que/balas.png",
+        _ => "res://assets/molduras/o_que/recarga.png",
+    };
+
+    public static string PassiveFramePath(Passive p) => p switch
+    {
+        Passive.CalibrePesado => "res://assets/molduras/roleta/calibre_pesado.png",
+        Passive.EfeitoDomino => "res://assets/molduras/roleta/efeito_domino.png",
+        Passive.GeloNoCopo => "res://assets/molduras/roleta/gelo_no_copo.png",
+        Passive.MaoQuente => "res://assets/molduras/roleta/mao_quente.png",
+        Passive.AllIn => "res://assets/molduras/roleta/all_in.png",
+        Passive.SaqueRapido => "res://assets/molduras/roleta/saque_rapido.png",
+        Passive.VirarAMesa => "res://assets/molduras/roleta/virar_a_mesa.png",
+        Passive.BlefePerfeito => "res://assets/molduras/roleta/blefe_perfeito.png",
+        Passive.OpenBar => "res://assets/molduras/roleta/open_bar.png",
+        Passive.TrocoEmSangue => "res://assets/molduras/roleta/troco_em_sangue.png",
+        Passive.Critico777 => "res://assets/molduras/roleta/777.png",
+        _ => "res://assets/molduras/roleta/sangue_frio.png",
+    };
+
     // ---------- Balcão do Bar ----------
 
     void ShowBar()
@@ -190,7 +293,7 @@ public partial class LoungeModalUI : CanvasLayer
         {
             var t = (DrinkType)i;
             string active = RunState.IsActive(t) ? $"\n(ativa: {Mathf.CeilToInt(RunState.TimeLeft(t))}s)" : "";
-            options[i].Text = $"{DrinkRules.Name(t)}\n\n{DrinkRules.Describe(t, eff)}{active}";
+            SetOptionCard(i, $"{DrinkRules.Name(t)}\n{DrinkRules.Describe(t, eff)}{active}", DrinkFramePath(t));
             options[i].Disabled = !station.CanInteract(GameManager.Instance.Chips);
         }
     }
@@ -209,9 +312,9 @@ public partial class LoungeModalUI : CanvasLayer
     {
         body.Text = $"3 rolos: QUEM? · O QUÊ? · QUANTO? (5% a 30%)\n{ChipsLine}";
         SetOptions(3, false);
-        options[0].Text = "QUEM?";
-        options[1].Text = "O QUÊ?";
-        options[2].Text = "QUANTO?";
+        SetOptionCard(0, "QUEM?", null);
+        SetOptionCard(1, "O QUÊ?", null);
+        SetOptionCard(2, "QUANTO?", null);
         actionButton.Visible = true;
         actionButton.Text = $"GIRAR ({station.Cost} FICHA)";
         actionButton.Disabled = !station.CanInteract(GameManager.Instance.Chips);
@@ -252,9 +355,9 @@ public partial class LoungeModalUI : CanvasLayer
 
     void ShowUpgradeReels(UpgradeTarget target, UpgradeStat stat, int percent)
     {
-        options[0].Text = UpgradeRoll.TargetName(target);
-        options[1].Text = UpgradeRoll.StatName(stat);
-        options[2].Text = $"{percent}%";
+        SetOptionCard(0, UpgradeRoll.TargetName(target), WhoFramePath(target));
+        SetOptionCard(1, UpgradeRoll.StatName(stat), WhatFramePath(stat));
+        SetOptionCard(2, $"{percent}%", $"res://assets/molduras/quanto/{percent}.png");
     }
 
     // ---------- Mesa de Roleta ----------
@@ -285,13 +388,18 @@ public partial class LoungeModalUI : CanvasLayer
 
         for (float t = 0f; t < SpinDuration; t += SpinTick)
         {
-            for (int i = 0; i < offered.Count; i++) options[i].Text = PassiveCatalog.Name((Passive)RunState.Rng.Next(PassiveCatalog.Count));
+            for (int i = 0; i < offered.Count; i++)
+            {
+                var rp = (Passive)RunState.Rng.Next(PassiveCatalog.Count);
+                SetOptionCard(i, PassiveCatalog.Name(rp), PassiveFramePath(rp));
+            }
             await ToSignal(GetTree().CreateTimer(SpinTick), SceneTreeTimer.SignalName.Timeout);
         }
 
         for (int i = 0; i < offered.Count; i++)
         {
-            options[i].Text = $"{PassiveCatalog.Name(offered[i])}\n\n{PassiveCatalog.Description(offered[i])}";
+            var p = offered[i];
+            SetOptionCard(i, $"{PassiveCatalog.Name(p)}\n{PassiveCatalog.Description(p)}", PassiveFramePath(p));
             options[i].Disabled = false;
         }
         AudioManager.Instance?.PlaySlotWin();

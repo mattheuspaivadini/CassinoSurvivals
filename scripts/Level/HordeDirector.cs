@@ -77,7 +77,7 @@ public partial class HordeDirector : Node
     StageSpec stageSpec;
     Phase phase = Phase.Break;
     int next, roundTotal, roundSpawned, roundKilled, extraSpawned;
-    float timer;
+    float timer, commonDollarRate, commonDollarAcc, stageFloorDropScale = 1f;
 
     public override void _Ready()
     {
@@ -100,6 +100,18 @@ public partial class HordeDirector : Node
         RegisterKind(EnemyKind.CartaOuros, OurosType);
         RegisterKind(EnemyKind.CartaPaus, PausType);
         RegisterKind(EnemyKind.CartaCopas, CopasType);
+
+        var gm = GameManager.Instance;
+        if (gm != null)
+        {
+            if (!gm.CampaignActive && StartStage == 1 && EndStage == CampaignRules.TotalStages)
+                gm.ActivateCampaignAt(1);
+            if (gm.CampaignActive)
+            {
+                StartStage = gm.CurrentStage;
+                EndStage = gm.CurrentStage;
+            }
+        }
 
         int initialStage = Mathf.Clamp(StartStage, 1, CampaignRules.TotalStages);
         EndStage = Mathf.Clamp(EndStage, initialStage, CampaignRules.TotalStages);
@@ -219,6 +231,10 @@ public partial class HordeDirector : Node
         plan = HordePlan.Build(spec.Count, spec.Duration, doors.Count, spec.Elites, LowerDoors.ToList(), LowerDoorDelay, rng);
         next = roundSpawned = roundKilled = extraSpawned = queued = 0;
         hordeClock = 0f;
+        int commonCount = Mathf.Max(1, spec.Count - spec.Elites);
+        commonDollarRate = (float)DifficultyRules.CommonDollarBudget(stageSpec) / commonCount;
+        commonDollarAcc = 0f;
+        stageFloorDropScale = DifficultyRules.FloorDropScale(stageSpec, spec.Count);
         roundTotal = spec.Count + (spec.Boss ? 1 : 0);
         timer = 0f;
         phase = Phase.Horde;
@@ -230,7 +246,28 @@ public partial class HordeDirector : Node
     void Release(HordeEntry entry)
     {
         var baseType = ResolveEnemyDataForStage(stageSpec);
-        var type = entry.Elite ? EnemyData.CreateGoldenVariant(baseType) : baseType;
+        EnemyData type;
+        if (entry.Elite)
+        {
+            type = EnemyData.CreateGoldenVariant(baseType);
+        }
+        else
+        {
+            type = baseType.CloneWithSharedFrames();
+            commonDollarAcc += commonDollarRate;
+            if (commonDollarAcc >= 0.9999f)
+            {
+                commonDollarAcc -= 1f;
+                type.Dollars = 1;
+            }
+            else
+            {
+                type.Dollars = 0;
+            }
+            type.HealDropChance *= stageFloorDropScale;
+            type.DrinkDropChance *= stageFloorDropScale;
+            type.PointsDropChance *= stageFloorDropScale;
+        }
         doors[entry.Door].Enqueue(door =>
         {
             var enemy = EnemySpawner.Instance.Spawn(type, door.SpawnPosition, spec.HpMultiplier, damageMultiplier: spec.DamageMultiplier);
@@ -280,23 +317,18 @@ public partial class HordeDirector : Node
         data.ChipDrops = spec.BossChips;
         data.Dollars = spec.BossDollars;
 
-        Vector2 playerPos = PlayerController.Instance.GlobalPosition;
-        var candidateDoors = BossSpawnPoint != null
-            ? doors.Where(d => d.GlobalPosition.Y <= 0f).DefaultIfEmpty(doors[0])
-            : doors;
-        var door = candidateDoors.OrderByDescending(d => d.GlobalPosition.DistanceSquaredTo(playerPos)).First();
-        door.Enqueue(d =>
-        {
-            // O boss é largo: nasce mais para dentro para não ficar preso na parede.
-            float inset = data.Scale * 0.5f + 0.5f;
-            var boss = EnemySpawner.Instance.Spawn(data, d.GlobalPosition + d.InwardDir * inset * Units.Px, 1f, damageMultiplier: spec.DamageMultiplier);
-            Vector2 entryTarget = BossSpawnPoint != null
-                ? BossSpawnPoint.GlobalPosition
-                : d.GlobalPosition + d.InwardDir * (inset + 2f) * Units.Px;
-            boss.SetEntry(entryTarget);
-            roundSpawned++;
-            EnemySpawner.Instance.AnnounceBoss();
-        });
+        // O boss sai diretamente pela porta superior (Saída) para entrar em campo imediatamente.
+        float inset = data.Scale * 0.5f + 0.6f;
+        Vector2 spawnPos = Exit != null
+            ? Exit.GlobalPosition + new Vector2(0f, inset * Units.Px)
+            : (BossSpawnPoint != null ? BossSpawnPoint.GlobalPosition : Vector2.Zero);
+        Vector2 entryTarget = BossSpawnPoint != null
+            ? BossSpawnPoint.GlobalPosition
+            : spawnPos + new Vector2(0f, 2.5f * Units.Px);
+        var boss = EnemySpawner.Instance.Spawn(data, spawnPos, 1f, damageMultiplier: spec.DamageMultiplier);
+        boss.SetEntry(entryTarget);
+        roundSpawned++;
+        EnemySpawner.Instance.AnnounceBoss();
     }
 
     void OnExtraEnemySpawned()

@@ -9,6 +9,7 @@ public partial class Drop : Node2D
     [Export] public float Lifetime { get; set; } = 40f;
 
     Sprite2D sprite;
+    AnimatedSprite2D animSprite;
     DropType type;
     float value, life;
 
@@ -21,9 +22,40 @@ public partial class Drop : Node2D
         value = v;
         life = Lifetime;
         Position = pos;
+        sprite.Visible = true;
+        if (animSprite != null) animSprite.Visible = false;
+        sprite.TextureFilter = TextureFilterEnum.Nearest;
         sprite.Texture = texture;
         Units.Fit(sprite, scale);
         sprite.Modulate = color;
+    }
+
+    /// <summary>Configura o drop usando um SpriteFrames animado (ex.: spritesheets de bebidas).</summary>
+    public void SetupAnimated(DropType t, float v, Vector2 pos, SpriteFrames frames, Color color, float scale)
+    {
+        type = t;
+        value = v;
+        life = Lifetime;
+        Position = pos;
+        sprite.Visible = false;
+
+        if (animSprite == null)
+        {
+            animSprite = GetNodeOrNull<AnimatedSprite2D>("AnimSprite");
+            if (animSprite == null)
+            {
+                animSprite = new AnimatedSprite2D { Name = "AnimSprite" };
+                AddChild(animSprite);
+            }
+        }
+
+        animSprite.Visible = true;
+        animSprite.TextureFilter = TextureFilterEnum.Nearest;
+        animSprite.SpriteFrames = frames;
+        animSprite.Modulate = color;
+        var tex = frames.GetFrameTexture("idle", 0);
+        if (tex != null) animSprite.Scale = Vector2.One * (Units.Px * scale / tex.GetWidth());
+        animSprite.Play("idle");
     }
 
     public override void _Process(double delta)

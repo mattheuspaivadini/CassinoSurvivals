@@ -89,9 +89,9 @@ public class OurosBrain : EnemyBrain
 /// </summary>
 public class CopasBrain : EnemyBrain
 {
-    public const float SummonInterval = 6f;
-    public const int SummonBatch = 3;
-    public const int MaxHearts = 6;
+    public const float SummonInterval = 4.5f;
+    public const int SummonBatch = 5;
+    public const int MaxHearts = 10;
 
     readonly List<Enemy> hearts = new List<Enemy>(MaxHearts);
     float timer = 2f, strafe = 1f;

@@ -57,6 +57,17 @@ public static class SelfCheck
         var f10 = DifficultyRules.Apply(baseF10);
         Check(f10.Boss && Near(f10.BossHp, baseF10.BossHp * DifficultyRules.BossHpScale) && f10.BossChips == baseF10.BossChips, "boss mais longo, recompensa igual");
         Check(Near(CampaignRules.ForStage(1).HpScale, 1.00f), "curva oficial do Lemuel continua intacta");
+
+        int totalDollars = 0;
+        for (int st = 1; st <= CampaignRules.TotalStages; st++)
+        {
+            var cs = CampaignRules.ForStage(st);
+            var ds = DifficultyRules.Apply(RoundRules.For(st));
+            totalDollars += DifficultyRules.CommonDollarBudget(cs) + cs.GoldenCount * 5 + cs.ClearBonusDollars;
+            float dropScale = DifficultyRules.FloorDropScale(cs, ds.Count);
+            Check(dropScale > 0f && dropScale <= 1f, $"FloorDropScale F{st} válido ({dropScale:0.00})");
+        }
+        Check(totalDollars == 1413, $"economia da Loja Externa preservada com hordas maiores ($1413, obtido {totalDollars})");
     }
 
     static bool Near(float a, float b) => Math.Abs(a - b) < 0.0005f;
@@ -229,17 +240,17 @@ public static class SelfCheck
 
         var rainha = EnemyCatalog.LoadBoss(BossKind.Rainha);
         var rei = EnemyCatalog.LoadBoss(BossKind.Rei);
-        var tigre = EnemyCatalog.LoadBoss(CampaignRules.ForStage(15).Boss);
+        var maquina = EnemyCatalog.LoadBoss(CampaignRules.ForStage(15).Boss);
         Check(rainha.Behavior == EnemyBehavior.Rainha && rainha.IsBoss, "F5: A Rainha");
-        Check(rei.Behavior == EnemyBehavior.Rei && rei.IsBoss, "F10: O Rei de Paus");
-        Check(tigre.Behavior == EnemyBehavior.Tigrinho && tigre.EnemyName == "Tigrinho", "F15: Tigrinho é o chefe final");
+        Check(rei.Behavior == EnemyBehavior.Rei && rei.IsBoss, "F10: O Rei Tigrinho");
+        Check(maquina.Behavior == EnemyBehavior.MaquinaCacaNiquel && maquina.EnemyName == "Máquina de Caça-Níquel", "F15: Máquina de Caça-Níquel é o chefe final");
         var rf = rainha.GetOrBuildFrames().GetFrameTexture("chase", 0) as Godot.AtlasTexture;
         Check(rf != null && Near(rf.Region.Size.Y, 51f) && Near(rf.Region.Size.X, 32f), "frames da Rainha 32x51");
 
         var summon = EnemyData.CreateSummon(EnemyData.CreateGoldenVariant(EnemyCatalog.Load(EnemyKind.Ficha)));
         Check(!summon.IsGolden && summon.Dollars == 0 && !summon.GuaranteedChip && summon.ChipDropChance == 0f && summon.DrinkDropChance == 0f, "invocado: nunca Dourado, $0 e sem drop");
 
-        Check(EnemyBrain.Create(EnemyBehavior.Tigrinho) is TigrinhoBrain && EnemyBrain.Create(EnemyBehavior.Chase) == null, "cérebros por comportamento");
+        Check(EnemyBrain.Create(EnemyBehavior.MaquinaCacaNiquel) is MaquinaCacaNiquelBrain && EnemyBrain.Create(EnemyBehavior.Chase) == null, "cérebros por comportamento");
     }
 
     static void BestiarioEVariantes()
@@ -280,6 +291,18 @@ public static class SelfCheck
 
         var troco = EnemyData.CreateTrocoMinion(fichona.SplitEnemy);
         Check(!troco.IsGolden && !troco.GuaranteedChip && troco.Dollars == 0 && troco.ChipDropChance == 0f, "Trava contra farm infinito no Troco");
+
+        foreach (EnemyKind kind in Enum.GetValues(typeof(EnemyKind)))
+        {
+            var src = EnemyCatalog.Load(kind);
+            Check(src != null, $"bestiário carrega {kind}");
+            var g = EnemyData.CreateGoldenVariant(src);
+            Check(g.IsGolden && g.GuaranteedChip && g.Dollars == 5, $"Dourado válido para {kind}");
+            Check(Near(g.MaxHp, src.MaxHp * EnemyData.GoldenHpMultiplier), $"Dourado {kind}: 1.8x HP");
+            Check(Near(g.ContactDamage, src.ContactDamage * EnemyData.GoldenDamageMultiplier), $"Dourado {kind}: 1.3x Dano Contato");
+            Check(Near(g.ProjectileDamage, src.ProjectileDamage * EnemyData.GoldenDamageMultiplier), $"Dourado {kind}: 1.3x Dano Projétil");
+            Check(Near(g.Scale, src.Scale * EnemyData.GoldenScaleMultiplier), $"Dourado {kind}: 1.12x Escala");
+        }
     }
 
     static void RoundsDaFase()

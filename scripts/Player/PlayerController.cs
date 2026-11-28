@@ -56,7 +56,7 @@ public partial class PlayerController : RigidBody2D
 		PlayAnim("idle");
 		baseMaxHp = MaxHp;
 		MaxHp = ComputeMaxHp(); // Vigor (Loja Externa) + HP Máximo do Caça-níquel de Melhorias
-		CurrentHp = MaxHp;
+		CurrentHp = RunState.SavedHp.HasValue ? Mathf.Clamp(RunState.SavedHp.Value, 1f, MaxHp) : MaxHp;
 		RunState.Changed += RefreshMaxHp;
 	}
 
