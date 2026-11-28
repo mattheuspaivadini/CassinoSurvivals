@@ -180,6 +180,7 @@ public partial class PlayerController : RigidBody2D
 		CurrentHp = Mathf.Max(0f, CurrentHp - amount);
 		Flash(Colors.Red);
 		AudioManager.Instance?.PlayPlayerHurt();
+		GameFeel.Shake(Mathf.Clamp(amount * 0.4f, 4f, 14f), 0.18f);
 		if (CurrentHp <= 0f && TryRevive()) return;
 		EmitSignal(SignalName.HpChanged, CurrentHp, MaxHp);
 		if (CurrentHp <= 0f) GameManager.Instance.GameOver();

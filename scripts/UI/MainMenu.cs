@@ -85,11 +85,12 @@ public partial class MainMenu : Control
 
     Control BuildSettingsPage()
     {
-        var col = Page(-380f, 380f, -220f, 220f);
+        var col = Page(-380f, 380f, -250f, 250f);
         col.AddChild(Header("CONFIGURAÇÕES"));
         PauseMenu.AddVolumeRow(col, "Geral", "Master");
         PauseMenu.AddVolumeRow(col, "Música", AudioManager.MusicBus);
         PauseMenu.AddVolumeRow(col, "Efeitos", AudioManager.SfxBus);
+        PauseMenu.AddShakeToggle(col);
         col.AddChild(MakeButton("VOLTAR  (ESC)", () => ShowPage(mainPage)));
         return col;
     }

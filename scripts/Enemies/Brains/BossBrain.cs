@@ -168,6 +168,9 @@ public abstract class BossBrain : EnemyBrain
 
     protected void HurtPlayerInCircle(Vector2 center, float radiusPx, float damage)
     {
+        // Golpe de área dos bosses: treme sempre, mesmo se o jogador desviou.
+        GameFeel.Shake(10f, 0.3f);
+        GameFeel.WorldBurst(Self, center, new Color(1f, 0.35f, 0.2f), 30, 380f);
         var p = Player;
         if (p != null && EnemyRules.InCircle(p.GlobalPosition, center, radiusPx + p.RadiusPx)) p.TakeDamage(damage);
     }

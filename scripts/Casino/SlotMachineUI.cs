@@ -120,7 +120,11 @@ public partial class SlotMachineUI : CanvasLayer
 
         bool jackpot = SlotRules.IsJackpot(reels);
         resultText.Text = jackpot ? "JACKPOT!!! Escolha sua arma" : "Escolha uma arma ou recuse o giro";
-        if (jackpot) AudioManager.Instance?.PlayJackpot();
+        if (jackpot)
+        {
+            AudioManager.Instance?.PlayJackpot();
+            JackpotFx();
+        }
         else AudioManager.Instance?.PlaySlotWin();
         SetButtons(true);
         choosing = true;
@@ -160,6 +164,14 @@ public partial class SlotMachineUI : CanvasLayer
         await ToSignal(GetTree().CreateTimer(CloseDelay), SceneTreeTimer.SignalName.Timeout);
         panel.Visible = false;
         GameManager.Instance.SetPaused(false);
+    }
+
+    /// <summary>Jackpot: clarão dourado e confete saindo dos 3 rolos.</summary>
+    void JackpotFx()
+    {
+        GameFeel.Flash(this, GameFeel.Gold);
+        for (int i = 0; i < 3; i++)
+            GameFeel.Burst(this, buttons[i].GetGlobalRect().GetCenter(), i == 1 ? GameFeel.Gold : GameFeel.Neon, 40, 520f, 1.1f, 16f);
     }
 
     WeaponData RandomWeapon() => WeaponPool[RunState.Rng.Next(WeaponPool.Count)];

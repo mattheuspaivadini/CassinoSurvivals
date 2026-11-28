@@ -64,6 +64,7 @@ public partial class PauseMenu : CanvasLayer
         AddVolumeRow(box, "Geral", "Master");
         AddVolumeRow(box, "Música", AudioManager.MusicBus);
         AddVolumeRow(box, "Efeitos", AudioManager.SfxBus);
+        AddShakeToggle(box);
 
         box.AddChild(MakeButton("CONTINUAR  (ESC)", Close));
         box.AddChild(MakeButton("REINICIAR", () =>
@@ -78,6 +79,15 @@ public partial class PauseMenu : CanvasLayer
             root.Visible = false;
             GameManager.Instance.GoToMainMenu();
         }));
+    }
+
+    /// <summary>Liga/desliga a tremida de tela (salvo em user://settings.cfg). Também usado no Menu Principal.</summary>
+    public static void AddShakeToggle(Container parent)
+    {
+        var toggle = new CheckButton { Text = "Tremer a tela", ButtonPressed = GameFeel.ShakeEnabled, FocusMode = Control.FocusModeEnum.None };
+        toggle.AddThemeFontSizeOverride("font_size", 30);
+        toggle.Toggled += on => GameFeel.ShakeEnabled = on;
+        parent.AddChild(toggle);
     }
 
     /// <summary>Linha de volume (rótulo, slider 0–100% e valor). Também usada nas Configurações do Menu Principal.</summary>

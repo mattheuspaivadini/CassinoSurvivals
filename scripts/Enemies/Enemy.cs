@@ -350,6 +350,14 @@ public partial class Enemy : RigidBody2D
         if (Data.SplitEnemy != null && Data.SplitMaxCount > 0) SpawnTrocoMinions();
 
         bool boss = Data.IsBoss;
+        // Game feel (#31): chefe explode em ouro e treme a tela; Dourado solta faíscas douradas.
+        if (boss)
+        {
+            GameFeel.WorldBurst(this, GlobalPosition, GameFeel.Gold, 90, 700f);
+            GameFeel.WorldBurst(this, GlobalPosition, GameFeel.Neon, 60, 500f);
+            GameFeel.Shake(22f, 0.6f);
+        }
+        else if (Data.IsGolden && killedByPlayer) GameFeel.WorldBurst(this, GlobalPosition, GameFeel.Gold, 26, 320f);
         bool hasDeathAnim = sprite?.SpriteFrames != null && sprite.SpriteFrames.HasAnimation("death");
         EnemySpawner.Instance?.Despawn(this, freeNode: !hasDeathAnim);
 
