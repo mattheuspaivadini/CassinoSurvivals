@@ -56,6 +56,8 @@ public partial class HordeDirector : Node
     public int Round { get; private set; }
     /// <summary>Velocidade dos inimigos da fase atual (DifficultyRules); lida pelo Enemy no spawn.</summary>
     public float EnemySpeedMultiplier { get; private set; } = 1f;
+    /// <summary>Liberados para as portas mas ainda não nascidos (contam no teto de vivos).</summary>
+    int queued;
     public int Rounds => Mathf.Max(1, EndStage - StartStage + 1);
     public bool IsSingleStage => StartStage >= EndStage;
     public StageSpec CurrentStageSpec => stageSpec;
@@ -173,7 +175,12 @@ public partial class HordeDirector : Node
 
             case Phase.Horde:
                 timer += dt;
-                while (next < plan.Count && plan[next].Time <= timer) Release(plan[next++]);
+                // Teto de vivos (DifficultyRules.MaxAlive): o atraso acumula e a fila sai assim que abrir vaga.
+                while (next < plan.Count && plan[next].Time <= timer && EnemySpawner.Instance.Active.Count + queued < DifficultyRules.MaxAlive)
+                {
+                    queued++;
+                    Release(plan[next++]);
+                }
                 break;
 
             case Phase.BossIncoming:
@@ -194,7 +201,7 @@ public partial class HordeDirector : Node
             Arena.Instance.ApplyActTheme(stageSpec.Act);
 
         plan = HordePlan.Build(spec.Count, spec.Duration, doors.Count, spec.Elites, LowerDoors.ToList(), LowerDoorDelay, rng);
-        next = roundSpawned = roundKilled = extraSpawned = 0;
+        next = roundSpawned = roundKilled = extraSpawned = queued = 0;
         roundTotal = spec.Count + (spec.Boss ? 1 : 0);
         timer = 0f;
         phase = Phase.Horde;
@@ -212,6 +219,7 @@ public partial class HordeDirector : Node
             var enemy = EnemySpawner.Instance.Spawn(type, door.SpawnPosition, spec.HpMultiplier, damageMultiplier: spec.DamageMultiplier);
             enemy.SetEntry(door.EntryPosition);
             roundSpawned++;
+            queued = Mathf.Max(0, queued - 1);
         });
     }
 

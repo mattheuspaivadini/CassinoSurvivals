@@ -38,7 +38,13 @@ public static class SelfCheck
 
         var baseF1 = RoundRules.For(1);
         var f1 = DifficultyRules.Apply(baseF1);
-        Check(f1.Count > baseF1.Count && f1.Count == DifficultyRules.MobCount(baseF1.Count), "mais monstros por horda");
+        Check(f1.Count >= 100, $"F1 com ~100 monstros ({f1.Count})");
+        var f14 = DifficultyRules.Apply(RoundRules.For(14));
+        Check(f14.Count >= 280, $"F14 com ~300 monstros ({f14.Count})");
+        Check(DifficultyRules.MaxAlive >= 100 && DifficultyRules.MaxAlive < f14.Count, "teto de vivos segura a horda grande sem cortar o total");
+        for (int st = 2; st <= 14; st++)
+            if (!CampaignRules.IsBossStage(st) && !CampaignRules.IsBossStage(st - 1))
+                Check(DifficultyRules.Apply(RoundRules.For(st)).Count >= DifficultyRules.Apply(RoundRules.For(st - 1)).Count, $"F{st} não tem menos monstros que a anterior");
         Check(f1.HpMultiplier > baseF1.HpMultiplier && f1.DamageMultiplier > baseF1.DamageMultiplier, "HP e dano acima da curva oficial");
         var baseF10 = RoundRules.For(10);
         var f10 = DifficultyRules.Apply(baseF10);
