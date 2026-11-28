@@ -626,6 +626,13 @@ public partial class HUD : CanvasLayer
 
     void RefreshTimer()
     {
+        var gm = GameManager.Instance;
+        if (gm != null && gm.EnemySandboxActive)
+        {
+            int alive = EnemySpawner.Instance?.Active.Count ?? 0;
+            timerText.Text = $"SANDBOX / DEBUG   |   INIMIGOS: {alive}   |   [F1] PAINEL";
+            return;
+        }
         if (Horde != null)
         {
             if (Horde.IsCleared) timerText.Text = "SAÍDA ABERTA! SIGA PARA A PORTA DE CIMA";
@@ -641,7 +648,6 @@ public partial class HUD : CanvasLayer
                 timerText.Text = $"{Horde.StageLabel}   |   FASE {Horde.Round}/{Horde.EndStage}   |   INIMIGOS: {Horde.Remaining}";
             return;
         }
-        var gm = GameManager.Instance;
         if (EnemySpawner.Instance == null)
         {
             timerText.Text = gm.CampaignActive && gm.CurrentStage == 14
