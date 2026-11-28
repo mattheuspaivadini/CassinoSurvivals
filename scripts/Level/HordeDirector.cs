@@ -54,6 +54,11 @@ public partial class HordeDirector : Node
     [Signal] public delegate void ClearedEventHandler();
 
     public int Round { get; private set; }
+    /// <summary>Velocidade dos inimigos da fase atual (DifficultyRules); lida pelo Enemy no spawn.</summary>
+    public float EnemySpeedMultiplier { get; private set; } = 1f;
+    /// <summary>Liberados para as portas mas ainda não nascidos (contam no teto de vivos).</summary>
+    int queued;
+    float hordeClock;
     public int Rounds => Mathf.Max(1, EndStage - StartStage + 1);
     public bool IsSingleStage => StartStage >= EndStage;
     public StageSpec CurrentStageSpec => stageSpec;
@@ -172,14 +177,32 @@ public partial class HordeDirector : Node
                 break;
 
             case Phase.Horde:
-                timer += dt;
-                while (next < plan.Count && plan[next].Time <= timer) Release(plan[next++]);
+                ReleaseDue(dt);
                 break;
 
             case Phase.BossIncoming:
+                ReleaseDue(dt); // a horda continua chegando junto com o boss
                 timer -= dt;
                 if (timer <= 0f) SpawnBoss();
                 break;
+
+            case Phase.BossFight:
+                ReleaseDue(dt);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Solta a horda conforme o plano. Teto de vivos (DifficultyRules.MaxAlive): o atraso acumula e a
+    /// fila sai assim que abrir vaga. Continua durante a luta contra o boss.
+    /// </summary>
+    void ReleaseDue(float dt)
+    {
+        hordeClock += dt;
+        while (next < plan.Count && plan[next].Time <= hordeClock && EnemySpawner.Instance.Active.Count + queued < DifficultyRules.MaxAlive)
+        {
+            queued++;
+            Release(plan[next++]);
         }
     }
 
@@ -187,13 +210,15 @@ public partial class HordeDirector : Node
     {
         Round = round;
         stageSpec = CampaignRules.ForStage(round);
-        spec = RoundRules.For(round);
+        spec = DifficultyRules.Apply(RoundRules.For(round));
+        EnemySpeedMultiplier = DifficultyRules.SpeedScale(round);
         StageLabel = stageSpec.StageLabel;
         if (Arena.Instance != null && (Arena.Instance.IsBossArena || Arena.Instance.ActNumber != stageSpec.Act))
             Arena.Instance.ApplyActTheme(stageSpec.Act);
 
         plan = HordePlan.Build(spec.Count, spec.Duration, doors.Count, spec.Elites, LowerDoors.ToList(), LowerDoorDelay, rng);
-        next = roundSpawned = roundKilled = extraSpawned = 0;
+        next = roundSpawned = roundKilled = extraSpawned = queued = 0;
+        hordeClock = 0f;
         roundTotal = spec.Count + (spec.Boss ? 1 : 0);
         timer = 0f;
         phase = Phase.Horde;
@@ -211,6 +236,7 @@ public partial class HordeDirector : Node
             var enemy = EnemySpawner.Instance.Spawn(type, door.SpawnPosition, spec.HpMultiplier, damageMultiplier: spec.DamageMultiplier);
             enemy.SetEntry(door.EntryPosition);
             roundSpawned++;
+            queued = Mathf.Max(0, queued - 1);
         });
     }
 
@@ -275,7 +301,7 @@ public partial class HordeDirector : Node
 
     void OnExtraEnemySpawned()
     {
-        if (phase != Phase.Horde && phase != Phase.BossFight) return;
+        if (phase != Phase.Horde && phase != Phase.BossIncoming && phase != Phase.BossFight) return;
         roundTotal++;
         roundSpawned++;
         if (phase == Phase.Horde) extraSpawned++;
@@ -283,10 +309,11 @@ public partial class HordeDirector : Node
 
     void OnEnemyRemoved()
     {
-        if (phase != Phase.Horde && phase != Phase.BossFight) return;
+        if (phase != Phase.Horde && phase != Phase.BossIncoming && phase != Phase.BossFight) return;
         roundKilled++;
 
-        if (phase == Phase.Horde && spec.Boss && roundSpawned >= spec.Count + extraSpawned && roundKilled >= spec.Count + extraSpawned)
+        // O boss entra no meio da horda (DifficultyRules.BossEntryFraction) e luta junto com o resto dela.
+        if (phase == Phase.Horde && spec.Boss && roundKilled >= DifficultyRules.BossEntryKills(spec.Count))
         {
             phase = Phase.BossIncoming;
             timer = BossDelay;
