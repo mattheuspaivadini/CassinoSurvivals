@@ -146,7 +146,7 @@ public abstract class BossBrain : EnemyBrain
     // ---------- Utilitários dos ataques ----------
 
     protected Vector2 PlayerPos => Player != null ? Player.GlobalPosition : Self.GlobalPosition;
-    protected float Speed => Data.MoveSpeed * (Fury ? 1.3f : 1f);
+    protected float Speed => Self.MoveSpeed * (Fury ? 1.3f : 1f);
     protected float Hit(float scale) => Data.ContactDamage * Self.DamageMultiplier * scale;
 
     protected Vector2 ArenaCenter

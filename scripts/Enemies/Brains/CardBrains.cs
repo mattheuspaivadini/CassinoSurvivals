@@ -25,13 +25,13 @@ public class EspadasBrain : EnemyBrain
         {
             case State.Aim:
                 SnapVelocity = true;
-                if (timer <= 0f) { state = State.Charge; timer = ChargeDistance / (Data.MoveSpeed * ChargeMultiplier); ContactScale = 1.5f; }
+                if (timer <= 0f) { state = State.Charge; timer = ChargeDistance / (Self.MoveSpeed * ChargeMultiplier); ContactScale = 1.5f; }
                 return Vector2.Zero;
 
             case State.Charge:
                 if (timer <= 0f || FreeDistance(Self.GlobalPosition, chargeDir, Self.Radius + 0.3f * Units.Px) < 1f)
                 { state = State.Recover; timer = Recover; ContactScale = 1f; }
-                return chargeDir * Data.MoveSpeed * ChargeMultiplier * Units.Px;
+                return chargeDir * Self.MoveSpeed * ChargeMultiplier * Units.Px;
 
             case State.Recover:
                 if (timer <= 0f) { state = State.Chase; SnapVelocity = false; cooldown = 1.2f; }
@@ -49,7 +49,7 @@ public class EspadasBrain : EnemyBrain
             Telegraph.Line(Self, Self.GlobalPosition, Self.GlobalPosition + chargeDir * len, Self.Radius, AimTime, null, () => Self.IsDead);
             return Vector2.Zero;
         }
-        return Self.SteerTo(playerPos, Data.MoveSpeed);
+        return Self.SteerTo(playerPos, Self.MoveSpeed);
     }
 }
 
@@ -79,7 +79,7 @@ public class OurosBrain : EnemyBrain
                 texture: Data.ProjectileSprite, region: Data.ProjectileRegion);
             Self.PlayAttack();
         }
-        return KeepDistance(toPlayer, 4.5f, 7f, Data.MoveSpeed, ref strafe);
+        return KeepDistance(toPlayer, 4.5f, 7f, Self.MoveSpeed, ref strafe);
     }
 }
 
@@ -107,7 +107,7 @@ public class CopasBrain : EnemyBrain
             timer = SummonInterval;
             Summon();
         }
-        return KeepDistance(toPlayer, 5.5f, 8f, Data.MoveSpeed, ref strafe);
+        return KeepDistance(toPlayer, 5.5f, 8f, Self.MoveSpeed, ref strafe);
     }
 
     void Summon()

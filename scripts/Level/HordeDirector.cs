@@ -54,6 +54,8 @@ public partial class HordeDirector : Node
     [Signal] public delegate void ClearedEventHandler();
 
     public int Round { get; private set; }
+    /// <summary>Velocidade dos inimigos da fase atual (DifficultyRules); lida pelo Enemy no spawn.</summary>
+    public float EnemySpeedMultiplier { get; private set; } = 1f;
     public int Rounds => Mathf.Max(1, EndStage - StartStage + 1);
     public bool IsSingleStage => StartStage >= EndStage;
     public StageSpec CurrentStageSpec => stageSpec;
@@ -185,7 +187,8 @@ public partial class HordeDirector : Node
     {
         Round = round;
         stageSpec = CampaignRules.ForStage(round);
-        spec = RoundRules.For(round);
+        spec = DifficultyRules.Apply(RoundRules.For(round));
+        EnemySpeedMultiplier = DifficultyRules.SpeedScale(round);
         StageLabel = stageSpec.StageLabel;
         if (Arena.Instance != null && (Arena.Instance.IsBossArena || Arena.Instance.ActNumber != stageSpec.Act))
             Arena.Instance.ApplyActTheme(stageSpec.Act);
