@@ -15,9 +15,16 @@ public partial class HUD : CanvasLayer
 
     readonly StringBuilder sb = new StringBuilder(512);
     ColorRect hpFill; // pivot X=0; a largura é controlada por Scale.X
+    TextureProgressBar playerHpBar;
+    Texture2D playerHpFillTex, playerHpFlashTex;
+    float playerHpFlashTimer, lastPlayerHp = -1f;
     Label hpText, scoreText, chipsText, dollarsText, timerText, bannerText;
     RichTextLabel weaponsText;
     float refreshTimer, bannerTimer;
+    const float PlayerBarScale = 4f;
+    const float PlayerFillOffsetX = 9f;
+    const float PlayerFillOffsetY = 26f;
+    const float PlayerHpFlashDuration = 0.14f;
     sealed class BossBarView
     {
         public Control Root;
@@ -66,9 +73,65 @@ public partial class HUD : CanvasLayer
 
         UpdateScore(gm.Score);
         UpdateChips(gm.Chips);
+        BuildPlayerHpBar();
         UpdateHp(PlayerController.Instance.CurrentHp, PlayerController.Instance.MaxHp);
         bannerText.Visible = false;
         BuildBossBar();
+    }
+
+    void BuildPlayerHpBar()
+    {
+        var frameTex = LoadTexture("res://assets/sprites/player_vbar_frame_empty.png");
+        playerHpFillTex = LoadTexture("res://assets/sprites/player_vbar_fill.png");
+        playerHpFlashTex = LoadTexture("res://assets/sprites/player_vbar_fill_flash.png");
+        if (frameTex == null || playerHpFillTex == null) return;
+
+        hpFill.Visible = false;
+        GetNodeOrNull<CanvasItem>("../Canvas_Static/HpBarBG")?.Hide();
+        weaponsText.OffsetTop = 30f;
+
+        float w = frameTex.GetWidth() * PlayerBarScale;
+        float h = frameTex.GetHeight() * PlayerBarScale;
+        var root = new Control
+        {
+            AnchorLeft = 0f, AnchorRight = 0f,
+            AnchorTop = 1f, AnchorBottom = 1f,
+            OffsetLeft = 28f, OffsetRight = 28f + w,
+            OffsetTop = -(144f + h), OffsetBottom = -144f,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        root.AddChild(new TextureRect
+        {
+            Texture = frameTex,
+            TextureFilter = Control.TextureFilterEnum.Nearest,
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            Size = new Vector2(w, h),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        });
+        playerHpBar = new TextureProgressBar
+        {
+            TextureProgress = playerHpFillTex,
+            TextureFilter = Control.TextureFilterEnum.Nearest,
+            NinePatchStretch = false,
+            FillMode = (int)TextureProgressBar.FillModeEnum.BottomToTop,
+            MinValue = 0,
+            MaxValue = 1,
+            Step = 0.001,
+            Value = 1,
+            Position = new Vector2(PlayerFillOffsetX * PlayerBarScale, PlayerFillOffsetY * PlayerBarScale),
+            Size = new Vector2(playerHpFillTex.GetWidth(), playerHpFillTex.GetHeight()),
+            Scale = Vector2.One * PlayerBarScale,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        root.AddChild(playerHpBar);
+        AddChild(root);
+
+        hpText.AnchorLeft = 0f; hpText.AnchorRight = 0f;
+        hpText.AnchorTop = 1f; hpText.AnchorBottom = 1f;
+        hpText.OffsetLeft = 20f; hpText.OffsetRight = 140f;
+        hpText.OffsetTop = -142f; hpText.OffsetBottom = -116f;
+        hpText.AddThemeFontSizeOverride("font_size", 20);
     }
 
     static Texture2D LoadTexture(string resPath)
@@ -208,6 +271,13 @@ public partial class HUD : CanvasLayer
             if (bannerTimer <= 0f) bannerText.Visible = false;
         }
 
+        if (playerHpFlashTimer > 0f)
+        {
+            playerHpFlashTimer -= (float)delta;
+            if (playerHpFlashTimer <= 0f && playerHpBar != null && playerHpFillTex != null)
+                playerHpBar.TextureProgress = playerHpFillTex;
+        }
+
         RefreshBossBar();
 
         refreshTimer -= (float)delta;
@@ -295,7 +365,21 @@ public partial class HUD : CanvasLayer
 
     void UpdateHp(float hp, float max)
     {
-        hpFill.Scale = new Vector2(Mathf.Clamp(hp / max, 0f, 1f), 1f);
+        float frac = max > 0f ? Mathf.Clamp(hp / max, 0f, 1f) : 0f;
+        if (playerHpBar != null)
+        {
+            playerHpBar.Value = frac;
+            if (lastPlayerHp >= 0f && hp < lastPlayerHp && playerHpFlashTex != null)
+            {
+                playerHpBar.TextureProgress = playerHpFlashTex;
+                playerHpFlashTimer = PlayerHpFlashDuration;
+            }
+            lastPlayerHp = hp;
+        }
+        else
+        {
+            hpFill.Scale = new Vector2(frac, 1f);
+        }
         hpText.Text = $"{Mathf.CeilToInt(hp)} / {Mathf.CeilToInt(max)}";
     }
 
