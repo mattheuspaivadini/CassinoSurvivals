@@ -143,6 +143,7 @@ public partial class PlayerController : RigidBody2D
 			rollCooldownTimer = RollCooldown * RunState.DashCooldownMultiplier;
 			LinearVelocity = rollDirection * RollSpeed * Units.Px;
 			PlayAnim("roll_" + DirName(rollDirection));
+			AudioManager.Instance?.PlayDodgeRoll();
 			return;
 		}
 

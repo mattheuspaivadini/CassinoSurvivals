@@ -47,6 +47,7 @@ public static class RunState
     /// <summary>Efeito completo de beber (Bar ou drop): cura imediata ou inicia o buff.</summary>
     public static void Consume(DrinkType t)
     {
+        AudioManager.Instance?.PlayDrink();
         if (t == DrinkType.Heal)
         {
             var p = PlayerController.Instance;
@@ -54,7 +55,6 @@ public static class RunState
             return;
         }
         StartDrink(t);
-        AudioManager.Instance?.PlayPickup();
     }
 
     /// <summary>Chamado pelo GameManager só com o jogo rodando (pausa e modais não gastam o buff).</summary>

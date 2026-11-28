@@ -10,6 +10,7 @@ public static class SelfCheck
         var reels = new[] { a, a, b };
         Check(SlotRules.CountMatches(reels, a) == 2 && SlotRules.CountMatches(reels, b) == 1, "CountMatches");
         Check(SlotRules.LevelsFor(1) == 1 && SlotRules.LevelsFor(2) == 2 && SlotRules.LevelsFor(3) == 3, "LevelsFor 1x/2x/3x = +1/+2/+3");
+        Check(!SlotRules.IsJackpot(reels) && !SlotRules.IsJackpot(new[] { b, a, a }) && SlotRules.IsJackpot(new[] { a, a, a }), "IsJackpot: só 3 iguais");
 
         var w = new WeaponInstance(a, 1); // pente padrão = 8
         for (int i = 0; i < 8; i++) Check(w.Tick(1f, true), "deveria disparar com balas no pente");

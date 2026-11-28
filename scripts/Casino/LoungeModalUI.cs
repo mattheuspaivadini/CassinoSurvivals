@@ -43,6 +43,7 @@ public partial class LoungeModalUI : CanvasLayer
     public override void _ExitTree()
     {
         if (instance == this) instance = null;
+        AudioManager.Instance?.StopSlotSpin(); // o loop é do autoload e sobreviveria à cena
     }
 
     void Build()
@@ -222,7 +223,7 @@ public partial class LoungeModalUI : CanvasLayer
         busy = true;
         actionButton.Disabled = closeButton.Disabled = true;
         result.Text = "Girando...";
-        AudioManager.Instance?.PlaySlotSpin();
+        AudioManager.Instance?.StartSlotSpin();
 
         // Sorte (Tabela B) decide o valor antes da animação.
         var roll = UpgradeRoll.Roll(MetaProgress.LuckLevel, RunState.Rng);
@@ -235,6 +236,7 @@ public partial class LoungeModalUI : CanvasLayer
         }
 
         ShowUpgradeReels(roll.Target, roll.Stat, roll.Percent);
+        AudioManager.Instance?.StopSlotSpin();
         RunState.ApplyUpgrade(roll);
         if (roll.Percent >= 25) AudioManager.Instance?.PlayJackpot();
         else AudioManager.Instance?.PlaySlotWin();
@@ -275,7 +277,7 @@ public partial class LoungeModalUI : CanvasLayer
         actionButton.Visible = false;
         closeButton.Visible = false; // já pagou: precisa escolher uma
         result.Text = "A roleta está girando...";
-        AudioManager.Instance?.PlaySlotSpin();
+        AudioManager.Instance?.PlayRouletteSpin();
 
         offered.Clear();
         offered.AddRange(PassiveCatalog.Draw(RunState.Passives, 2, RunState.Rng));

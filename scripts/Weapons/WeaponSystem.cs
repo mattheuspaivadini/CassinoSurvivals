@@ -25,6 +25,7 @@ public partial class WeaponSystem : Node
     const string LightShotPath = "res://assets/GunsAssetPack/sounds/tiro_metralhadora.wav";
     const string HeavyShotPath = "res://assets/GunsAssetPack/sounds/tiro_pistola.wav";
     const int FirePlayerCount = 4;
+    const float ReloadSoundInterval = 2f;
 
     readonly Dictionary<WeaponData, AtlasTexture> projectileTextures = new Dictionary<WeaponData, AtlasTexture>();
     readonly List<AudioStreamPlayer> firePlayers = new List<AudioStreamPlayer>(FirePlayerCount);
@@ -235,12 +236,21 @@ public partial class WeaponSystem : Node
         // Tick continua avançando o cooldown/recarga mesmo sem gatilho.
         var w = Weapons[Mathf.Clamp(Selected, 0, Weapons.Count - 1)];
         bool trigger = AimSettings.Auto ? TryGetAutoAim(out _) : Input.IsMouseButtonPressed(MouseButton.Left);
-        if (!w.Tick((float)delta, trigger)) return;
+        float reloadBefore = ReloadElapsed(w);
+        bool fired = w.Tick((float)delta, trigger);
+        // Recarga longa: o som repete a cada intervalo completado enquanto ela durar.
+        if (w.IsReloading && Mathf.FloorToInt(ReloadElapsed(w) / ReloadSoundInterval) > Mathf.FloorToInt(reloadBefore / ReloadSoundInterval))
+            AudioManager.Instance?.PlayWeaponReload();
+        if (!fired) return;
 
         // Disparo confirmado: munição consumida e projéteis instanciados.
         Fire(w);
+        if (w.IsReloading) AudioManager.Instance?.PlayWeaponReload(); // o último tiro do pente inicia a recarga
         EmitSignal(SignalName.WeaponFired);
     }
+
+    static float ReloadElapsed(WeaponInstance w) =>
+        w.IsReloading ? w.ReloadProgress * w.Data.ReloadTime(w.Level) : 0f;
 
     Enemy autoTarget;
     ulong autoTargetFrame = ulong.MaxValue;
