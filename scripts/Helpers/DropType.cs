@@ -1,1 +1,1 @@
-public enum DropType { Chip, Heal, Points }
+public enum DropType { Chip, Heal, Points, Drink }
