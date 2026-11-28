@@ -236,6 +236,7 @@ public partial class EnemyData : Resource
         g.EnemyName = source.EnemyName + " (Dourado)";
         g.MaxHp = source.MaxHp * GoldenHpMultiplier;
         g.ContactDamage = source.ContactDamage * GoldenDamageMultiplier;
+        g.ProjectileDamage = source.ProjectileDamage * GoldenDamageMultiplier;
         g.ExplosionDamage = source.ExplosionDamage * GoldenDamageMultiplier;
         g.PuddleDamagePerSecond = source.PuddleDamagePerSecond * GoldenDamageMultiplier;
         g.PuddleDuration = source.GoldenPuddleDuration > 0f ? source.GoldenPuddleDuration : 6f;

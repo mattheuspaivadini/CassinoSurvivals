@@ -77,7 +77,7 @@ public partial class HordeDirector : Node
     StageSpec stageSpec;
     Phase phase = Phase.Break;
     int next, roundTotal, roundSpawned, roundKilled, extraSpawned;
-    float timer;
+    float timer, commonDollarRate, commonDollarAcc, stageFloorDropScale = 1f;
 
     public override void _Ready()
     {
@@ -231,6 +231,10 @@ public partial class HordeDirector : Node
         plan = HordePlan.Build(spec.Count, spec.Duration, doors.Count, spec.Elites, LowerDoors.ToList(), LowerDoorDelay, rng);
         next = roundSpawned = roundKilled = extraSpawned = queued = 0;
         hordeClock = 0f;
+        int commonCount = Mathf.Max(1, spec.Count - spec.Elites);
+        commonDollarRate = (float)DifficultyRules.CommonDollarBudget(stageSpec) / commonCount;
+        commonDollarAcc = 0f;
+        stageFloorDropScale = DifficultyRules.FloorDropScale(stageSpec, spec.Count);
         roundTotal = spec.Count + (spec.Boss ? 1 : 0);
         timer = 0f;
         phase = Phase.Horde;
@@ -242,7 +246,28 @@ public partial class HordeDirector : Node
     void Release(HordeEntry entry)
     {
         var baseType = ResolveEnemyDataForStage(stageSpec);
-        var type = entry.Elite ? EnemyData.CreateGoldenVariant(baseType) : baseType;
+        EnemyData type;
+        if (entry.Elite)
+        {
+            type = EnemyData.CreateGoldenVariant(baseType);
+        }
+        else
+        {
+            type = baseType.CloneWithSharedFrames();
+            commonDollarAcc += commonDollarRate;
+            if (commonDollarAcc >= 0.9999f)
+            {
+                commonDollarAcc -= 1f;
+                type.Dollars = 1;
+            }
+            else
+            {
+                type.Dollars = 0;
+            }
+            type.HealDropChance *= stageFloorDropScale;
+            type.DrinkDropChance *= stageFloorDropScale;
+            type.PointsDropChance *= stageFloorDropScale;
+        }
         doors[entry.Door].Enqueue(door =>
         {
             var enemy = EnemySpawner.Instance.Spawn(type, door.SpawnPosition, spec.HpMultiplier, damageMultiplier: spec.DamageMultiplier);

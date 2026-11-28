@@ -46,6 +46,13 @@ public static class DifficultyRules
 
     public static int BossEntryKills(int count) => Mathf.CeilToInt(count * BossEntryFraction);
 
+    /// <summary>Orçamento oficial de $ vindos de inimigos comuns na fase, preservando a Loja Externa.</summary>
+    public static int CommonDollarBudget(StageSpec stage) => Mathf.Max(0, stage.TotalMobs - stage.GoldenCount);
+
+    /// <summary>Escala de drops no chão (cura/bebida/pontos) proporcional à horda maior da fase.</summary>
+    public static float FloorDropScale(StageSpec stage, int actualMobCount) =>
+        Mathf.Clamp((float)stage.TotalMobs / Mathf.Max(1, actualMobCount), 0.1f, 1f) * 0.75f;
+
     /// <summary>Aplica a camada de dificuldade a uma fase da curva oficial.</summary>
     public static RoundSpec Apply(RoundSpec s) => new RoundSpec(
         s.Round, s.Act, s.StageInAct,

@@ -99,6 +99,7 @@ public partial class Enemy : RigidBody2D
         sprite.Offset = Vector2.Zero;
         Brain = EnemyBrain.Create(data.Behavior);
         Brain?.Attach(this);
+        QueueRedraw();
     }
 
     void PlayAnim(string name)
@@ -285,6 +286,12 @@ public partial class Enemy : RigidBody2D
 
     public override void _Draw()
     {
+        if (!dead && Data != null && Data.IsGolden)
+        {
+            float auraR = Radius * 1.25f;
+            DrawCircle(Vector2.Zero, auraR, new Color(1f, 0.84f, 0.18f, 0.16f));
+            DrawArc(Vector2.Zero, auraR, 0f, Mathf.Tau, 28, new Color(1f, 0.88f, 0.28f, 0.85f), 2.5f);
+        }
         if (!dead) Brain?.Draw(this);
         if (!fusing || dead) return;
         float total = Mathf.Max(0.05f, Data.ExplosionFuse);
