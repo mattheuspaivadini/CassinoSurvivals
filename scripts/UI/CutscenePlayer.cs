@@ -22,6 +22,7 @@ public partial class CutscenePlayer : Control
         ProcessMode = ProcessModeEnum.Always;
         GameManager.Instance?.SetPaused(true);
         SetAnchorsPreset(LayoutPreset.FullRect);
+        MouseFilter = MouseFilterEnum.Ignore; // o padrão (Stop) consome o clique antes do _UnhandledInput
         AddChild(new ColorRect { Color = new Color(0.04f, 0.02f, 0.06f), AnchorRight = 1f, AnchorBottom = 1f, MouseFilter = MouseFilterEnum.Ignore });
 
         page = new TextureRect
