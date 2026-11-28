@@ -45,7 +45,7 @@ size = Vector2(60.0, 3720.0)
 
 [node name="Main" type="Node2D" node_paths=PackedStringArray("EnemySpawner", "WeaponSystem")]
 script = ExtResource("26_scr")
-DebugWeaponSandbox = true
+DebugWeaponSandbox = false
 EnemySpawner = NodePath("Managers/EnemySpawner")
 WeaponSystem = NodePath("Player/WeaponSystem")
 
