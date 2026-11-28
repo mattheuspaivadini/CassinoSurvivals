@@ -51,8 +51,8 @@ public partial class PauseMenu : CanvasLayer
         box.SetAnchorsPreset(Control.LayoutPreset.Center);
         box.OffsetLeft = -330f;
         box.OffsetRight = 330f;
-        box.OffsetTop = -260f;
-        box.OffsetBottom = 260f;
+        box.OffsetTop = -300f;
+        box.OffsetBottom = 300f;
         box.AddThemeConstantOverride("separation", 18);
         root.AddChild(box);
 
@@ -72,9 +72,16 @@ public partial class PauseMenu : CanvasLayer
             root.Visible = false;
             GameManager.Instance.Restart();
         }));
+        box.AddChild(MakeButton("MENU PRINCIPAL  (abandona a run)", () =>
+        {
+            open = false;
+            root.Visible = false;
+            GameManager.Instance.GoToMainMenu();
+        }));
     }
 
-    static void AddVolumeRow(Container parent, string label, string bus)
+    /// <summary>Linha de volume (rótulo, slider 0–100% e valor). Também usada nas Configurações do Menu Principal.</summary>
+    public static void AddVolumeRow(Container parent, string label, string bus)
     {
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", 16);

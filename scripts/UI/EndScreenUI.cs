@@ -10,8 +10,8 @@ public partial class EndScreenUI : CanvasLayer
     [Export] public bool ShowShop { get; set; } = true;
 
     Control panel;
-    Label title, stats, balance;
-    readonly Button[] buyButtons = new Button[MetaProgress.Names.Length];
+    Label title, stats;
+    ShopPanel shop;
 
     public override void _Ready()
     {
@@ -21,8 +21,28 @@ public partial class EndScreenUI : CanvasLayer
         stats = GetNode<Label>("Panel/Stats");
         panel.Visible = false;
         GameManager.Instance.StateChanged += OnStateChanged;
-        GetNode<Button>("Panel/Restart").Pressed += GameManager.Instance.Restart;
+        var restart = GetNode<Button>("Panel/Restart");
+        AddMenuButton(restart); // antes de conectar: a cópia não herda o Pressed de reiniciar
+        restart.Pressed += GameManager.Instance.Restart;
         if (ShowShop) BuildShop();
+    }
+
+    /// <summary>Divide a linha do botão de reiniciar: JOGAR DE NOVO à esquerda, MENU PRINCIPAL à direita.</summary>
+    void AddMenuButton(Button restart)
+    {
+        float left = restart.OffsetLeft, right = restart.OffsetRight;
+        restart.OffsetRight = (left + right) / 2f - 10f;
+        restart.OffsetLeft = restart.OffsetRight - (right - left);
+        var menu = (Button)restart.Duplicate((int)(DuplicateFlags.Groups | DuplicateFlags.Scripts | DuplicateFlags.UseInstantiation));
+        menu.Name = "MainMenu";
+        menu.Text = "MENU PRINCIPAL";
+        // Nas arenas o texto fica num Label filho (o botão é só a área clicável sobre um ColorRect).
+        if (menu.GetNodeOrNull<Label>("Label") is Label label) label.Text = "MENU PRINCIPAL";
+        if (menu.GetNodeOrNull<ColorRect>("Color") is ColorRect color) color.Color = new Color(0.35f, 0.2f, 0.55f);
+        menu.OffsetLeft = (left + right) / 2f + 10f;
+        menu.OffsetRight = menu.OffsetLeft + (right - left);
+        menu.Pressed += GameManager.Instance.GoToMainMenu;
+        panel.AddChild(menu);
     }
 
     // GameManager é autoload e sobrevive ao reload: desconecta para não chamar um nó liberado.
@@ -54,44 +74,13 @@ public partial class EndScreenUI : CanvasLayer
         stats.OffsetTop -= 300f;
         stats.OffsetBottom -= 270f;
 
-        var box = new VBoxContainer
+        shop = new ShopPanel
         {
             AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
             OffsetLeft = -520f, OffsetRight = 520f, OffsetTop = -190f, OffsetBottom = 100f,
         };
-        box.AddThemeConstantOverride("separation", 6);
-        panel.AddChild(box);
-
-        balance = new Label { HorizontalAlignment = HorizontalAlignment.Center };
-        balance.AddThemeFontSizeOverride("font_size", 34);
-        balance.AddThemeColorOverride("font_color", new Color(0.45f, 1f, 0.5f));
-        box.AddChild(balance);
-
-        for (int i = 0; i < buyButtons.Length; i++)
-        {
-            int index = i;
-            var b = new Button { CustomMinimumSize = new Vector2(0f, 42f), FocusMode = Control.FocusModeEnum.None };
-            b.AddThemeFontSizeOverride("font_size", 22);
-            b.Pressed += () =>
-            {
-                if (MetaProgress.TryBuy((MetaProgress.Upgrade)index)) RefreshShop();
-            };
-            box.AddChild(b);
-            buyButtons[i] = b;
-        }
+        panel.AddChild(shop);
     }
 
-    void RefreshShop()
-    {
-        if (balance == null) return;
-        balance.Text = $"LOJA  -  SALDO: ${MetaProgress.Dollars}";
-        for (int i = 0; i < buyButtons.Length; i++)
-        {
-            var u = (MetaProgress.Upgrade)i;
-            int lvl = MetaProgress.Level(u), cost = MetaProgress.NextCost(u);
-            string price = cost < 0 ? "MÁXIMO" : $"${cost}";
-            buyButtons[i].Text = $"{MetaProgress.Names[i]}  Nv {lvl}/{MetaProgress.MaxLevel}  -  {MetaProgress.Descriptions[i]}  -  {price}";
-            buyButtons[i].Disabled = cost < 0 || MetaProgress.Dollars < cost;
-        }
-    }
+    void RefreshShop() => shop?.Refresh();
 }

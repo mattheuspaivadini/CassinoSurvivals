@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Cassino Survivals"
-run/main_scene="res://scenes/Cutscene.tscn"
+run/main_scene="res://scenes/MainMenu.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 run/max_fps=60
 
