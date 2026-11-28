@@ -1,8 +1,10 @@
+using System.Collections.Generic;
 using Godot;
 
 /// <summary>
-/// Abertura em quadrinhos: mostra as páginas em sequência com o botão AVANÇAR (também Espaço/Enter/clique).
-/// Na última página o botão vira JOGAR e carrega a primeira fase.
+/// Abertura em quadrinhos: exibe todas as páginas juntas em uma única tela,
+/// revelando as seguintes progressivamente ao clicar em CONTINUAR (ou Espaço/Enter/clique).
+/// Na última página revelada o botão vira JOGAR e carrega a primeira fase.
 /// </summary>
 public partial class CutscenePlayer : Control
 {
@@ -10,7 +12,8 @@ public partial class CutscenePlayer : Control
     [Export(PropertyHint.File, "*.tscn")] public string NextScene { get; set; } = "res://scenes/levels/Fase1.tscn";
     [Export] public float FadeTime { get; set; } = 0.35f;
 
-    TextureRect page;
+    HBoxContainer strip;
+    readonly List<TextureRect> pageNodes = new();
     Button advance;
     Label counter;
     int index;
@@ -25,20 +28,35 @@ public partial class CutscenePlayer : Control
         MouseFilter = MouseFilterEnum.Ignore; // o padrão (Stop) consome o clique antes do _UnhandledInput
         AddChild(new ColorRect { Color = new Color(0.04f, 0.02f, 0.06f), AnchorRight = 1f, AnchorBottom = 1f, MouseFilter = MouseFilterEnum.Ignore });
 
-        page = new TextureRect
+        strip = new HBoxContainer
         {
             AnchorRight = 1f, AnchorBottom = 1f,
-            OffsetLeft = 40f, OffsetRight = -40f, OffsetTop = 30f, OffsetBottom = -110f,
-            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            OffsetLeft = 10f, OffsetRight = -10f, OffsetTop = 10f, OffsetBottom = -82f,
             MouseFilter = MouseFilterEnum.Ignore,
         };
-        AddChild(page);
+        strip.AddThemeConstantOverride("separation", 10);
+        AddChild(strip);
+
+        for (int i = 0; i < Pages.Count; i++)
+        {
+            var rect = new TextureRect
+            {
+                Texture = Pages[i],
+                SizeFlagsHorizontal = SizeFlags.ExpandFill,
+                SizeFlagsVertical = SizeFlags.ExpandFill,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.Scale,
+                MouseFilter = MouseFilterEnum.Ignore,
+                Modulate = i == 0 ? Colors.White : new Color(1f, 1f, 1f, 0f),
+            };
+            strip.AddChild(rect);
+            pageNodes.Add(rect);
+        }
 
         advance = new Button
         {
             AnchorLeft = 1f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
-            OffsetLeft = -300f, OffsetRight = -40f, OffsetTop = -90f, OffsetBottom = -30f,
+            OffsetLeft = -280f, OffsetRight = -16f, OffsetTop = -72f, OffsetBottom = -12f,
             FocusMode = FocusModeEnum.None,
         };
         advance.AddThemeFontSizeOverride("font_size", 30);
@@ -49,14 +67,14 @@ public partial class CutscenePlayer : Control
         counter = new Label
         {
             AnchorTop = 1f, AnchorBottom = 1f,
-            OffsetLeft = 40f, OffsetRight = 400f, OffsetTop = -80f, OffsetBottom = -40f,
+            OffsetLeft = 16f, OffsetRight = 320f, OffsetTop = -62f, OffsetBottom = -20f,
         };
         counter.AddThemeFontSizeOverride("font_size", 22);
         counter.AddThemeColorOverride("font_color", new Color(0.8f, 0.7f, 0.85f));
         AddChild(counter);
 
         if (Pages.Count == 0) { StartGame(); return; }
-        Show(0);
+        UpdateUi(0);
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -68,12 +86,11 @@ public partial class CutscenePlayer : Control
         Next();
     }
 
-    void Show(int i)
+    void UpdateUi(int i)
     {
         index = i;
-        page.Texture = Pages[i];
         bool last = i >= Pages.Count - 1;
-        advance.Text = last ? "JOGAR ▶" : "AVANÇAR ▶";
+        advance.Text = last ? "JOGAR ▶" : "CONTINUAR ▶";
         counter.Text = $"{i + 1} / {Pages.Count}";
     }
 
@@ -81,14 +98,19 @@ public partial class CutscenePlayer : Control
     {
         if (busy) return;
         busy = true;
-        var tween = CreateTween();
-        tween.TweenProperty(page, "modulate:a", 0f, FadeTime);
-        await ToSignal(tween, Tween.SignalName.Finished);
+        if (index >= Pages.Count - 1)
+        {
+            var fadeOut = CreateTween();
+            fadeOut.TweenProperty(strip, "modulate:a", 0f, FadeTime);
+            await ToSignal(fadeOut, Tween.SignalName.Finished);
+            StartGame();
+            return;
+        }
 
-        if (index >= Pages.Count - 1) { StartGame(); return; }
-        Show(index + 1);
-        tween = CreateTween();
-        tween.TweenProperty(page, "modulate:a", 1f, FadeTime);
+        int nextIndex = index + 1;
+        UpdateUi(nextIndex);
+        var tween = CreateTween();
+        tween.TweenProperty(pageNodes[nextIndex], "modulate:a", 1f, FadeTime);
         await ToSignal(tween, Tween.SignalName.Finished);
         busy = false;
     }
