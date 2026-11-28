@@ -1,8 +1,7 @@
 using Godot;
 
 /// <summary>
-/// Ponto único de áudio. Os clipes ficam vazios por enquanto: atribua os AudioStream em AudioManager.tscn
-/// e tudo passa a tocar sem mudar código (Play ignora clipes nulos).
+/// Ponto único de áudio. Os clipes são atribuídos em AudioManager.tscn; Play ignora os que ainda estão vazios.
 /// </summary>
 public partial class AudioManager : Node
 {
@@ -20,6 +19,11 @@ public partial class AudioManager : Node
     [Export] public AudioStream BossSpawn { get; set; }
     [Export] public AudioStream GameOver { get; set; }
     [Export] public AudioStream Victory { get; set; }
+    [Export] public AudioStream Explosion { get; set; }
+    [Export] public AudioStream WeaponReload { get; set; }
+    [Export] public AudioStream DodgeRoll { get; set; }
+    [Export] public AudioStream RouletteSpin { get; set; }
+    [Export] public AudioStream StageClear { get; set; }
 
     [ExportGroup("Música")]
     /// <summary>Trilha de fundo em loop. Toca desde o início e não para no reload da cena.</summary>
@@ -51,6 +55,8 @@ public partial class AudioManager : Node
         ProcessMode = ProcessModeEnum.Always; // o caça-níquel toca com o jogo pausado
         source = GetNode<AudioStreamPlayer>("Source");
         source.Bus = SfxBus;
+        // Polifônico: trocar o Stream de um player comum cortaria o efeito anterior.
+        source.Stream = new AudioStreamPolyphonic { Polyphony = 16 };
         StartMusic();
     }
 
@@ -151,8 +157,8 @@ public partial class AudioManager : Node
     void Play(AudioStream clip)
     {
         if (clip == null) return;
-        source.Stream = clip;
-        source.Play();
+        if (!source.Playing) source.Play();
+        ((AudioStreamPlaybackPolyphonic)source.GetStreamPlayback()).PlayStream(clip);
     }
 
     public void PlayShoot() => Play(Shoot);
@@ -167,4 +173,9 @@ public partial class AudioManager : Node
     public void PlayBossSpawn() => Play(BossSpawn);
     public void PlayGameOver() => Play(GameOver);
     public void PlayVictory() => Play(Victory);
+    public void PlayExplosion() => Play(Explosion);
+    public void PlayWeaponReload() => Play(WeaponReload);
+    public void PlayDodgeRoll() => Play(DodgeRoll);
+    public void PlayRouletteSpin() => Play(RouletteSpin);
+    public void PlayStageClear() => Play(StageClear);
 }

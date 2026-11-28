@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://obuihq4yvepn" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
 [ext_resource type="Texture2D" uid="uid://dphh5ewa4o1n" path="res://assets/GunsAssetPack/Individual_Gun_Sprites/Black_and_White_Outline/Shotgun.png" id="2_tex"]
 [ext_resource type="Texture2D" uid="uid://cnnfcu1yg1a3c" path="res://assets/GunsAssetPack/Gun_Sprite_Sheet/gun_sprite_sheet.png" id="3_tex"]
-[ext_resource type="AudioStream" uid="uid://bn5deoc2rl3lb" path="res://assets/GunsAssetPack/sounds/tiro_pistola.wav" id="4_snd"]
+[ext_resource type="AudioStream" path="res://assets/sounds/shotgun_fire.mp3" id="4_snd"]
 
 [resource]
 script = ExtResource("1_s")
@@ -29,4 +29,4 @@ ProjectileSheet = ExtResource("3_tex")
 ProjectileRegion = Rect2(32, 16, 3, 1)
 ProjectileScale = 6.0
 FireSound = ExtResource("4_snd")
-FirePitchScale = 0.82
+FirePitchScale = 1.0

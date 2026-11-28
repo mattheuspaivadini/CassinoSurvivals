@@ -1,13 +1,31 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=13 format=3]
 
 [ext_resource type="Script" path="res://autoloads/AudioManager.cs" id="1_am"]
 [ext_resource type="AudioStream" path="res://assets/sounds/musica_tema.mp3" id="2_music"]
 [ext_resource type="AudioStream" path="res://assets/sounds/boss_theme.mp3" id="3_boss"]
+[ext_resource type="AudioStream" path="res://assets/sounds/enemy_hit.mp3" id="4_enemy_hit"]
+[ext_resource type="AudioStream" path="res://assets/sounds/enemy_death.mp3" id="5_enemy_death"]
+[ext_resource type="AudioStream" path="res://assets/sounds/player_hurt.mp3" id="6_player_hurt"]
+[ext_resource type="AudioStream" path="res://assets/sounds/jackpot_win.mp3" id="7_jackpot_win"]
+[ext_resource type="AudioStream" path="res://assets/sounds/explosion.mp3" id="8_explosion"]
+[ext_resource type="AudioStream" path="res://assets/sounds/weapon_reload.mp3" id="9_weapon_reload"]
+[ext_resource type="AudioStream" path="res://assets/sounds/dodge_roll.mp3" id="10_dodge_roll"]
+[ext_resource type="AudioStream" path="res://assets/sounds/roulette_spin.mp3" id="11_roulette_spin"]
+[ext_resource type="AudioStream" path="res://assets/sounds/stage_clear.mp3" id="12_stage_clear"]
 
 [node name="AudioManager" type="Node"]
 script = ExtResource("1_am")
 Music = ExtResource("2_music")
 BossMusic = ExtResource("3_boss")
+EnemyHit = ExtResource("4_enemy_hit")
+EnemyDeath = ExtResource("5_enemy_death")
+PlayerHurt = ExtResource("6_player_hurt")
+Jackpot = ExtResource("7_jackpot_win")
+Explosion = ExtResource("8_explosion")
+WeaponReload = ExtResource("9_weapon_reload")
+DodgeRoll = ExtResource("10_dodge_roll")
+RouletteSpin = ExtResource("11_roulette_spin")
+StageClear = ExtResource("12_stage_clear")
 
 [node name="Source" type="AudioStreamPlayer" parent="."]
 max_polyphony = 16

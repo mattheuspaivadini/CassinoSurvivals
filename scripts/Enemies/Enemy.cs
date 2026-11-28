@@ -281,6 +281,8 @@ public partial class Enemy : RigidBody2D
                 player.TakeDamage(Data.ExplosionDamage * damageMultiplierUsed);
         }
 
+        AudioManager.Instance?.PlayExplosion();
+
         var root = GetTree()?.CurrentScene;
         if (root == null) return;
         var puddle = new ChampagnePuddle();

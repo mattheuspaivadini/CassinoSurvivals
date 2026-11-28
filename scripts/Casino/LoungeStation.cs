@@ -135,7 +135,8 @@ public partial class LoungeStation : Node2D
         if (!CanInteract(gm.Chips)) return;
         for (int i = 0; i < Cost; i++) gm.TrySpendChip();
         RecordUse();
-        AudioManager.Instance?.PlaySlotWin();
+        if (StationType == LoungeStationType.Roulette) AudioManager.Instance?.PlayRouletteSpin();
+        else AudioManager.Instance?.PlaySlotWin();
 
         string spent = Cost == 1 ? "1 FICHA" : $"{Cost} FICHAS";
         SetPrompt(4, $"{LoungeRules.GetDisplayName(StationType)} (-{spent})");
