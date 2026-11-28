@@ -341,7 +341,12 @@ public partial class LoungeModalUI : CanvasLayer
         ShowUpgradeReels(roll.Target, roll.Stat, roll.Percent);
         AudioManager.Instance?.StopSlotSpin();
         RunState.ApplyUpgrade(roll);
-        if (roll.Percent >= 25) AudioManager.Instance?.PlayJackpot();
+        if (roll.Percent >= 25)
+        {
+            AudioManager.Instance?.PlayJackpot();
+            GameFeel.Flash(this, GameFeel.Gold);
+            GameFeel.Burst(this, options[2].GetGlobalRect().GetCenter(), GameFeel.Gold, 48, 520f, 1.1f, 16f);
+        }
         else AudioManager.Instance?.PlaySlotWin();
 
         string verb = roll.Stat == UpgradeStat.DashCooldown || roll.Stat == UpgradeStat.Reload ? "-" : "+";
@@ -415,6 +420,8 @@ public partial class LoungeModalUI : CanvasLayer
         RunState.AddPassive(p);
         SetOptions(offered.Count, false);
         AudioManager.Instance?.PlayJackpot();
+        GameFeel.Flash(this, GameFeel.Neon);
+        GameFeel.Burst(this, options[i].GetGlobalRect().GetCenter(), GameFeel.Neon, 56, 560f, 1.2f, 16f);
         result.Text = $"{PassiveCatalog.Name(p)} equipada!";
 
         await ToSignal(GetTree().CreateTimer(CloseDelay), SceneTreeTimer.SignalName.Timeout);
