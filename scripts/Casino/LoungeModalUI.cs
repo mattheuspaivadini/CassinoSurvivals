@@ -265,7 +265,7 @@ public partial class LoungeModalUI : CanvasLayer
         _ => "res://assets/molduras/o_que/recarga.png",
     };
 
-    static string PassiveFramePath(Passive p) => p switch
+    public static string PassiveFramePath(Passive p) => p switch
     {
         Passive.CalibrePesado => "res://assets/molduras/roleta/calibre_pesado.png",
         Passive.EfeitoDomino => "res://assets/molduras/roleta/efeito_domino.png",

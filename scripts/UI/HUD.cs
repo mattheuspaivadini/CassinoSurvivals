@@ -20,6 +20,8 @@ public partial class HUD : CanvasLayer
     float playerHpFlashTimer, lastPlayerHp = -1f;
     Label hpText, scoreText, chipsText, dollarsText, timerText, bannerText;
     RichTextLabel weaponsText;
+    HBoxContainer passivesRow;
+    readonly Dictionary<string, Texture2D> texCache = new Dictionary<string, Texture2D>();
     float refreshTimer, bannerTimer;
     const float PlayerBarScale = 4f;
     const float PlayerFillOffsetX = 9f;
@@ -74,6 +76,9 @@ public partial class HUD : CanvasLayer
         UpdateScore(gm.Score);
         UpdateChips(gm.Chips);
         BuildPlayerHpBar();
+        BuildPassivesRow();
+        RunState.Changed += RefreshPassives;
+        RefreshPassives();
         UpdateHp(PlayerController.Instance.CurrentHp, PlayerController.Instance.MaxHp);
         bannerText.Visible = false;
         if (gm.InLounge && gm.CurrentStage == 14)
@@ -136,16 +141,59 @@ public partial class HUD : CanvasLayer
         hpText.AddThemeFontSizeOverride("font_size", 20);
     }
 
-    static Texture2D LoadTexture(string resPath)
+    void BuildPassivesRow()
     {
-        var tex = ResourceLoader.Exists(resPath) ? GD.Load<Texture2D>(resPath) : null;
-        if (tex != null) return tex;
+        passivesRow = new HBoxContainer
+        {
+            AnchorLeft = 0f, AnchorRight = 0f,
+            AnchorTop = 1f, AnchorBottom = 1f,
+            OffsetLeft = 28f, OffsetRight = 1040f,
+            OffsetTop = -104f, OffsetBottom = -20f,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        passivesRow.AddThemeConstantOverride("separation", 10);
+        AddChild(passivesRow);
+    }
 
-        string abs = ProjectSettings.GlobalizePath(resPath);
-        if (!System.IO.File.Exists(abs)) return null;
-        var img = new Image();
-        if (img.Load(abs) != Error.Ok) return null;
-        return ImageTexture.CreateFromImage(img);
+    void RefreshPassives()
+    {
+        if (passivesRow == null) return;
+        foreach (Node child in passivesRow.GetChildren())
+            child.QueueFree();
+
+        foreach (Passive p in RunState.Passives)
+        {
+            var tex = LoadTexture(LoungeModalUI.PassiveFramePath(p));
+            if (tex == null) continue;
+            passivesRow.AddChild(new TextureRect
+            {
+                Texture = tex,
+                CustomMinimumSize = new Vector2(76f, 76f),
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            });
+        }
+    }
+
+    Texture2D LoadTexture(string resPath)
+    {
+        if (string.IsNullOrEmpty(resPath)) return null;
+        if (texCache.TryGetValue(resPath, out var cached)) return cached;
+
+        var tex = ResourceLoader.Exists(resPath) ? GD.Load<Texture2D>(resPath) : null;
+        if (tex == null)
+        {
+            string abs = ProjectSettings.GlobalizePath(resPath);
+            if (System.IO.File.Exists(abs))
+            {
+                var img = new Image();
+                if (img.Load(abs) == Error.Ok) tex = ImageTexture.CreateFromImage(img);
+            }
+        }
+        texCache[resPath] = tex;
+        return tex;
     }
 
     void BuildBossBar()
@@ -260,6 +308,7 @@ public partial class HUD : CanvasLayer
     // GameManager é autoload e sobrevive ao reload: desconecta para não chamar um nó liberado.
     public override void _ExitTree()
     {
+        RunState.Changed -= RefreshPassives;
         GameManager.Instance.ScoreChanged -= UpdateScore;
         GameManager.Instance.ChipsChanged -= UpdateChips;
         GameManager.Instance.DollarsChanged -= UpdateDollars;
@@ -292,7 +341,7 @@ public partial class HUD : CanvasLayer
     // Cores das bebidas no HUD (mesmas dos drops): Cura, Dano, Velocidade.
     static readonly string[] DrinkHex = { "FF73BF", "FF5933", "B373FF" };
 
-    /// <summary>Bebidas ativas com segundos restantes e passivas da run, logo abaixo da barra de HP.</summary>
+    /// <summary>Bebidas ativas com segundos restantes.</summary>
     void AppendRunBuffs()
     {
         bool any = false;
@@ -305,17 +354,6 @@ public partial class HUD : CanvasLayer
             any = true;
         }
         if (any) sb.Append('\n');
-
-        if (RunState.Passives.Count == 0) return;
-        sb.Append("[color=#FFD54A]PASSIVAS:[/color] [color=#DDDDDD]");
-        bool first = true;
-        foreach (var p in RunState.Passives)
-        {
-            if (!first) sb.Append(" · ");
-            sb.Append(PassiveCatalog.Name(p));
-            first = false;
-        }
-        sb.Append("[/color]\n");
     }
 
     void RefreshWeapons()
