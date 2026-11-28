@@ -9,7 +9,7 @@ public static class SelfCheck
         var b = new WeaponData();
         var reels = new[] { a, a, b };
         Check(SlotRules.CountMatches(reels, a) == 2 && SlotRules.CountMatches(reels, b) == 1, "CountMatches");
-        Check(SlotRules.LevelsFor(1) == 1 && SlotRules.LevelsFor(2) == 5 && SlotRules.LevelsFor(3) == 9, "LevelsFor");
+        Check(SlotRules.LevelsFor(1) == 1 && SlotRules.LevelsFor(2) == 2 && SlotRules.LevelsFor(3) == 3, "LevelsFor 1x/2x/3x = +1/+2/+3");
 
         var w = new WeaponInstance(a, 1); // pente padrão = 8
         for (int i = 0; i < 8; i++) Check(w.Tick(1f, true), "deveria disparar com balas no pente");
@@ -26,6 +26,10 @@ public static class SelfCheck
         SalaDeDescansoEBlockout3();
         ArenasDosAtosEBlockout2();
         NaipesEBosses();
+        LojaExternaCompleta();
+        TabelasDeSorte();
+        BebidasEEstadoDaRun();
+        MelhoriasEPassivas();
         CamadaDeDificuldade();
     }
 
@@ -54,7 +58,134 @@ public static class SelfCheck
         Check(Near(CampaignRules.ForStage(1).HpScale, 1.00f), "curva oficial do Lemuel continua intacta");
     }
 
-    static bool Near(float a, float b) => Math.Abs(a - b) < 0.001f;
+    static bool Near(float a, float b) => Math.Abs(a - b) < 0.0005f;
+
+    static void LojaExternaCompleta()
+    {
+        int[] barman = { 100, 200, 350, 600, 950 };
+        int[] sorte = { 150, 300, 550, 900, 1450 };
+        for (int i = 0; i < 5; i++)
+        {
+            Check(MetaProgress.CostOf(MetaProgress.Upgrade.Barman, i) == barman[i], $"custo Barman Nv {i + 1}");
+            Check(MetaProgress.CostOf(MetaProgress.Upgrade.Sorte, i) == sorte[i], $"custo Sorte Nv {i + 1}");
+        }
+        Check(MetaProgress.Names.Length == 5 && MetaProgress.Descriptions.Length == 5, "Loja Externa com 5 upgrades");
+    }
+
+    static void TabelasDeSorte()
+    {
+        for (int luck = 0; luck <= LuckTables.MaxLevel; luck++)
+        {
+            int a = 0, b = 0;
+            for (int t = 1; t <= 3; t++) a += LuckTables.WeaponTierPercent(luck, t);
+            for (int f = 0; f < 3; f++) b += LuckTables.UpgradeBandPercent(luck, f);
+            Check(a == 100, $"Tabela A Nv {luck} soma 100%");
+            Check(b == 100, $"Tabela B Nv {luck} soma 100%");
+        }
+        Check(LuckTables.WeaponTierPercent(0, 1) == 70 && LuckTables.WeaponTierPercent(5, 3) == 20, "Tabela A: Nv 0 = 70% 1x, Nv 5 = 20% 3x");
+        Check(LuckTables.UpgradeBandPercent(0, 0) == 60 && LuckTables.UpgradeBandPercent(5, 2) == 30, "Tabela B: Nv 0 = 60% Baixa, Nv 5 = 30% Alta");
+
+        const int N = 20000;
+        var rng = new Random(1234);
+        foreach (int luck in new[] { 0, 5 })
+        {
+            var tiers = new int[4];
+            var bands = new int[3];
+            for (int i = 0; i < N; i++)
+            {
+                tiers[LuckTables.RollWeaponTier(luck, rng)]++;
+                int pct = LuckTables.RollUpgradePercent(luck, rng);
+                Check(pct >= 5 && pct <= 30 && pct % 5 == 0, "Rolo 3 só sorteia 5% a 30% em passos de 5");
+                bands[(pct - 5) / 10]++;
+            }
+            for (int t = 1; t <= 3; t++)
+                Check(Math.Abs(tiers[t] * 100.0 / N - LuckTables.WeaponTierPercent(luck, t)) < 2.0, $"distribuição Tabela A Nv {luck} tier {t}x");
+            for (int f = 0; f < 3; f++)
+                Check(Math.Abs(bands[f] * 100.0 / N - LuckTables.UpgradeBandPercent(luck, f)) < 2.0, $"distribuição Tabela B Nv {luck} faixa {f}");
+        }
+
+        var pool = new System.Collections.Generic.List<int> { 0, 1, 2, 3, 4, 5, 6, 7 };
+        for (int i = 0; i < 300; i++)
+        {
+            for (int tier = 1; tier <= 3; tier++)
+            {
+                var reels = WeaponSlotRoll.BuildReels(pool, tier, rng);
+                var distinct = new System.Collections.Generic.HashSet<int>(reels);
+                Check(distinct.Count == 4 - tier, $"rolos do tier {tier}x têm {4 - tier} arma(s) distinta(s)");
+            }
+        }
+
+        var wd = new WeaponData();
+        var wi = new WeaponInstance(wd, 1);
+        wi.AddLevels(50);
+        Check(wi.Level == WeaponInstance.MaxLevel && WeaponInstance.MaxLevel == 10, "arma para no Nv 10");
+    }
+
+    static void BebidasEEstadoDaRun()
+    {
+        float openBar = DrinkRules.Efficiency(0, true), max = DrinkRules.Efficiency(5, true);
+        Check(Near(DrinkRules.Efficiency(0, false), 1f), "eficiência base 1.0");
+        Check(Near(DrinkRules.HealBase * openBar, 0.525f) && Near(DrinkRules.DamageBase * openBar, 0.60f), "Open Bar: 52,5% HP / +60% dano");
+        Check(Near(DrinkRules.MoveBase * openBar, 0.375f) && Near(DrinkRules.FireRateBase * openBar, 0.45f), "Open Bar: +37,5% vel / +45% cadência");
+        Check(Near(DrinkRules.HealBase * max, 0.665f) && Near(DrinkRules.DamageBase * max, 0.76f), "Open Bar + Barman 5: 66,5% HP / +76% dano");
+        Check(Near(DrinkRules.MoveBase * max, 0.475f) && Near(DrinkRules.FireRateBase * max, 0.57f), "Open Bar + Barman 5: +47,5% vel / +57% cadência");
+
+        RunState.Reset();
+        RunState.StartDrink(DrinkType.Heal);
+        Check(!RunState.IsActive(DrinkType.Heal), "Bebida de Cura é imediata, sem timer");
+        RunState.StartDrink(DrinkType.Damage);
+        RunState.Tick(10f);
+        RunState.StartDrink(DrinkType.Damage);
+        Check(Near(RunState.TimeLeft(DrinkType.Damage), DrinkRules.Duration), "mesma bebida só reinicia os 30s");
+        RunState.StartDrink(DrinkType.Speed);
+        Check(RunState.IsActive(DrinkType.Damage) && RunState.IsActive(DrinkType.Speed), "tipos diferentes acumulam");
+        Check(RunState.DamageBonus > 0.39f && RunState.FireRateMultiplier > 1.29f && RunState.MoveSpeedMultiplier > 1.24f, "bebidas ativas alimentam os multiplicadores");
+        RunState.Tick(30.5f);
+        Check(!RunState.IsActive(DrinkType.Damage) && !RunState.IsActive(DrinkType.Speed), "bebidas expiram após 30s");
+        Check(Near(RunState.DamageBonus, 0f) && Near(RunState.FireRateMultiplier, 1f) && Near(RunState.MoveSpeedMultiplier, 1f), "multiplicadores voltam ao base");
+        RunState.Reset();
+    }
+
+    static void MelhoriasEPassivas()
+    {
+        var rng = new Random(99);
+        for (int i = 0; i < 1000; i++)
+        {
+            var r = UpgradeRoll.Roll(i % 6, rng);
+            Check(UpgradeRoll.TargetOf(r.Stat) == r.Target, "Rolo 2 compatível com o Rolo 1");
+            Check(r.Percent >= 5 && r.Percent <= 30 && r.Percent % 5 == 0, "Rolo 3 literal 5%..30%");
+        }
+
+        RunState.Reset();
+        RunState.ApplyUpgrade(new UpgradeResult(UpgradeTarget.Weapon, UpgradeStat.Magazine, 30));
+        Check(Near(RunState.MagazineMultiplier, 1.3f), "+30% balas no pente");
+        Check(new WeaponInstance(new WeaponData(), 1).MagazineSize == 11, "pente 8 com +30% = 11 (arredonda para cima)");
+        for (int i = 0; i < 4; i++)
+        {
+            RunState.ApplyUpgrade(new UpgradeResult(UpgradeTarget.Player, UpgradeStat.MoveSpeed, 30));
+            RunState.ApplyUpgrade(new UpgradeResult(UpgradeTarget.Player, UpgradeStat.DashCooldown, 30));
+        }
+        Check(Near(RunState.MoveSpeedMultiplier, RunState.MaxMoveSpeedMultiplier), "velocidade de movimento com teto de +60%");
+        Check(Near(RunState.DashCooldownMultiplier, 0.2f), "recarga do dash com piso de 20%");
+        RunState.ApplyUpgrade(new UpgradeResult(UpgradeTarget.Weapon, UpgradeStat.Damage, 15));
+        Check(Near(RunState.DamageBonus, 0.15f), "melhoria de dano soma aditiva");
+
+        RunState.Reset();
+        Check(new WeaponInstance(new WeaponData(), 1).MagazineSize == 8 && Near(RunState.DamageBonus, 0f), "Reset zera melhorias");
+
+        for (int round = 0; round < PassiveCatalog.Count; round++)
+        {
+            var offer = PassiveCatalog.Draw(RunState.Passives, 2, rng);
+            int remaining = PassiveCatalog.Remaining(RunState.Passives);
+            Check(offer.Count == Math.Min(2, remaining), "Roleta oferece 2 (ou o que restar)");
+            Check(offer.Count < 2 || offer[0] != offer[1], "Roleta sem passivas repetidas");
+            foreach (var p in offer) Check(!RunState.Has(p), "Roleta não oferece passiva já possuída");
+            RunState.AddPassive(offer[0]);
+        }
+        Check(PassiveCatalog.Remaining(RunState.Passives) == 0 && PassiveCatalog.Draw(RunState.Passives, 2, rng).Count == 0, "catálogo esgota após 12 passivas");
+        RunState.Reset();
+        Check(RunState.Passives.Count == 0, "Reset zera passivas");
+    }
 
     static void NaipesEBosses()
     {
@@ -105,7 +236,7 @@ public static class SelfCheck
         Check(rf != null && Near(rf.Region.Size.Y, 51f) && Near(rf.Region.Size.X, 32f), "frames da Rainha 32x51");
 
         var summon = EnemyData.CreateSummon(EnemyData.CreateGoldenVariant(EnemyCatalog.Load(EnemyKind.Ficha)));
-        Check(!summon.IsGolden && summon.Dollars == 0 && !summon.GuaranteedChip && summon.ChipDropChance == 0f, "invocado: nunca Dourado, $0 e sem drop");
+        Check(!summon.IsGolden && summon.Dollars == 0 && !summon.GuaranteedChip && summon.ChipDropChance == 0f && summon.DrinkDropChance == 0f, "invocado: nunca Dourado, $0 e sem drop");
 
         Check(EnemyBrain.Create(EnemyBehavior.Tigrinho) is TigrinhoBrain && EnemyBrain.Create(EnemyBehavior.Chase) == null, "cérebros por comportamento");
     }

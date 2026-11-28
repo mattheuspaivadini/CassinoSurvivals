@@ -8,6 +8,6 @@ public static class SlotRules
         return n;
     }
 
-    /// <summary>1x → 1 nível, 2x → 5, 3x (Jackpot) → 9. Serve tanto para upar quanto para o nível de desbloqueio.</summary>
-    public static int LevelsFor(int matches) => matches >= 3 ? 9 : matches == 2 ? 5 : 1;
+    /// <summary>PDF, seção 4: 1x → +1 nível, 2x → +2, 3x → +3. Arma nova desbloqueia nesse nível.</summary>
+    public static int LevelsFor(int matches) => matches >= 3 ? 3 : matches == 2 ? 2 : 1;
 }

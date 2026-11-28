@@ -133,19 +133,21 @@ public partial class HordeDirector : Node
 
     /// <summary>
     /// Reforços de boss pelas portas (Guarda da Corte, Decreto, Lacaios): $0, sem drop, nunca Dourados.
-    /// Contam como extras da fase. Retorna false se o tipo não existe ou não há portas.
+    /// Entram no total da fase já na fila, para a sala não fechar com porta pendente. Retorna false se o tipo não existe ou não há portas.
     /// </summary>
     public bool SummonAtDoors(EnemyKind kind, int count, System.Action<Enemy> onSpawned)
     {
         if (count <= 0 || doors == null || doors.Count == 0 || !kindLookup.TryGetValue(kind, out var source)) return false;
         var data = EnemyData.CreateSummon(source);
+        roundTotal += count;
         for (int i = 0; i < count; i++)
         {
             var door = doors[rng.RandiRange(0, doors.Count - 1)];
             door.Enqueue(d =>
             {
-                var e = EnemySpawner.Instance.Spawn(data, d.SpawnPosition, spec.HpMultiplier, isExtra: true, damageMultiplier: spec.DamageMultiplier);
+                var e = EnemySpawner.Instance.Spawn(data, d.SpawnPosition, spec.HpMultiplier, damageMultiplier: spec.DamageMultiplier);
                 e.SetEntry(d.EntryPosition);
+                roundSpawned++;
                 onSpawned?.Invoke(e);
             });
         }

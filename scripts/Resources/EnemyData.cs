@@ -93,6 +93,8 @@ public partial class EnemyData : Resource
     [Export(PropertyHint.Range, "0,1")] public float ChipDropChance { get; set; } = 0.005f;
     [Export(PropertyHint.Range, "0,1")] public float HealDropChance { get; set; } = 0.03f;
     [Export(PropertyHint.Range, "0,1")] public float PointsDropChance { get; set; } = 0.05f;
+    /// <summary>Bebida aleatória (Cura/Dano/Velocidade) na mesma rolagem dos outros drops. Bosses ignoram.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float DrinkDropChance { get; set; } = 0.02f;
 
     [ExportGroup("Boss")]
     [Export] public bool IsBoss { get; set; }
@@ -216,6 +218,7 @@ public partial class EnemyData : Resource
         m.ChipDropChance = 0f;
         m.HealDropChance = 0f;
         m.PointsDropChance = 0f;
+        m.DrinkDropChance = 0f;
         m.SplitEnemy = null;
         m.SplitMinCount = 0;
         m.SplitMaxCount = 0;
@@ -234,6 +237,7 @@ public partial class EnemyData : Resource
         m.ChipDropChance = 0f;
         m.HealDropChance = 0f;
         m.PointsDropChance = 0f;
+        m.DrinkDropChance = 0f;
         m.SplitEnemy = null;
         m.SplitMinCount = 0;
         m.SplitMaxCount = 0;

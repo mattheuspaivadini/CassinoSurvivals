@@ -208,8 +208,8 @@ public partial class Enemy : RigidBody2D
     /// <summary>Toca a animação de ataque (se houver) por alguns instantes.</summary>
     public void PlayAttack(float seconds = 0.35f) => attackTimer = seconds;
 
-    /// <summary>Morte sem recompensa (coraçõezinhos quando a Copas cai).</summary>
-    public void Kill() => ResolveDeath(killedByPlayer: false);
+    /// <summary>Morte sem recompensa e sem explosão (invocados quando o dono cai).</summary>
+    public void Kill() => ResolveDeath(killedByPlayer: false, explode: false);
 
     /// <summary>Ao sair de uma porta, anda até este ponto antes de perseguir (não fica preso no batente).</summary>
     public void SetEntry(Vector2 worldPos)
@@ -296,7 +296,7 @@ public partial class Enemy : RigidBody2D
         if (hp <= 0f) ResolveDeath(killedByPlayer: true);
     }
 
-    void ResolveDeath(bool killedByPlayer)
+    void ResolveDeath(bool killedByPlayer, bool explode = true)
     {
         if (dead) return;
         dead = true;
@@ -320,7 +320,7 @@ public partial class Enemy : RigidBody2D
             DropManager.Instance?.RollDrops(Data, GlobalPosition);
         }
 
-        if (Data.Explodes) TriggerExplosion(dealBlastDamage: !killedByPlayer);
+        if (Data.Explodes && explode) TriggerExplosion(dealBlastDamage: !killedByPlayer);
 
         // Importante: spawna o "Troco" ANTES do Despawn para o HordeDirector somar os novos alvos antes de checar fim do round.
         if (Data.SplitEnemy != null && Data.SplitMaxCount > 0) SpawnTrocoMinions();
