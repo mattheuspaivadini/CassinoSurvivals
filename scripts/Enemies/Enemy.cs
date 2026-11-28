@@ -16,6 +16,9 @@ public partial class Enemy : RigidBody2D
     public float MaxHp { get; private set; }
     public float DamageMultiplier => damageMultiplierUsed;
     public float HpMultiplier => hpMultiplierUsed;
+    /// <summary>Velocidade de movimento (u/s) já com a escala de dificuldade da fase.</summary>
+    public float MoveSpeed => Data.MoveSpeed * speedMultiplierUsed;
+    float speedMultiplierUsed = 1f;
     public bool IsDead => dead;
     public AnimatedSprite2D Sprite => sprite;
 
@@ -51,6 +54,7 @@ public partial class Enemy : RigidBody2D
         hpMultiplierUsed = hpMultiplier;
         damageMultiplierUsed = Mathf.Max(0.1f, damageMultiplier);
         hp = data.FixedHp ? data.MaxHp : data.MaxHp * hpMultiplier;
+        speedMultiplierUsed = HordeDirector.Instance?.EnemySpeedMultiplier ?? 1f;
         MaxHp = hp;
         Mass = data.Mass;
         dead = false;
@@ -135,9 +139,9 @@ public partial class Enemy : RigidBody2D
         }
 
         Vector2 desired;
-        if (entering) desired = WithSeparation(EnterDirection(pos), Data.MoveSpeed);
+        if (entering) desired = WithSeparation(EnterDirection(pos), MoveSpeed);
         else if (Brain != null) desired = Brain.Think(dt, toPlayer);
-        else desired = WithSeparation(ChaseDirection(pos, player.GlobalPosition, toPlayer), Data.MoveSpeed);
+        else desired = WithSeparation(ChaseDirection(pos, player.GlobalPosition, toPlayer), MoveSpeed);
 
         bool snap = !entering && Brain != null && Brain.SnapVelocity;
         LinearVelocity = snap ? desired : LinearVelocity.Lerp(desired, Mathf.Min(1f, Steering * dt));
