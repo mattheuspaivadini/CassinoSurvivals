@@ -18,10 +18,13 @@
 [ext_resource type="Script" path="res://scripts/UI/EndScreenUI.cs" id="s_end"]
 [ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="s_wdata"]
 [ext_resource type="Resource" path="res://resources/weapons/PistolaNeon.tres" id="w_pistola"]
-[ext_resource type="Resource" path="res://resources/weapons/EscopetaRoyalFlush.tres" id="w_escopeta"]
-[ext_resource type="Resource" path="res://resources/weapons/SMGViceCity.tres" id="w_smg"]
 [ext_resource type="Resource" path="res://resources/weapons/RevolverHighRoller.tres" id="w_revolver"]
+[ext_resource type="Resource" path="res://resources/weapons/EscopetaRoyalFlush.tres" id="w_escopeta"]
+[ext_resource type="Resource" path="res://resources/weapons/M4Tatica.tres" id="w_m4"]
+[ext_resource type="Resource" path="res://resources/weapons/AK47Cassino.tres" id="w_ak47"]
+[ext_resource type="Resource" path="res://resources/weapons/SMGViceCity.tres" id="w_smg"]
 [ext_resource type="Resource" path="res://resources/weapons/LancaDados.tres" id="w_lanca"]
+[ext_resource type="Resource" path="res://resources/weapons/SniperVip.tres" id="w_sniper"]
 
 [sub_resource type="RectangleShape2D" id="rect_wall_v"]
 size = Vector2(90, 1080)
@@ -756,7 +759,7 @@ ArrowTexture = ExtResource("t_tri")
 [node name="Canvas_SlotMachine" type="CanvasLayer" parent="." node_paths=PackedStringArray("WeaponSystem")]
 layer = 10
 script = ExtResource("s_slot_ui")
-WeaponPool = Array[ExtResource("s_wdata")]([ExtResource("w_pistola"), ExtResource("w_escopeta"), ExtResource("w_smg"), ExtResource("w_revolver"), ExtResource("w_lanca")])
+WeaponPool = Array[ExtResource("s_wdata")]([ExtResource("w_pistola"), ExtResource("w_revolver"), ExtResource("w_escopeta"), ExtResource("w_m4"), ExtResource("w_ak47"), ExtResource("w_smg"), ExtResource("w_lanca"), ExtResource("w_sniper")])
 WeaponSystem = NodePath("../Player/WeaponSystem")
 
 [node name="Panel" type="ColorRect" parent="Canvas_SlotMachine"]
