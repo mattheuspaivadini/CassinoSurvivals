@@ -17,6 +17,11 @@ public partial class HUD : CanvasLayer
     Label hpText, scoreText, chipsText, dollarsText, timerText, bannerText;
     RichTextLabel weaponsText;
     float refreshTimer, bannerTimer;
+    // Barra de HP do boss (topo central), montada em código.
+    Control bossBar;
+    ColorRect bossFill;
+    Label bossName;
+    const float BossBarWidth = 760f;
 
     public override void _Ready()
     {
@@ -53,6 +58,43 @@ public partial class HUD : CanvasLayer
         UpdateChips(gm.Chips);
         UpdateHp(PlayerController.Instance.CurrentHp, PlayerController.Instance.MaxHp);
         bannerText.Visible = false;
+        BuildBossBar();
+    }
+
+    void BuildBossBar()
+    {
+        bossBar = new Control
+        {
+            AnchorLeft = 0.5f, AnchorRight = 0.5f,
+            OffsetLeft = -BossBarWidth / 2f, OffsetRight = BossBarWidth / 2f, OffsetTop = 78f, OffsetBottom = 128f,
+            MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
+        };
+        bossBar.AddChild(new ColorRect { Color = new Color(0f, 0f, 0f, 0.7f), Position = new Vector2(0f, 22f), Size = new Vector2(BossBarWidth, 24f) });
+        bossFill = new ColorRect { Color = new Color(0.9f, 0.15f, 0.2f), Position = new Vector2(3f, 25f), Size = new Vector2(BossBarWidth - 6f, 18f) };
+        bossBar.AddChild(bossFill);
+        bossName = new Label { HorizontalAlignment = HorizontalAlignment.Center, Size = new Vector2(BossBarWidth, 22f) };
+        bossName.AddThemeFontSizeOverride("font_size", 20);
+        bossBar.AddChild(bossName);
+        AddChild(bossBar);
+    }
+
+    /// <summary>Mostra o boss vivo da sala; dourada enquanto ele está invulnerável (Trava de Fase).</summary>
+    void RefreshBossBar()
+    {
+        Enemy boss = null;
+        var spawner = EnemySpawner.Instance;
+        if (spawner != null)
+            foreach (var e in spawner.Active)
+                if (e.Data != null && e.Data.IsBoss && !e.IsDead) { boss = e; break; }
+
+        bossBar.Visible = boss != null;
+        if (boss == null) return;
+        float frac = boss.MaxHp > 0f ? Mathf.Clamp(boss.Hp / boss.MaxHp, 0f, 1f) : 0f;
+        bossFill.Size = new Vector2((BossBarWidth - 6f) * frac, 18f);
+        bool shielded = boss.Brain is BossBrain bb && bb.Invulnerable;
+        bool fury = boss.Brain is BossBrain bf && bf.Fury;
+        bossFill.Color = shielded ? new Color(1f, 0.82f, 0.25f) : fury ? new Color(1f, 0.35f, 0.1f) : new Color(0.9f, 0.15f, 0.2f);
+        bossName.Text = shielded ? $"{boss.Data.EnemyName.ToUpper()}  —  PROTEGIDO" : boss.Data.EnemyName.ToUpper();
     }
 
     // GameManager é autoload e sobrevive ao reload: desconecta para não chamar um nó liberado.
@@ -76,6 +118,7 @@ public partial class HUD : CanvasLayer
         refreshTimer = RefreshInterval;
         RefreshWeapons();
         RefreshTimer();
+        RefreshBossBar();
     }
 
     void RefreshWeapons()
@@ -142,7 +185,15 @@ public partial class HUD : CanvasLayer
         ShowBanner(boss ? $"{label} — BOSS!" : label, boss ? new Color(1f, 0.3f, 0.3f) : new Color(1f, 1f, 1f), 2f);
     }
 
-    void ShowBossBanner() => ShowBanner("O TIGRINHO CHEGOU!", new Color(1f, 0.5f, 0f));
+    void ShowBossBanner()
+    {
+        string name = "O TIGRINHO";
+        var spawner = EnemySpawner.Instance;
+        if (spawner != null)
+            foreach (var e in spawner.Active)
+                if (e.Data != null && e.Data.IsBoss) { name = e.Data.EnemyName.ToUpper(); break; }
+        ShowBanner($"{name} CHEGOU!", new Color(1f, 0.5f, 0f));
+    }
 
     void ShowBanner(string text, Color color, float seconds = 4f)
     {
