@@ -10,6 +10,15 @@ public partial class Enemy : RigidBody2D
     /// <summary>Raio em pixels.</summary>
     public float Radius { get; private set; }
 
+    /// <summary>Naipes e bosses: decide movimento e ataques. Null = perseguição padrão.</summary>
+    public EnemyBrain Brain { get; private set; }
+    public float Hp => hp;
+    public float MaxHp { get; private set; }
+    public float DamageMultiplier => damageMultiplierUsed;
+    public float HpMultiplier => hpMultiplierUsed;
+    public bool IsDead => dead;
+    public AnimatedSprite2D Sprite => sprite;
+
     /// <summary>Índice na lista ativa do EnemySpawner (remoção O(1) por swap).</summary>
     public int ActiveIndex = -1;
 
@@ -42,6 +51,7 @@ public partial class Enemy : RigidBody2D
         hpMultiplierUsed = hpMultiplier;
         damageMultiplierUsed = Mathf.Max(0.1f, damageMultiplier);
         hp = data.FixedHp ? data.MaxHp : data.MaxHp * hpMultiplier;
+        MaxHp = hp;
         Mass = data.Mass;
         dead = false;
         fusing = false;
@@ -80,6 +90,9 @@ public partial class Enemy : RigidBody2D
         shape.Shape = new CircleShape2D { Radius = Radius }; // um shape por inimigo: o raio varia com o tipo
         flankAngle = GD.Randf() * Mathf.Tau;
         entering = false;
+        sprite.Offset = Vector2.Zero;
+        Brain = EnemyBrain.Create(data.Behavior);
+        Brain?.Attach(this);
     }
 
     void PlayAnim(string name)
@@ -121,27 +134,78 @@ public partial class Enemy : RigidBody2D
             }
         }
 
-        Vector2 dir = entering ? EnterDirection(pos) : ChaseDirection(pos, player.GlobalPosition, toPlayer);
-        dir += EnemySpawner.Instance.Separation(this) * SeparationWeight;
-        Vector2 desired = dir.LengthSquared() > 0.0001f ? dir.Normalized() * Data.MoveSpeed * Units.Px : Vector2.Zero;
-        LinearVelocity = LinearVelocity.Lerp(desired, Mathf.Min(1f, Steering * dt));
+        Vector2 desired;
+        if (entering) desired = WithSeparation(EnterDirection(pos), Data.MoveSpeed);
+        else if (Brain != null) desired = Brain.Think(dt, toPlayer);
+        else desired = WithSeparation(ChaseDirection(pos, player.GlobalPosition, toPlayer), Data.MoveSpeed);
 
-        if (LinearVelocity.LengthSquared() > 16f) PlayAnim("chase");
+        bool snap = !entering && Brain != null && Brain.SnapVelocity;
+        LinearVelocity = snap ? desired : LinearVelocity.Lerp(desired, Mathf.Min(1f, Steering * dt));
+
+        if (attackTimer > 0f) attackTimer -= dt;
+        bool facingPlayer = Brain != null && Brain.FacePlayer;
+        Vector2 look = facingPlayer ? toPlayer : LinearVelocity;
+        if (LinearVelocity.LengthSquared() > 16f || facingPlayer)
+        {
+            bool back = sprite.SpriteFrames.HasAnimation("chase_back") && look.Y < 0f && Mathf.Abs(look.Y) > Mathf.Abs(look.X);
+            if (attackTimer > 0f && sprite.SpriteFrames.HasAnimation("attack"))
+                PlayAnim(back && sprite.SpriteFrames.HasAnimation("attack_back") ? "attack_back" : "attack");
+            else PlayAnim(back ? "chase_back" : "chase");
+        }
         else if (sprite.SpriteFrames.HasAnimation("idle")) PlayAnim("idle");
 
-        if (Mathf.Abs(LinearVelocity.X) > 12f) sprite.FlipH = LinearVelocity.X < 0f;
+        if (Mathf.Abs(look.X) > 12f) sprite.FlipH = look.X < 0f;
 
-        if (!Data.Explodes)
+        if (Brain != null && Brain.NeedsRedraw) QueueRedraw();
+
+        if (!Data.Explodes && (Brain == null || Brain.ContactDamage))
         {
             contactTimer -= dt;
             float reach = Radius + player.RadiusPx + 0.1f * Units.Px;
             if (contactTimer <= 0f && toPlayer.LengthSquared() <= reach * reach)
             {
-                player.TakeDamage(Data.ContactDamage * damageMultiplierUsed);
+                player.TakeDamage(Data.ContactDamage * damageMultiplierUsed * (Brain?.ContactScale ?? 1f));
                 contactTimer = Data.ContactCooldown;
             }
         }
     }
+
+    /// <summary>Direção (normalizada ou zero) somada ao afastamento dos vizinhos, virada em velocidade px/s.</summary>
+    public Vector2 WithSeparation(Vector2 dir, float speedUnits)
+    {
+        dir += EnemySpawner.Instance.Separation(this) * SeparationWeight;
+        return dir.LengthSquared() > 0.0001f ? dir.Normalized() * speedUnits * Units.Px : Vector2.Zero;
+    }
+
+    /// <summary>Velocidade (px/s) indo até <paramref name="target"/> contornando obstáculos da arena.</summary>
+    public Vector2 SteerTo(Vector2 target, float speedUnits)
+    {
+        var arena = Arena.Instance;
+        Vector2 dir = arena == null ? (target - GlobalPosition).Normalized() : arena.Steer(GlobalPosition, target);
+        return WithSeparation(dir, speedUnits);
+    }
+
+    /// <summary>Move o corpo físico na hora (pulo do Tigrinho).</summary>
+    public void Teleport(Vector2 pos)
+    {
+        PhysicsServer2D.BodySetState(GetRid(), PhysicsServer2D.BodyState.Transform, new Transform2D(0f, pos));
+        GlobalPosition = pos;
+    }
+
+    /// <summary>Liga/desliga a colisão (o tigre passa por cima dos obstáculos no pulo).</summary>
+    public void SetSolid(bool solid)
+    {
+        CollisionLayer = solid ? 4u : 0u;
+        CollisionMask = solid ? 7u : 0u;
+    }
+
+    float attackTimer;
+
+    /// <summary>Toca a animação de ataque (se houver) por alguns instantes.</summary>
+    public void PlayAttack(float seconds = 0.35f) => attackTimer = seconds;
+
+    /// <summary>Morte sem recompensa (coraçõezinhos quando a Copas cai).</summary>
+    public void Kill() => ResolveDeath(killedByPlayer: false);
 
     /// <summary>Ao sair de uma porta, anda até este ponto antes de perseguir (não fica preso no batente).</summary>
     public void SetEntry(Vector2 worldPos)
@@ -200,6 +264,7 @@ public partial class Enemy : RigidBody2D
 
     public override void _Draw()
     {
+        if (!dead) Brain?.Draw(this);
         if (!fusing || dead) return;
         float total = Mathf.Max(0.05f, Data.ExplosionFuse);
         float progress = Mathf.Clamp(1f - fuseTimer / total, 0f, 1f);
@@ -213,6 +278,13 @@ public partial class Enemy : RigidBody2D
     public void TakeDamage(float amount)
     {
         if (dead || hp <= 0f) return;
+        if (Brain != null) amount = Brain.FilterDamage(amount);
+        if (amount <= 0f)
+        {
+            sprite.Modulate = new Color(1f, 0.85f, 0.3f); // invulnerável: brilho dourado em vez do flash
+            flashTimer = 0.06f;
+            return;
+        }
         hp -= amount;
         sprite.Modulate = Colors.White;
         flashTimer = 0.06f;
@@ -226,6 +298,8 @@ public partial class Enemy : RigidBody2D
         dead = true;
         fusing = false;
         QueueRedraw();
+        Brain?.OnDeath();
+        sprite.Offset = Vector2.Zero;
 
         AudioManager.Instance?.PlayEnemyDeath();
 
