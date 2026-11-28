@@ -24,6 +24,18 @@ public partial class DropManager : Node
     [Export] public float PointsScale { get; set; } = 0.4f;
     [Export] public int PointsAmount { get; set; } = 50;
 
+    [ExportGroup("Bebida")]
+    /// <summary>Se vazio, usa o sprite da cura tingido com a cor da bebida.</summary>
+    [Export] public Texture2D DrinkSprite { get; set; }
+    [Export] public float DrinkScale { get; set; } = 0.5f;
+    /// <summary>Cor por DrinkType: Cura, Dano, Velocidade.</summary>
+    [Export] public Color[] DrinkColors { get; set; } =
+    {
+        new Color(1f, 0.45f, 0.75f),
+        new Color(1f, 0.35f, 0.2f),
+        new Color(0.7f, 0.45f, 1f),
+    };
+
     public override void _Ready() => Instance = this;
 
     public void RollDrops(EnemyData data, Vector2 pos)
@@ -40,7 +52,8 @@ public partial class DropManager : Node
         float r = GD.Randf();
         if (r < data.ChipDropChance) Spawn(DropType.Chip, pos);
         else if ((r -= data.ChipDropChance) < data.HealDropChance) Spawn(DropType.Heal, pos);
-        else if (r - data.HealDropChance < data.PointsDropChance) Spawn(DropType.Points, pos);
+        else if ((r -= data.HealDropChance) < data.PointsDropChance) Spawn(DropType.Points, pos);
+        else if (!data.IsBoss && r - data.PointsDropChance < data.DrinkDropChance) Spawn(DropType.Drink, pos);
     }
 
     public void Spawn(DropType type, Vector2 pos)
@@ -51,6 +64,10 @@ public partial class DropManager : Node
         {
             case DropType.Chip: d.Setup(type, 1, pos, ChipSprite, ChipColor, ChipScale); break;
             case DropType.Heal: d.Setup(type, HealAmount, pos, HealSprite, HealColor, HealScale); break;
+            case DropType.Drink:
+                int drink = RunState.Rng.Next(DrinkRules.Count);
+                d.Setup(type, drink, pos, DrinkSprite ?? HealSprite, DrinkColors[drink], DrinkScale);
+                break;
             default: d.Setup(type, PointsAmount, pos, PointsSprite, PointsColor, PointsScale); break;
         }
     }
