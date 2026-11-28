@@ -218,6 +218,7 @@ public partial class EnemyData : Resource
         m.ChipDropChance = 0f;
         m.HealDropChance = 0f;
         m.PointsDropChance = 0f;
+        m.DrinkDropChance = 0f;
         m.SplitEnemy = null;
         m.SplitMinCount = 0;
         m.SplitMaxCount = 0;

@@ -210,7 +210,7 @@ public static class SelfCheck
         Check(rf != null && Near(rf.Region.Size.Y, 51f) && Near(rf.Region.Size.X, 32f), "frames da Rainha 32x51");
 
         var summon = EnemyData.CreateSummon(EnemyData.CreateGoldenVariant(EnemyCatalog.Load(EnemyKind.Ficha)));
-        Check(!summon.IsGolden && summon.Dollars == 0 && !summon.GuaranteedChip && summon.ChipDropChance == 0f, "invocado: nunca Dourado, $0 e sem drop");
+        Check(!summon.IsGolden && summon.Dollars == 0 && !summon.GuaranteedChip && summon.ChipDropChance == 0f && summon.DrinkDropChance == 0f, "invocado: nunca Dourado, $0 e sem drop");
 
         Check(EnemyBrain.Create(EnemyBehavior.Tigrinho) is TigrinhoBrain && EnemyBrain.Create(EnemyBehavior.Chase) == null, "cérebros por comportamento");
     }
