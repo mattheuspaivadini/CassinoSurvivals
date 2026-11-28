@@ -18,10 +18,14 @@ public partial class HUD : CanvasLayer
     RichTextLabel weaponsText;
     float refreshTimer, bannerTimer;
     // Barra de HP do boss (topo central), montada em código.
-    Control bossBar;
+    Control bossBar, queenBossBar;
     ColorRect bossFill;
-    Label bossName;
+    TextureProgressBar queenBossFill;
+    Label bossName, queenBossName;
     const float BossBarWidth = 760f;
+    const float QueenBarScale = 4f;
+    const float QueenFillOffsetX = 27f;
+    const float QueenFillOffsetY = 18f;
 
     public override void _Ready()
     {
@@ -61,6 +65,18 @@ public partial class HUD : CanvasLayer
         BuildBossBar();
     }
 
+    static Texture2D LoadTexture(string resPath)
+    {
+        var tex = ResourceLoader.Exists(resPath) ? GD.Load<Texture2D>(resPath) : null;
+        if (tex != null) return tex;
+
+        string abs = ProjectSettings.GlobalizePath(resPath);
+        if (!System.IO.File.Exists(abs)) return null;
+        var img = new Image();
+        if (img.Load(abs) != Error.Ok) return null;
+        return ImageTexture.CreateFromImage(img);
+    }
+
     void BuildBossBar()
     {
         bossBar = new Control
@@ -76,6 +92,55 @@ public partial class HUD : CanvasLayer
         bossName.AddThemeFontSizeOverride("font_size", 20);
         bossBar.AddChild(bossName);
         AddChild(bossBar);
+
+        var frameTex = LoadTexture("res://assets/sprites/queen_healthbar_frame_empty.png");
+        var fillTex = LoadTexture("res://assets/sprites/queen_healthbar_fill.png");
+        if (frameTex != null && fillTex != null)
+        {
+            float w = frameTex.GetWidth() * QueenBarScale;
+            float h = frameTex.GetHeight() * QueenBarScale;
+            queenBossBar = new Control
+            {
+                AnchorLeft = 0.5f, AnchorRight = 0.5f,
+                OffsetLeft = -w / 2f, OffsetRight = w / 2f, OffsetTop = 64f, OffsetBottom = 64f + h,
+                MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false,
+            };
+            queenBossBar.AddChild(new TextureRect
+            {
+                Texture = frameTex,
+                TextureFilter = Control.TextureFilterEnum.Nearest,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.Scale,
+                Size = new Vector2(w, h),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            });
+            queenBossFill = new TextureProgressBar
+            {
+                TextureProgress = fillTex,
+                TextureFilter = Control.TextureFilterEnum.Nearest,
+                NinePatchStretch = false,
+                FillMode = (int)TextureProgressBar.FillModeEnum.LeftToRight,
+                MinValue = 0,
+                MaxValue = 1,
+                Step = 0.001,
+                Value = 1,
+                Position = new Vector2(QueenFillOffsetX * QueenBarScale, QueenFillOffsetY * QueenBarScale),
+                Size = new Vector2(fillTex.GetWidth(), fillTex.GetHeight()),
+                Scale = Vector2.One * QueenBarScale,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            queenBossBar.AddChild(queenBossFill);
+            queenBossName = new Label
+            {
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Position = new Vector2(QueenFillOffsetX * QueenBarScale, 32f),
+                Size = new Vector2(fillTex.GetWidth() * QueenBarScale, 28f),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            queenBossName.AddThemeFontSizeOverride("font_size", 20);
+            queenBossBar.AddChild(queenBossName);
+            AddChild(queenBossBar);
+        }
     }
 
     /// <summary>Mostra o boss vivo da sala; dourada enquanto ele está invulnerável (Trava de Fase).</summary>
@@ -87,14 +152,27 @@ public partial class HUD : CanvasLayer
             foreach (var e in spawner.Active)
                 if (e.Data != null && e.Data.IsBoss && !e.IsDead) { boss = e; break; }
 
-        bossBar.Visible = boss != null;
+        bool useQueenBar = boss != null && boss.Data.Behavior == EnemyBehavior.Rainha && queenBossBar != null;
+        bossBar.Visible = boss != null && !useQueenBar;
+        if (queenBossBar != null) queenBossBar.Visible = useQueenBar;
         if (boss == null) return;
+
         float frac = boss.MaxHp > 0f ? Mathf.Clamp(boss.Hp / boss.MaxHp, 0f, 1f) : 0f;
-        bossFill.Size = new Vector2((BossBarWidth - 6f) * frac, 18f);
         bool shielded = boss.Brain is BossBrain bb && bb.Invulnerable;
         bool fury = boss.Brain is BossBrain bf && bf.Fury;
+        string label = shielded ? $"{boss.Data.EnemyName.ToUpper()}  —  PROTEGIDO" : boss.Data.EnemyName.ToUpper();
+
+        if (useQueenBar)
+        {
+            queenBossFill.Value = frac;
+            queenBossFill.Modulate = shielded ? new Color(1f, 0.88f, 0.35f) : Colors.White;
+            queenBossName.Text = label;
+            return;
+        }
+
+        bossFill.Size = new Vector2((BossBarWidth - 6f) * frac, 18f);
         bossFill.Color = shielded ? new Color(1f, 0.82f, 0.25f) : fury ? new Color(1f, 0.35f, 0.1f) : new Color(0.9f, 0.15f, 0.2f);
-        bossName.Text = shielded ? $"{boss.Data.EnemyName.ToUpper()}  —  PROTEGIDO" : boss.Data.EnemyName.ToUpper();
+        bossName.Text = label;
     }
 
     // GameManager é autoload e sobrevive ao reload: desconecta para não chamar um nó liberado.
@@ -113,12 +191,13 @@ public partial class HUD : CanvasLayer
             if (bannerTimer <= 0f) bannerText.Visible = false;
         }
 
+        RefreshBossBar();
+
         refreshTimer -= (float)delta;
         if (refreshTimer > 0f) return;
         refreshTimer = RefreshInterval;
         RefreshWeapons();
         RefreshTimer();
-        RefreshBossBar();
     }
 
     // Cores das bebidas no HUD (mesmas dos drops): Cura, Dano, Velocidade.

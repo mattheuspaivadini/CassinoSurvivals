@@ -116,8 +116,9 @@ public partial class EnemyData : Resource
         int height = FrameHeight > 0 ? FrameHeight : size;
         AddSheetAnimation(frames, "chase", ChaseSheet, ChaseFrames, size, AnimFps, loop: true, height);
         AddSheetAnimation(frames, "chase_back", ChaseBackSheet, ChaseFrames, size, AnimFps, loop: true, height);
-        AddVerticalAnimation(frames, "attack", AttackSheet, AnimFps);
-        AddVerticalAnimation(frames, "attack_back", AttackBackSheet, AnimFps);
+        Texture2D attackSheet = AttackSheet ?? (Behavior == EnemyBehavior.Rainha ? LoadTexture("res://assets/sprites/spritesheet_rainha_ataque.png") : null);
+        AddAttackAnimation(frames, "attack", attackSheet, size, height, AnimFps);
+        AddAttackAnimation(frames, "attack_back", AttackBackSheet, size, height, AnimFps);
         AddSheetAnimation(frames, "death", DeathSheet, DeathFrames, size, AnimFps * 1.15f, loop: false, FrameHeight > 0 ? FrameHeight : size);
 
         if (!frames.HasAnimation("chase") && Sprite != null)
@@ -149,6 +150,27 @@ public partial class EnemyData : Resource
                 Region = new Rect2(i * frameSize, 0, frameSize, frameHeight)
             });
         }
+    }
+
+    static Texture2D LoadTexture(string resPath)
+    {
+        var tex = ResourceLoader.Exists(resPath) ? GD.Load<Texture2D>(resPath) : null;
+        if (tex != null) return tex;
+
+        string abs = ProjectSettings.GlobalizePath(resPath);
+        if (!System.IO.File.Exists(abs)) return null;
+        var img = new Image();
+        if (img.Load(abs) != Error.Ok) return null;
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    static void AddAttackAnimation(SpriteFrames frames, string name, Texture2D sheet, int frameSize, int frameHeight, float fps)
+    {
+        if (sheet == null) return;
+        if (sheet.GetWidth() > sheet.GetHeight())
+            AddSheetAnimation(frames, name, sheet, 0, frameSize, fps, loop: true, frameHeight);
+        else
+            AddVerticalAnimation(frames, name, sheet, fps);
     }
 
     static void AddVerticalAnimation(SpriteFrames frames, string name, Texture2D sheet, float fps)

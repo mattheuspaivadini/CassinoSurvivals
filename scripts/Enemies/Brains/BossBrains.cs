@@ -30,6 +30,7 @@ public class RainhaBrain : BossBrain
             Vector2 aim = Vector2.Zero;
             Then(0.6f, () =>
             {
+                Self.PlayAttack(0.95f);
                 aim = PlayerPos - Self.GlobalPosition;
                 Telegraph.Cone(Self, Self.GlobalPosition, aim, 6f * Units.Px, 50f, 0.6f, () => FireFan(aim, 5, 50f, ShotSpeed, CardColor), () => Self.IsDead);
             });
@@ -42,7 +43,7 @@ public class RainhaBrain : BossBrain
     {
         Then(1.2f, null, (dt, _) => Self.SteerTo(ArenaCenter, Speed * 1.5f));
         float angle = 0f, shotTimer = 0f;
-        Then(seconds, null, (dt, _) =>
+        Then(seconds, () => Self.PlayAttack(seconds), (dt, _) =>
         {
             shotTimer -= dt;
             if (shotTimer <= 0f)
@@ -62,6 +63,7 @@ public class RainhaBrain : BossBrain
     {
         Then(0.8f, () =>
         {
+            Self.PlayAttack(0.8f);
             Summon(EnemyKind.Ficha, 4, 8);
             Summon(EnemyKind.CartaEspadas, 1, 8);
         });
