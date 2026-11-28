@@ -25,6 +25,7 @@ public partial class PlayerController : RigidBody2D
 	[Signal] public delegate void HpChangedEventHandler(float hp, float max);
 
 	public float CurrentHp { get; private set; }
+	float baseMaxHp;
 	public float RadiusPx => Radius * Units.Px;
 
 	AnimatedSprite2D sprite;
@@ -53,8 +54,25 @@ public partial class PlayerController : RigidBody2D
 		if (!sprite.SpriteFrames.HasAnimation("idle") || sprite.SpriteFrames.GetFrameCount("idle") <= 0)
 			GD.PushWarning("[PlayerController] Nenhum frame de idle: confira IdleSheet/WalkSheet/RollSheet no Player.tscn.");
 		PlayAnim("idle");
-		MaxHp *= MetaProgress.HpMultiplier; // Vigor (Loja Externa)
+		baseMaxHp = MaxHp;
+		MaxHp = ComputeMaxHp(); // Vigor (Loja Externa) + HP Máximo do Caça-níquel de Melhorias
 		CurrentHp = MaxHp;
+		RunState.Changed += RefreshMaxHp;
+	}
+
+	public override void _ExitTree() => RunState.Changed -= RefreshMaxHp;
+
+	float ComputeMaxHp() => baseMaxHp * (MetaProgress.HpMultiplier + RunState.MaxHpBonus);
+
+	/// <summary>Recalcula o HP máximo após uma melhoria, mantendo a fração de vida atual.</summary>
+	void RefreshMaxHp()
+	{
+		float max = ComputeMaxHp();
+		if (Mathf.IsEqualApprox(max, MaxHp)) return;
+		float fraction = MaxHp > 0f ? CurrentHp / MaxHp : 1f;
+		MaxHp = max;
+		CurrentHp = Mathf.Min(MaxHp, MaxHp * fraction);
+		EmitSignal(SignalName.HpChanged, CurrentHp, MaxHp);
 	}
 
 	void BuildFrames()
@@ -122,14 +140,14 @@ public partial class PlayerController : RigidBody2D
 		{
 			rollDirection = input.LengthSquared() > 0.01f ? input.Normalized() : AimDirection();
 			rollTimer = RollDuration;
-			rollCooldownTimer = RollCooldown;
+			rollCooldownTimer = RollCooldown * RunState.DashCooldownMultiplier;
 			LinearVelocity = rollDirection * RollSpeed * Units.Px;
 			PlayAnim("roll_" + DirName(rollDirection));
 			AudioManager.Instance?.PlayDodgeRoll();
 			return;
 		}
 
-		LinearVelocity = input * MoveSpeed * Units.Px;
+		LinearVelocity = input * MoveSpeed * RunState.MoveSpeedMultiplier * Units.Px;
 		if (input.LengthSquared() > 0.01f)
 		{
 			sprite.FlipH = false;

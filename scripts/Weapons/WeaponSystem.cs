@@ -310,7 +310,8 @@ public partial class WeaponSystem : Node
         baseDir = baseDir.Normalized();
 
         int n = Mathf.Max(1, d.ProjectilesPerShot);
-        float damage = d.Damage(w.Level) * MetaProgress.DamageMultiplier; // Arsenal (Loja Externa)
+        // Aditivo (PDF): Arsenal da Loja Externa + Melhorias de Dano + Bebida de Dano.
+        float damage = d.Damage(w.Level) * (MetaProgress.DamageMultiplier + RunState.DamageBonus);
 
         for (int i = 0; i < n; i++)
         {

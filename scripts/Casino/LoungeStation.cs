@@ -24,18 +24,10 @@ public partial class LoungeStation : Node2D
     public int UsesInRoom { get; private set; }
     public bool IsRemoved { get; private set; }
 
-    const float SpinDuration = 1.2f; // o mesmo giro do SlotMachineUI
-    bool spinning;
-
     int promptState = int.MinValue;
-    float feedbackTimer;
 
     public override void _EnterTree() => All.Add(this);
-    public override void _ExitTree()
-    {
-        All.Remove(this);
-        if (spinning) AudioManager.Instance?.StopSlotSpin(); // o loop é do autoload e sobreviveria à cena
-    }
+    public override void _ExitTree() => All.Remove(this);
 
     public override void _Ready()
     {
@@ -66,13 +58,6 @@ public partial class LoungeStation : Node2D
     {
         if (IsRemoved) { SetPrompt(-1, string.Empty); return; }
 
-        if (feedbackTimer > 0f)
-        {
-            feedbackTimer -= (float)delta;
-            if (feedbackTimer <= 0f) promptState = int.MinValue;
-            else return;
-        }
-
         var player = PlayerController.Instance;
         var gm = GameManager.Instance;
         if (player == null || gm == null || gm.State != GameState.Playing)
@@ -98,7 +83,7 @@ public partial class LoungeStation : Node2D
 
     public bool CanInteract(int currentChips)
     {
-        if (IsRemoved) return false;
+        if (IsRemoved || NoPassivesLeft) return false;
         int usesInRun = StationType == LoungeStationType.Roulette ? RouletteUsesInRun : 0;
         int runLimit = MaxUsesPerRun > 0 ? MaxUsesPerRun : LoungeRules.RouletteDefaultRunLimit;
         return LoungeRules.CanUse(StationType, currentChips, UsesInRoom, usesInRun, CurrentStage, Cost, runLimit);
@@ -112,8 +97,26 @@ public partial class LoungeStation : Node2D
         promptState = int.MinValue;
     }
 
+    /// <summary>Roleta sem passivas restantes no catálogo fica indisponível.</summary>
+    bool NoPassivesLeft => StationType == LoungeStationType.Roulette && PassiveCatalog.Remaining(RunState.Passives) <= 0;
+
+    /// <summary>Cobra as fichas e conta o uso. Chamado pelo modal no momento do giro/compra.</summary>
+    public bool TryPay()
+    {
+        var gm = GameManager.Instance;
+        if (gm == null || !CanInteract(gm.Chips)) return false;
+        for (int i = 0; i < Cost; i++) gm.TrySpendChip();
+        RecordUse();
+        return true;
+    }
+
     int GetAvailabilityState(GameManager gm, out string text)
     {
+        if (NoPassivesLeft)
+        {
+            text = "SEM PASSIVAS RESTANTES";
+            return 2;
+        }
         int usesInRun = StationType == LoungeStationType.Roulette ? RouletteUsesInRun : 0;
         if (MaxUsesPerRun > 0 && usesInRun >= MaxUsesPerRun)
         {
@@ -137,29 +140,12 @@ public partial class LoungeStation : Node2D
         return 1;
     }
 
+    /// <summary>Abre o modal da estação; as fichas só saem quando o jogador gira/compra lá dentro.</summary>
     void Activate(GameManager gm)
     {
-        if (spinning || !CanInteract(gm.Chips)) return;
-        for (int i = 0; i < Cost; i++) gm.TrySpendChip();
-        RecordUse();
-        if (StationType == LoungeStationType.Roulette) AudioManager.Instance?.PlayRouletteSpin();
-        else if (StationType == LoungeStationType.Bar) AudioManager.Instance?.PlayDrink();
-        else SpinThenWin();
-
-        string spent = Cost == 1 ? "1 FICHA" : $"{Cost} FICHAS";
-        SetPrompt(4, $"{LoungeRules.GetDisplayName(StationType)} (-{spent})");
-        feedbackTimer = 1.2f;
-    }
-
-    async void SpinThenWin()
-    {
-        spinning = true;
-        AudioManager.Instance?.StartSlotSpin();
-        await ToSignal(GetTree().CreateTimer(SpinDuration), SceneTreeTimer.SignalName.Timeout);
-        if (!IsInstanceValid(this) || !IsInsideTree()) return; // _ExitTree já parou o giro
-        spinning = false;
-        AudioManager.Instance?.StopSlotSpin();
-        AudioManager.Instance?.PlaySlotWin();
+        if (!CanInteract(gm.Chips)) return;
+        if (StationType == LoungeStationType.WeaponSlot) SlotMachineUI.Instance?.Open(this);
+        else LoungeModalUI.Open(this);
     }
 
     void RefreshTitleLabel()
