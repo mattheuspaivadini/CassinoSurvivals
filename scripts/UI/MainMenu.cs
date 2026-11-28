@@ -47,7 +47,7 @@ public partial class MainMenu : Control
 
     Control BuildMainPage()
     {
-        var col = Page(-330f, 330f, -330f, 340f);
+        var col = Page(-330f, 330f, -370f, 380f);
 
         var title = new Label { Text = "CASSINO\nSURVIVALS", HorizontalAlignment = HorizontalAlignment.Center };
         title.AddThemeFontSizeOverride("font_size", 92);
@@ -66,6 +66,7 @@ public partial class MainMenu : Control
         col.AddChild(MakeButton("JOGAR", () => GameManager.Instance.StartNewRun(showCutscene: true), true));
         col.AddChild(MakeButton("LOJA", () => { shop.Refresh(); ShowPage(shopPage); }));
         col.AddChild(MakeButton("CONFIGURAÇÕES", () => ShowPage(settingsPage)));
+        col.AddChild(MakeButton("SANDBOX", () => GameManager.Instance.StartEnemySandbox()));
         col.AddChild(MakeButton("SAIR", () => GetTree().Quit()));
         return col;
     }
@@ -85,12 +86,13 @@ public partial class MainMenu : Control
 
     Control BuildSettingsPage()
     {
-        var col = Page(-380f, 380f, -250f, 250f);
+        var col = Page(-380f, 380f, -290f, 290f);
         col.AddChild(Header("CONFIGURAÇÕES"));
         PauseMenu.AddVolumeRow(col, "Geral", "Master");
         PauseMenu.AddVolumeRow(col, "Música", AudioManager.MusicBus);
         PauseMenu.AddVolumeRow(col, "Efeitos", AudioManager.SfxBus);
         PauseMenu.AddShakeToggle(col);
+        PauseMenu.AddFullscreenToggle(col);
         col.AddChild(MakeButton("VOLTAR  (ESC)", () => ShowPage(mainPage)));
         return col;
     }

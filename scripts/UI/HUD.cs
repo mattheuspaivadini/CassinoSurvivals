@@ -72,6 +72,9 @@ public partial class HUD : CanvasLayer
         weaponsText = GetNode<RichTextLabel>("Weapons");
 
         var gm = GameManager.Instance;
+        var sceneRoot = GetTree().CurrentScene;
+        if (gm.EnemySandboxActive && sceneRoot?.SceneFilePath == GameManager.LoungeScenePath)
+            sceneRoot.CallDeferred(Node.MethodName.AddChild, new EnemySandboxUI { Name = "EnemySandboxUI" });
         gm.ScoreChanged += UpdateScore;
         gm.ChipsChanged += UpdateChips;
         // $ da partida logo abaixo das fichas (mesmo estilo).

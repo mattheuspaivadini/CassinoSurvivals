@@ -13,6 +13,7 @@ public partial class PauseMenu : CanvasLayer
     {
         Layer = 30;
         ProcessMode = ProcessModeEnum.Always;
+        DisplaySettings.Apply();
         Build();
         root.Visible = false;
     }
@@ -65,6 +66,7 @@ public partial class PauseMenu : CanvasLayer
         AddVolumeRow(box, "Música", AudioManager.MusicBus);
         AddVolumeRow(box, "Efeitos", AudioManager.SfxBus);
         AddShakeToggle(box);
+        AddFullscreenToggle(box);
 
         box.AddChild(MakeButton("CONTINUAR  (ESC)", Close));
         box.AddChild(MakeButton("REINICIAR", () =>
@@ -87,6 +89,14 @@ public partial class PauseMenu : CanvasLayer
         var toggle = new CheckButton { Text = "Tremer a tela", ButtonPressed = GameFeel.ShakeEnabled, FocusMode = Control.FocusModeEnum.None };
         toggle.AddThemeFontSizeOverride("font_size", 30);
         toggle.Toggled += on => GameFeel.ShakeEnabled = on;
+        parent.AddChild(toggle);
+    }
+
+    public static void AddFullscreenToggle(Container parent)
+    {
+        var toggle = new CheckButton { Text = "Tela cheia", ButtonPressed = DisplaySettings.Fullscreen, FocusMode = Control.FocusModeEnum.None };
+        toggle.AddThemeFontSizeOverride("font_size", 30);
+        toggle.Toggled += on => DisplaySettings.Fullscreen = on;
         parent.AddChild(toggle);
     }
 

@@ -119,6 +119,11 @@ public static class RunState
         Changed?.Invoke();
     }
 
+    public static void RemovePassive(Passive p)
+    {
+        if (passives.Remove(p)) Changed?.Invoke();
+    }
+
     /// <summary>Blefe Perfeito: consome a carga pronta ao iniciar o dash e inicia recarga de 15s.</summary>
     public static bool TryConsumePerfectBluff()
     {

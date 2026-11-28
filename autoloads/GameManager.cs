@@ -164,6 +164,18 @@ public partial class GameManager : Node
         GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, CampaignRules.BossScenePath);
     }
 
+    /// <summary>Sandbox: troca de sala mantendo o modo de testes e a build do jogador
+    /// (armas e HP salvos; passivas e atributos já vivem no RunState).</summary>
+    public void SandboxGoTo(string scenePath)
+    {
+        if (!EnemySandboxActive) return;
+        RunState.SavePlayerBuild();
+        InLounge = scenePath == LoungeScenePath;
+        State = GameState.Playing;
+        GetTree().Paused = false;
+        GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, scenePath);
+    }
+
     /// <summary>
     /// Volta ao Menu Principal. Da tela final os $ já foram pagos; da pausa a run é abandonada
     /// sem pagar os $ dela (o PDF só paga no resumo de fim de partida).
@@ -185,6 +197,11 @@ public partial class GameManager : Node
 
     public void AdvanceFromExit()
     {
+        if (EnemySandboxActive)
+        {
+            SandboxGoTo(CampaignRules.BossScenePath);
+            return;
+        }
         if (!CampaignActive)
         {
             Victory();
