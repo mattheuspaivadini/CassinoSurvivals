@@ -31,6 +31,7 @@ public partial class PlayerController : RigidBody2D
 	public float RadiusPx => Radius * Units.Px;
 	public bool IsInvulnerable => invulnTimer > 0f;
 	public bool IsRolling => rollTimer > 0f;
+	public bool IsBluffImmune => bluffImmuneThisRoll && rollTimer > 0f;
 
 	const uint PlayerLayerBit = 2u;
 	const uint EnemyLayerBit = 4u;
@@ -42,9 +43,12 @@ public partial class PlayerController : RigidBody2D
 	float invulnTimer;
 	float rollTimer;
 	float rollCooldownTimer;
+	float bluffAuraPhase;
 	uint defaultCollisionLayer;
 	uint defaultCollisionMask;
 	bool ghosting;
+	bool bluffImmuneThisRoll;
+	bool drewBluffAura;
 	Vector2 rollDirection;
 
 	static readonly string[] Directions = { "down", "up", "left", "right" };
@@ -146,6 +150,7 @@ public partial class PlayerController : RigidBody2D
 			if (rollTimer <= 0f)
 			{
 				rollTimer = 0f;
+				bluffImmuneThisRoll = false;
 				SetGhosting(false);
 			}
 			else
@@ -162,6 +167,12 @@ public partial class PlayerController : RigidBody2D
 			rollDirection = input.LengthSquared() > 0.01f ? input.Normalized() : AimDirection();
 			rollTimer = RollDuration;
 			rollCooldownTimer = RollCooldown * RunState.DashCooldownMultiplier;
+			bluffImmuneThisRoll = RunState.TryConsumePerfectBluff();
+			if (bluffImmuneThisRoll)
+			{
+				Flash(new Color(0.35f, 0.95f, 1f));
+				GameFeel.WorldBurst(this, GlobalPosition, new Color(0.35f, 0.95f, 1f), 14, 220f);
+			}
 			SetGhosting(true);
 			LinearVelocity = rollDirection * RollSpeed * Units.Px;
 			PlayAnim("roll_" + DirName(rollDirection));
@@ -198,6 +209,19 @@ public partial class PlayerController : RigidBody2D
 		if (invulnTimer > 0f) invulnTimer = Mathf.Max(0f, invulnTimer - dt);
 		if (flashTimer > 0f) flashTimer = Mathf.Max(0f, flashTimer - dt);
 
+		bool showBluffAura = IsBluffImmune || RunState.IsPerfectBluffReady;
+		if (showBluffAura)
+		{
+			bluffAuraPhase += dt;
+			drewBluffAura = true;
+			QueueRedraw();
+		}
+		else if (drewBluffAura)
+		{
+			drewBluffAura = false;
+			QueueRedraw();
+		}
+
 		if (flashTimer > 0f) return;
 		if (invulnTimer > 0f)
 		{
@@ -210,6 +234,23 @@ public partial class PlayerController : RigidBody2D
 		}
 	}
 
+	public override void _Draw()
+	{
+		if (IsBluffImmune)
+		{
+			float r = RadiusPx * 1.45f;
+			DrawCircle(Vector2.Zero, r, new Color(0.30f, 0.95f, 1f, 0.22f));
+			DrawArc(Vector2.Zero, r, 0f, Mathf.Tau, 32, new Color(1f, 0.92f, 0.35f, 0.95f), 3.2f);
+		}
+		else if (RunState.IsPerfectBluffReady)
+		{
+			// Indicador visual do Blefe Perfeito pronto (passiva #8).
+			float pulse = 1.24f + 0.08f * Mathf.Sin(bluffAuraPhase * 5f);
+			float r = RadiusPx * pulse;
+			DrawArc(Vector2.Zero, r, 0f, Mathf.Tau, 28, new Color(0.35f, 0.96f, 1f, 0.78f), 2.4f);
+		}
+	}
+
 	/// <summary>Direção usada no rolamento quando o jogador está parado.</summary>
 	Vector2 AimDirection()
 	{
@@ -217,17 +258,43 @@ public partial class PlayerController : RigidBody2D
 		return toMouse.LengthSquared() < 1f ? Vector2.Right : toMouse.Normalized();
 	}
 
-	public void TakeDamage(float amount)
+	public void TakeDamage(float amount, bool isContact = false)
 	{
 		if (CurrentHp <= 0f || invulnTimer > 0f || GameManager.Instance.State != GameState.Playing) return;
+		// Blefe Perfeito (passiva #8): dash imune atravessa inimigos sem sofrer dano de contato.
+		if (isContact && IsBluffImmune) return;
+
 		invulnTimer = InvulnerabilityDuration;
 		CurrentHp = Mathf.Max(0f, CurrentHp - amount);
 		Flash(Colors.Red);
 		AudioManager.Instance?.PlayPlayerHurt();
 		GameFeel.Shake(Mathf.Clamp(amount * 0.4f, 4f, 14f), 0.18f);
+
+		// Virar a Mesa (passiva #7): ao sofrer dano (inclusive no dash), empurra inimigos colados.
+		if (RunState.Has(Passive.VirarAMesa)) TriggerFlipTablePulse();
+
 		if (CurrentHp <= 0f && TryRevive()) return;
 		EmitSignal(SignalName.HpChanged, CurrentHp, MaxHp);
 		if (CurrentHp <= 0f) GameManager.Instance.GameOver();
+	}
+
+	void TriggerFlipTablePulse()
+	{
+		float radiusPx = PassiveRules.FlipTableRadiusUnits * Units.Px;
+		GameFeel.PulseRing(this, GlobalPosition, radiusPx, GameFeel.Neon, 0.28f);
+		GameFeel.WorldBurst(this, GlobalPosition, GameFeel.Neon, 24, 340f);
+
+		var spawner = EnemySpawner.Instance;
+		if (spawner == null) return;
+		foreach (var enemy in spawner.Active)
+		{
+			if (enemy.IsDead || !IsInstanceValid(enemy)) continue;
+			Vector2 delta = enemy.GlobalPosition - GlobalPosition;
+			float reach = radiusPx + enemy.Radius;
+			if (delta.LengthSquared() > reach * reach) continue;
+			Vector2 dir = delta.LengthSquared() > 1f ? delta.Normalized() : Vector2.Right;
+			enemy.ApplyKnockback(dir, PassiveRules.FlipTableKnockbackSpeedPx, ignoreMass: true);
+		}
 	}
 
 	bool reviveUsed;

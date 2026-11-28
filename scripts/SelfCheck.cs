@@ -33,6 +33,107 @@ public static class SelfCheck
         MelhoriasEPassivas();
         CamadaDeDificuldade();
         ArsenalE2Slots();
+        PassivasDaRoleta();
+    }
+
+    static void PassivasDaRoleta()
+    {
+        RunState.Reset();
+
+        // 1. Calibre Pesado (+1 perfuração)
+        var sniper = Godot.GD.Load<WeaponData>("res://resources/weapons/SniperVip.tres");
+        var ak47 = Godot.GD.Load<WeaponData>("res://resources/weapons/AK47Cassino.tres");
+        Check(PassiveRules.ExtraPierce(false) == 0 && PassiveRules.ExtraPierce(true) == 1, "Calibre Pesado: +1 perfuração");
+        Check(sniper.PierceCount + PassiveRules.ExtraPierce(true) == 3, "Calibre Pesado + Sniper = 3 perfurações (atinge 4)");
+
+        // 2. Efeito Dominó
+        Check(Near(PassiveRules.DominoDamage(24f), PassiveRules.DominoMinDamage) &&
+              Near(PassiveRules.DominoDamage(140f), 49f) &&
+              Near(PassiveRules.DominoDamage(3200f), PassiveRules.DominoMaxDamage),
+            "Efeito Dominó: dano em área com piso/teto");
+
+        // 3. Gelo no Copo (-30% velocidade por 1,5s)
+        Check(Near(PassiveRules.SlowSpeedMultiplier, 0.70f) && Near(PassiveRules.SlowDuration, 1.5f), "Gelo no Copo: -30% vel por 1,5s");
+
+        // 4. Mão Quente (acumulador em ticks de 0,30s sem perder dano com armas rápidas)
+        var burn = new PassiveRules.BurnState();
+        burn.Apply(100f);
+        float drainedSingle = 0f;
+        int ticks = 0;
+        for (int i = 0; i < 40; i++)
+        {
+            float d = burn.Tick(0.05f);
+            if (d > 0f) { drainedSingle += d; ticks++; }
+        }
+        Check(Math.Abs(drainedSingle - 30f) < 0.01f && ticks == 5 && !burn.IsActive,
+            $"Mão Quente (1 tiro): drenou {drainedSingle:0.00} em {ticks} ticks");
+
+        // Rajada rápida: 5 tiros de 100 espaçados por 0,10s devem drenar exatamente 150 no total.
+        float drainedRapid = 0f;
+        for (int s = 0; s < 5; s++)
+        {
+            burn.Apply(100f);
+            drainedRapid += burn.Tick(0.05f);
+            drainedRapid += burn.Tick(0.05f);
+        }
+        for (int i = 0; i < 50; i++) drainedRapid += burn.Tick(0.05f);
+        Check(Math.Abs(drainedRapid - 150f) < 0.02f && !burn.IsActive,
+            $"Mão Quente (rajada rápida): drenou 100% do acumulado ({drainedRapid:0.00})");
+
+        // Cenário oficial da pág. 1 do Balanceamento Numérico: AK-47 Nv 10 + Arsenal 5 + 45% + Bebida Dano (Open Bar + Barman 5 = 76%) + Crítico 2x + Mão Quente = 190,01.
+        float drinkDmgMax = DrinkRules.DamageBase * DrinkRules.Efficiency(5, true); // 0.76
+        float critShot = ak47.ComputeShotDamage(10, 0.25f, 0.45f + drinkDmgMax, PassiveRules.CritMultiplier);
+        burn.Apply(critShot);
+        float burnTotal = 0f;
+        for (int i = 0; i < 40; i++) burnTotal += burn.Tick(0.05f);
+        Check(Math.Abs(critShot - 146.16f) < 0.02f && Math.Abs(critShot + burnTotal - 190.01f) < 0.02f,
+            $"Simulador pág. 1 (AK-47 Nv10 + 777 + Mão Quente = {critShot + burnTotal:0.00})");
+
+        // 5. All-In & 7. Virar a Mesa
+        Check(PassiveRules.AllInKnockbackSpeedPx > 0f && PassiveRules.FlipTableKnockbackSpeedPx > PassiveRules.AllInKnockbackSpeedPx,
+            "All-In e Virar a Mesa: parâmetros de empurrão válidos");
+        Check(EnemyCatalog.Load(EnemyKind.CartaPaus).KnockbackResistant, "Carta de Paus resiste a empurrão");
+
+        // 6. Saque Rápido (recarrega slot inativo após 2s)
+        var wi = new WeaponInstance(ak47, 1);
+        Check(wi.Tick(1f, true) && wi.Ammo == ak47.BaseMagazine - 1, "arma dispara 1 tiro antes de ir pro coldre");
+        Check(!wi.TickInactive(1.5f, false) && wi.Ammo == ak47.BaseMagazine - 1, "sem Saque Rápido não recarrega no coldre");
+        Check(!wi.TickInactive(1.9f, true) && wi.Ammo == ak47.BaseMagazine - 1, "Saque Rápido aguarda 2,0s completos");
+        Check(wi.TickInactive(0.15f, true) && wi.Ammo == ak47.BaseMagazine && !wi.IsReloading, "Saque Rápido recarrega após 2,0s");
+
+        // 8. Blefe Perfeito (pronto ao equipar, 15s de recarga após dash)
+        Check(!RunState.IsPerfectBluffReady && !RunState.TryConsumePerfectBluff(), "Blefe Perfeito inativo sem a passiva");
+        RunState.AddPassive(Passive.BlefePerfeito);
+        Check(RunState.IsPerfectBluffReady && RunState.TryConsumePerfectBluff(), "Blefe Perfeito consome no 1º dash");
+        Check(!RunState.IsPerfectBluffReady && Near(RunState.PerfectBluffCooldownLeft, 15f), "Blefe Perfeito entra em recarga de 15s");
+        RunState.Tick(14.5f);
+        Check(!RunState.IsPerfectBluffReady && !RunState.TryConsumePerfectBluff(), "Blefe Perfeito ainda recarregando em 14,5s");
+        RunState.Tick(0.6f);
+        Check(RunState.IsPerfectBluffReady, "Blefe Perfeito volta pronto após 15s");
+
+        // 9. Open Bar (+50% eficiência nas bebidas)
+        RunState.AddPassive(Passive.OpenBar);
+        Check(Near(DrinkRules.Efficiency(0, RunState.Has(Passive.OpenBar)), 1.5f), "Open Bar +50% eficiência");
+
+        // 10. Troco em Sangue (5% a cada 20 comuns e 3% por Dourado)
+        RunState.AddPassive(Passive.TrocoEmSangue);
+        for (int i = 0; i < 19; i++) Check(Near(RunState.RegisterKillForBloodChange(false), 0f), $"Troco em Sangue abate comum #{i + 1} ainda não cura");
+        Check(Near(RunState.RegisterKillForBloodChange(true), 0.03f) && RunState.BloodChangeKillCount == 19, "Troco em Sangue cura 3% no Dourado sem zerar comuns");
+        Check(Near(RunState.RegisterKillForBloodChange(false), 0.05f) && RunState.BloodChangeKillCount == 0, "Troco em Sangue cura 5% no 20º comum e reinicia contador");
+
+        // 11. 777 Crítico (20% chance de 2x)
+        Check(Near(PassiveRules.CritChance, 0.20f) && Near(PassiveRules.CritMultiplier, 2.0f), "777 Crítico: 20% chance de 2x");
+
+        // 12. Sangue Frio (até +35% vel/cadência conforme HP cai, respeitando teto +60% de movimento)
+        Check(Near(PassiveRules.ColdBloodBonus(100f, 100f), 0f) &&
+              Near(PassiveRules.ColdBloodBonus(50f, 100f), 0.175f) &&
+              Near(PassiveRules.ColdBloodBonus(0f, 100f), 0.35f), "Sangue Frio escala linearmente até +35%");
+        RunState.ApplyUpgrade(new UpgradeResult(UpgradeTarget.Player, UpgradeStat.MoveSpeed, 30));
+        RunState.ApplyUpgrade(new UpgradeResult(UpgradeTarget.Player, UpgradeStat.MoveSpeed, 15)); // +45%
+        Check(Near(RunState.MoveSpeedMultiplierFor(0.35f), RunState.MaxMoveSpeedMultiplier), "Sangue Frio respeita teto global de +60% em movimento");
+        Check(Near(RunState.FireRateMultiplierFor(0.35f), 1.35f), "Sangue Frio soma +35% na cadência");
+
+        RunState.Reset();
     }
 
     static void ArsenalE2Slots()

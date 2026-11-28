@@ -21,6 +21,8 @@ public partial class HUD : CanvasLayer
     Label hpText, scoreText, chipsText, dollarsText, timerText, bannerText;
     RichTextLabel weaponsText;
     HBoxContainer passivesRow;
+    TextureRect bluffPassiveIcon;
+    Label bluffPassiveBadge, bloodChangeBadge;
     HBoxContainer weaponSlotsRow;
     readonly WeaponSlotCard[] weaponSlotCards = new WeaponSlotCard[WeaponSystem.MaxSlots];
     readonly Dictionary<string, Texture2D> texCache = new Dictionary<string, Texture2D>();
@@ -269,6 +271,9 @@ public partial class HUD : CanvasLayer
     void RefreshPassives()
     {
         if (passivesRow == null) return;
+        bluffPassiveIcon = null;
+        bluffPassiveBadge = null;
+        bloodChangeBadge = null;
         foreach (Node child in passivesRow.GetChildren())
             child.QueueFree();
 
@@ -276,7 +281,7 @@ public partial class HUD : CanvasLayer
         {
             var tex = LoadTexture(LoungeModalUI.PassiveFramePath(p));
             if (tex == null) continue;
-            passivesRow.AddChild(new TextureRect
+            var icon = new TextureRect
             {
                 Texture = tex,
                 CustomMinimumSize = new Vector2(76f, 76f),
@@ -284,7 +289,59 @@ public partial class HUD : CanvasLayer
                 StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
                 TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
                 MouseFilter = Control.MouseFilterEnum.Ignore,
-            });
+            };
+            if (p == Passive.BlefePerfeito)
+            {
+                bluffPassiveIcon = icon;
+                bluffPassiveBadge = MakePassiveBadge(icon);
+            }
+            else if (p == Passive.TrocoEmSangue)
+            {
+                bloodChangeBadge = MakePassiveBadge(icon);
+            }
+            passivesRow.AddChild(icon);
+        }
+        RefreshPassiveBadges();
+    }
+
+    static Label MakePassiveBadge(Control parent)
+    {
+        var lbl = new Label
+        {
+            AnchorLeft = 0f, AnchorRight = 1f, AnchorTop = 1f, AnchorBottom = 1f,
+            OffsetLeft = 0f, OffsetRight = 0f, OffsetTop = -20f, OffsetBottom = 0f,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        lbl.AddThemeFontSizeOverride("font_size", 13);
+        lbl.AddThemeColorOverride("font_outline_color", Colors.Black);
+        lbl.AddThemeConstantOverride("outline_size", 3);
+        parent.AddChild(lbl);
+        return lbl;
+    }
+
+    void RefreshPassiveBadges()
+    {
+        if (bluffPassiveIcon != null && IsInstanceValid(bluffPassiveIcon) && bluffPassiveBadge != null && IsInstanceValid(bluffPassiveBadge))
+        {
+            if (RunState.IsPerfectBluffReady)
+            {
+                bluffPassiveIcon.Modulate = Colors.White;
+                bluffPassiveBadge.Text = "PRONTO";
+                bluffPassiveBadge.AddThemeColorOverride("font_color", new Color(0.35f, 1f, 0.95f));
+            }
+            else
+            {
+                bluffPassiveIcon.Modulate = new Color(0.55f, 0.55f, 0.65f);
+                bluffPassiveBadge.Text = $"{Mathf.CeilToInt(RunState.PerfectBluffCooldownLeft)}s";
+                bluffPassiveBadge.AddThemeColorOverride("font_color", new Color(1f, 0.85f, 0.35f));
+            }
+        }
+
+        if (bloodChangeBadge != null && IsInstanceValid(bloodChangeBadge))
+        {
+            bloodChangeBadge.Text = $"{RunState.BloodChangeKillCount}/{PassiveRules.BloodChangeCommonKills}";
+            bloodChangeBadge.AddThemeColorOverride("font_color", new Color(1f, 0.45f, 0.55f));
         }
     }
 
@@ -492,6 +549,7 @@ public partial class HUD : CanvasLayer
         weaponsText.Text = sb.ToString();
 
         RefreshWeaponSlotCards(list);
+        RefreshPassiveBadges();
     }
 
     void RefreshWeaponSlotCards(List<WeaponInstance> list)

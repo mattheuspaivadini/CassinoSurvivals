@@ -17,7 +17,7 @@ public class WeaponInstance
     /// <summary>Pente com o bônus de "Balas no Pente" do Caça-níquel de Melhorias.</summary>
     public int MagazineSize => Mathf.CeilToInt(Data.Magazine(Level) * RunState.MagazineMultiplier - 0.0001f);
 
-    float fireTimer, reloadTimer, reloadDuration = 1f;
+    float fireTimer, reloadTimer, reloadDuration = 1f, holsterTimer;
 
     public WeaponInstance(WeaponData data, int level)
     {
@@ -33,11 +33,36 @@ public class WeaponInstance
         Level = Mathf.Min(MaxLevel, Level + levels);
         Ammo = MagazineSize;
         reloadTimer = 0f;
+        holsterTimer = 0f;
+    }
+
+    public void ResetHolsterTimer() => holsterTimer = 0f;
+
+    /// <summary>
+    /// Saque Rápido (passiva #6): arma no slot inativo recarrega automaticamente após 2s fora da mão.
+    /// Retorna true no frame em que completa a recarga no coldre.
+    /// </summary>
+    public bool TickInactive(float dt, bool quickDrawActive)
+    {
+        if (!quickDrawActive || (!IsReloading && Ammo >= MagazineSize))
+        {
+            holsterTimer = 0f;
+            return false;
+        }
+
+        holsterTimer += dt;
+        if (holsterTimer < PassiveRules.QuickDrawDelay) return false;
+
+        Ammo = MagazineSize;
+        reloadTimer = 0f;
+        holsterTimer = 0f;
+        return true;
     }
 
     /// <summary>Avança timers. Retorna true se deve disparar neste frame.</summary>
     public bool Tick(float dt, bool hasTarget)
     {
+        holsterTimer = 0f;
         if (reloadTimer > 0f)
         {
             reloadTimer -= dt;

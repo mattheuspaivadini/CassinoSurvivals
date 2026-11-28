@@ -185,6 +185,7 @@ public partial class WeaponSystem : Node
     void Select(int index)
     {
         Selected = Mathf.Clamp(index, 0, Weapons.Count - 1);
+        Weapons[Selected].ResetHolsterTimer();
         EmitSignal(SignalName.WeaponsChanged);
     }
 
@@ -289,11 +290,28 @@ public partial class WeaponSystem : Node
         if (GameManager.Instance == null || GameManager.Instance.State != GameState.Playing) return;
         if (Weapons.Count == 0) return;
 
+        float dt = (float)delta;
+        int selectedIdx = Mathf.Clamp(Selected, 0, Weapons.Count - 1);
+
+        // Saque Rápido (passiva #6): recarrega automaticamente a arma guardada após 2s fora da mão.
+        bool quickDraw = RunState.Has(Passive.SaqueRapido);
+        bool quickReloaded = false;
+        for (int i = 0; i < Weapons.Count; i++)
+        {
+            if (i == selectedIdx) continue;
+            if (Weapons[i].TickInactive(dt, quickDraw)) quickReloaded = true;
+        }
+        if (quickReloaded)
+        {
+            AudioManager.Instance?.PlayWeaponReload();
+            EmitSignal(SignalName.WeaponsChanged);
+        }
+
         // Tick continua avançando o cooldown/recarga mesmo sem gatilho.
-        var w = Weapons[Mathf.Clamp(Selected, 0, Weapons.Count - 1)];
+        var w = Weapons[selectedIdx];
         bool trigger = AimSettings.Auto ? TryGetAutoAim(out _) : Input.IsMouseButtonPressed(MouseButton.Left);
         float reloadBefore = ReloadElapsed(w);
-        bool fired = w.Tick((float)delta, trigger);
+        bool fired = w.Tick(dt, trigger);
         // Recarga longa: o som repete a cada intervalo completado enquanto ela durar.
         if (w.IsReloading && Mathf.FloorToInt(ReloadElapsed(w) / ReloadSoundInterval) > Mathf.FloorToInt(reloadBefore / ReloadSoundInterval))
             AudioManager.Instance?.PlayWeaponReload();
@@ -366,11 +384,16 @@ public partial class WeaponSystem : Node
         baseDir = baseDir.Normalized();
 
         int n = Mathf.Max(1, d.ProjectilesPerShot);
-        // Fórmula aditiva (PDF, seção 4): DanoBase × (1 + BônusNível + Arsenal + MelhoriasDano + BebidaDano) × Crítico.
-        float damage = d.ComputeShotDamage(w.Level, MetaProgress.DamageBonus, RunState.DamageBonus);
+        // Calibre Pesado (+1 perfuração) e 777 Crítico (20% chance de 2x dano).
+        int pierce = d.PierceCount + PassiveRules.ExtraPierce(RunState.Has(Passive.CalibrePesado));
+        bool hasCrit = RunState.Has(Passive.Critico777);
 
         for (int i = 0; i < n; i++)
         {
+            bool isCrit = hasCrit && RunState.Rng.NextDouble() < PassiveRules.CritChance;
+            // Fórmula aditiva (PDF, seção 4): DanoBase × (1 + BônusNível + Arsenal + MelhoriasDano + BebidaDano) × Crítico.
+            float damage = d.ComputeShotDamage(w.Level, MetaProgress.DamageBonus, RunState.DamageBonus, isCrit ? PassiveRules.CritMultiplier : 1f);
+
             // Leque uniforme para múltiplos projéteis; dispersão leve quando arma de tiro único tem SpreadAngle > 0.
             float offset;
             if (n > 1)
@@ -383,7 +406,7 @@ public partial class WeaponSystem : Node
             var v = baseDir.Rotated(offset) * d.ProjectileSpeed; // ProjectileSpeed já é px/s
             var p = ProjectileScene.Instantiate<Projectile>();
             GetTree().CurrentScene.AddChild(p);
-            p.Launch(muzzle, v, damage, d.ProjectileLifetime, GetProjectileTexture(d), d.ProjectileScale, d.PierceCount);
+            p.Launch(muzzle, v, damage, d.ProjectileLifetime, GetProjectileTexture(d), d.ProjectileScale, pierce, isCrit);
         }
         PlayFireSound(d);
     }
