@@ -26,6 +26,24 @@ public static class SelfCheck
         SalaDeDescansoEBlockout3();
         ArenasDosAtosEBlockout2();
         NaipesEBosses();
+        CamadaDeDificuldade();
+    }
+
+    static void CamadaDeDificuldade()
+    {
+        Check(Near(DifficultyRules.HpScale(1), 1.15f) && Near(DifficultyRules.DamageScale(1), 1.10f) && Near(DifficultyRules.SpeedScale(1), 1f), "dificuldade na F1");
+        Check(Near(DifficultyRules.SpeedScale(15), 1.35f), "inimigos 35% mais rápidos na F15");
+        for (int st = 2; st <= CampaignRules.TotalStages; st++)
+            Check(DifficultyRules.SpeedScale(st) > DifficultyRules.SpeedScale(st - 1) && DifficultyRules.HpScale(st) > DifficultyRules.HpScale(st - 1), $"F{st} mais difícil que a anterior");
+
+        var baseF1 = RoundRules.For(1);
+        var f1 = DifficultyRules.Apply(baseF1);
+        Check(f1.Count > baseF1.Count && f1.Count == DifficultyRules.MobCount(baseF1.Count), "mais monstros por horda");
+        Check(f1.HpMultiplier > baseF1.HpMultiplier && f1.DamageMultiplier > baseF1.DamageMultiplier, "HP e dano acima da curva oficial");
+        var baseF10 = RoundRules.For(10);
+        var f10 = DifficultyRules.Apply(baseF10);
+        Check(f10.Boss && Near(f10.BossHp, baseF10.BossHp * DifficultyRules.BossHpScale) && f10.BossChips == baseF10.BossChips, "boss mais longo, recompensa igual");
+        Check(Near(CampaignRules.ForStage(1).HpScale, 1.00f), "curva oficial do Lemuel continua intacta");
     }
 
     static bool Near(float a, float b) => Math.Abs(a - b) < 0.001f;
