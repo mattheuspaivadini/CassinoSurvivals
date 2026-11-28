@@ -66,7 +66,8 @@ public static class MetaProgress
     }
 
     public static float HpMultiplier => 1f + 0.06f * Level(Upgrade.Vigor);
-    public static float DamageMultiplier => 1f + 0.05f * Level(Upgrade.Arsenal);
+    public static float DamageBonus => 0.05f * Level(Upgrade.Arsenal);
+    public static float DamageMultiplier => 1f + DamageBonus;
     public static float ReviveChance => 0.1f * Level(Upgrade.Imortalidade);
     /// <summary>Revive com 25% (Nv 1) até 50% (Nv 5) do HP.</summary>
     public static float ReviveHpFraction => 0.25f + 0.0625f * Mathf.Max(0, Level(Upgrade.Imortalidade) - 1);

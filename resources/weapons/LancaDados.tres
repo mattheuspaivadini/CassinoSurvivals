@@ -7,25 +7,23 @@
 
 [resource]
 script = ExtResource("1_s")
-WeaponName = "Rifle"
+WeaponName = "Rifle de Caça"
 ProjectileColor = Color(0.4, 1, 0.3, 1)
 WeaponSprite = ExtResource("2_tex")
 WeaponSpriteScale = 3.1
 MuzzleOffsetPx = 31.0
 MuzzleOffsetY = 2.0
 FiringRowIndex = 11
-BaseDamage = 18.0
-DamagePerLevel = 6.0
-BaseMagazine = 3
-MagazinePerLevel = 0.34
-BaseReloadTime = 2.5
-ReloadMultiplierPerLevel = 0.92
-FireInterval = 0.35
+BaseDamage = 44.0
+BaseMagazine = 6
+BaseReloadTime = 1.9
+FireInterval = 0.740741
 ProjectilesPerShot = 1
 SpreadAngle = 0.0
-Range = 9.0
-ProjectileSpeed = 1000.0
-ProjectileLifetime = 2.5
+Range = 14.0
+ProjectileSpeed = 1200.0
+ProjectileLifetime = 1.5
+PierceCount = 0
 ProjectileSheet = ExtResource("3_tex")
 ProjectileRegion = Rect2(32, 16, 3, 1)
 ProjectileScale = 6.0

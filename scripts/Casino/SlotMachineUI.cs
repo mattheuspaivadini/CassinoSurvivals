@@ -26,6 +26,11 @@ public partial class SlotMachineUI : CanvasLayer
     Control panel;
     Label resultText;
     Button declineButton;
+    Control replaceBox;
+    Label replacePrompt;
+    Button replaceSlot1Button, replaceSlot2Button, discardWeaponButton;
+    WeaponData pendingWeapon;
+    int pendingMatches, pendingLevels;
     bool choosing;
 
     public override void _Ready()
@@ -76,7 +81,63 @@ public partial class SlotMachineUI : CanvasLayer
         declineButton.Pressed += Decline;
         panel.AddChild(declineButton);
 
+        BuildReplacementModal();
         panel.Visible = false;
+    }
+
+    void BuildReplacementModal()
+    {
+        var box = new PanelContainer
+        {
+            AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+            OffsetLeft = -460f, OffsetRight = 460f, OffsetTop = -170f, OffsetBottom = 170f,
+            Visible = false,
+        };
+        box.AddThemeStyleboxOverride("panel", new StyleBoxFlat
+        {
+            BgColor = new Color(0.09f, 0.03f, 0.15f, 0.98f),
+            BorderColor = new Color(1f, 0.85f, 0.15f, 1f),
+            BorderWidthLeft = 3, BorderWidthRight = 3, BorderWidthTop = 3, BorderWidthBottom = 3,
+            CornerRadiusTopLeft = 10, CornerRadiusTopRight = 10, CornerRadiusBottomLeft = 10, CornerRadiusBottomRight = 10,
+            ContentMarginLeft = 28, ContentMarginRight = 28, ContentMarginTop = 22, ContentMarginBottom = 22,
+        });
+        panel.AddChild(box);
+        replaceBox = box;
+
+        var col = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        col.AddThemeConstantOverride("separation", 18);
+        box.AddChild(col);
+
+        replacePrompt = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Center,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+        };
+        replacePrompt.AddThemeFontSizeOverride("font_size", 24);
+        replacePrompt.AddThemeColorOverride("font_color", new Color(1f, 0.9f, 0.35f));
+        col.AddChild(replacePrompt);
+
+        var row = new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        row.AddThemeConstantOverride("separation", 16);
+        col.AddChild(row);
+
+        replaceSlot1Button = MakeReplaceButton(row, () => ConfirmReplace(0));
+        replaceSlot2Button = MakeReplaceButton(row, () => ConfirmReplace(1));
+        discardWeaponButton = MakeReplaceButton(row, DiscardPending);
+        discardWeaponButton.Text = "DESCARTAR";
+    }
+
+    static Button MakeReplaceButton(Container parent, System.Action onPressed)
+    {
+        var b = new Button
+        {
+            CustomMinimumSize = new Vector2(260f, 78f),
+            FocusMode = Control.FocusModeEnum.None,
+        };
+        b.AddThemeFontSizeOverride("font_size", 20);
+        b.Pressed += onPressed;
+        parent.AddChild(b);
+        return b;
     }
 
     public override void _ExitTree()
@@ -95,6 +156,8 @@ public partial class SlotMachineUI : CanvasLayer
         if (!paid) return;
 
         gm.SetPaused(true);
+        pendingWeapon = null;
+        if (replaceBox != null) replaceBox.Visible = false;
         panel.Visible = true;
         Spin();
     }
@@ -139,14 +202,60 @@ public partial class SlotMachineUI : CanvasLayer
         var chosen = reels[index];
         int matches = SlotRules.CountMatches(reels, chosen);
         int levels = SlotRules.LevelsFor(matches);
-        bool owned = WeaponSystem.Find(chosen) != null;
 
+        if (WeaponSystem.NeedsSlotReplacement(chosen))
+        {
+            ShowReplacementModal(chosen, matches, levels);
+            return;
+        }
+
+        bool owned = WeaponSystem.Find(chosen) != null;
         WeaponSystem.AddOrUpgrade(chosen, levels);
 
         int now = WeaponSystem.Find(chosen).Level;
+        string golden = now >= WeaponInstance.MaxLevel ? " (ARMA DOURADA!)" : "";
         resultText.Text = owned
-            ? $"{chosen.WeaponName} x{matches}: +{levels} nível(is)! Agora Nv {now}" + (now >= WeaponInstance.MaxLevel ? " (MÁX)" : "")
-            : $"{chosen.WeaponName} x{matches}: DESBLOQUEADA no Nv {now}!";
+            ? $"{chosen.WeaponName} x{matches}: +{levels} nível(is)! Agora Nv {now}{golden}"
+            : $"{chosen.WeaponName} x{matches}: EQUIPADA no Slot {WeaponSystem.Weapons.Count} (Nv {now})!";
+        CloseLater();
+    }
+
+    void ShowReplacementModal(WeaponData chosen, int matches, int levels)
+    {
+        pendingWeapon = chosen;
+        pendingMatches = matches;
+        pendingLevels = levels;
+
+        var s1 = WeaponSystem.Weapons[0];
+        var s2 = WeaponSystem.Weapons[1];
+        replacePrompt.Text = $"2 SLOTS OCUPADOS!\n{chosen.WeaponName} x{matches} (Nv {levels})\nSubstituir Slot 1, Slot 2 ou Descartar?";
+        replaceSlot1Button.Text = $"SUBSTITUIR SLOT 1\n{s1.Data.WeaponName} (Nv {s1.Level})";
+        replaceSlot2Button.Text = $"SUBSTITUIR SLOT 2\n{s2.Data.WeaponName} (Nv {s2.Level})";
+        replaceBox.Visible = true;
+    }
+
+    void ConfirmReplace(int slotIndex)
+    {
+        if (pendingWeapon == null) return;
+        string oldName = slotIndex < WeaponSystem.Weapons.Count ? WeaponSystem.Weapons[slotIndex].Data.WeaponName : $"Slot {slotIndex + 1}";
+        var w = pendingWeapon;
+        int matches = pendingMatches;
+        int levels = pendingLevels;
+        pendingWeapon = null;
+        replaceBox.Visible = false;
+
+        WeaponSystem.ReplaceSlot(slotIndex, w, levels);
+        resultText.Text = $"Slot {slotIndex + 1} ({oldName}) substituído por {w.WeaponName} x{matches} (Nv {levels})!";
+        CloseLater();
+    }
+
+    void DiscardPending()
+    {
+        if (pendingWeapon == null) return;
+        var w = pendingWeapon;
+        pendingWeapon = null;
+        replaceBox.Visible = false;
+        resultText.Text = $"{w.WeaponName} descartada. Suas armas continuam as mesmas.";
         CloseLater();
     }
 
@@ -193,7 +302,7 @@ public partial class SlotMachineUI : CanvasLayer
         if (key.Contains("revolver") || key.Contains("revólver")) return "res://assets/molduras/armas/revolver.png";
         if (key.Contains("escopeta") || key.Contains("shotgun")) return "res://assets/molduras/armas/escopeta.png";
         if (key.Contains("metralhadora") || key.Contains("smg") || key.Contains("machine")) return "res://assets/molduras/armas/metralhadora.png";
-        if (key.Contains("ak47")) return "res://assets/molduras/armas/ak47.png";
+        if (key.Contains("ak47") || key.Contains("ak-47")) return "res://assets/molduras/armas/ak47.png";
         if (key.Contains("m4")) return "res://assets/molduras/armas/m4.png";
         if (key.Contains("sniper")) return "res://assets/molduras/armas/sniper.png";
         if (key.Contains("rifle") || key.Contains("fuzil") || key.Contains("lancadados")) return "res://assets/molduras/armas/rifle.png";

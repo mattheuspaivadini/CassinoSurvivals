@@ -32,6 +32,107 @@ public static class SelfCheck
         BebidasEEstadoDaRun();
         MelhoriasEPassivas();
         CamadaDeDificuldade();
+        ArsenalE2Slots();
+    }
+
+    static void ArsenalE2Slots()
+    {
+        // 1. Progressão Nv 1 -> Nv 10 + Marcos Nv 5 (+15% cadência) e Nv 10 (Arma Dourada +25% dano) + Fórmula Aditiva.
+        var pistola = Godot.GD.Load<WeaponData>("res://resources/weapons/PistolaNeon.tres");
+        var revolver = Godot.GD.Load<WeaponData>("res://resources/weapons/RevolverHighRoller.tres");
+        var escopeta = Godot.GD.Load<WeaponData>("res://resources/weapons/EscopetaRoyalFlush.tres");
+        var m4 = Godot.GD.Load<WeaponData>("res://resources/weapons/M4Tatica.tres");
+        var ak47 = Godot.GD.Load<WeaponData>("res://resources/weapons/AK47Cassino.tres");
+        var mg = Godot.GD.Load<WeaponData>("res://resources/weapons/SMGViceCity.tres");
+        var rifle = Godot.GD.Load<WeaponData>("res://resources/weapons/LancaDados.tres");
+        var sniper = Godot.GD.Load<WeaponData>("res://resources/weapons/SniperVip.tres");
+
+        var all = new[] { pistola, revolver, escopeta, m4, ak47, mg, rifle, sniper };
+        Check(WeaponSystem.OfficialWeaponPaths.Length == 8, "catálogo oficial tem 8 armas");
+        for (int i = 0; i < all.Length; i++)
+        {
+            Check(all[i] != null, $"arma oficial #{i + 1} carrega");
+            Check(all[i].WeaponSprite != null, $"{all[i].WeaponName} tem sprite");
+            Check(!string.IsNullOrEmpty(SlotMachineUI.WeaponFramePath(all[i])), $"{all[i].WeaponName} tem moldura");
+        }
+        Check(SlotMachineUI.WeaponFramePath(ak47).EndsWith("ak47.png"), "moldura AK-47 mapeada");
+        Check(SlotMachineUI.WeaponFramePath(m4).EndsWith("m4.png"), "moldura M4 mapeada");
+        Check(SlotMachineUI.WeaponFramePath(sniper).EndsWith("sniper.png"), "moldura Sniper mapeada");
+
+        // Conferência da tabela oficial de DPS Real (Balanceamento Numérico, pág. 2).
+        Check(Near(pistola.LevelDamageBonus(1), 0f) && Near(pistola.LevelDamageBonus(5), 0.60f) && Near(pistola.LevelDamageBonus(9), 1.20f) && Near(pistola.LevelDamageBonus(10), 1.60f),
+            "progressão de dano +15%/nv + 25% Arma Dourada (260% no Nv 10)");
+        Check(Near(pistola.FireRateBonus(4), 0f) && Near(pistola.FireRateBonus(5), 0.15f), "marco Nv 5: +15% cadência");
+        Check(pistola.Magazine(1) == 12 && pistola.Magazine(5) == 17 && pistola.Magazine(10) == 23, "pente Pistola usa ceil(+10%/nv)");
+        Check(Near(pistola.ReloadTime(1), 1.0f) && Near(pistola.ReloadTime(5), 0.80f) && Near(pistola.ReloadTime(10), 0.55f), "recarga -5%/nv (teto -45%)");
+        Check(Math.Abs(RealDps(pistola, 1) - 28.80f) < 0.05f && Math.Abs(RealDps(pistola, 5) - 56.99f) < 0.05f && Math.Abs(RealDps(pistola, 10) - 99.44f) < 0.05f,
+            $"DPS real da Pistola bate com a planilha ({RealDps(pistola, 1):0.00}/{RealDps(pistola, 5):0.00}/{RealDps(pistola, 10):0.00})");
+        Check(Math.Abs(RealDps(sniper, 1) - 39.74f) < 0.05f && Math.Abs(RealDps(sniper, 5) - 84.59f) < 0.05f && Math.Abs(RealDps(sniper, 10) - 156.30f) < 0.05f,
+            $"DPS real da Sniper bate com a planilha ({RealDps(sniper, 1):0.00}/{RealDps(sniper, 5):0.00}/{RealDps(sniper, 10):0.00})");
+
+        // Perfuração nativa exclusiva da Sniper (2 = atinge até 3 inimigos em linha).
+        Check(sniper.PierceCount == 2, "Sniper tem perfuração 2 (atinge 3)");
+        for (int i = 0; i < 7; i++) Check(all[i].PierceCount == 0, $"{all[i].WeaponName} tem perfuração base 0");
+
+        // Fórmula aditiva: Base × (1 + Nível + Arsenal + Melhorias + Bebida) × Crítico.
+        float additive = pistola.ComputeShotDamage(5, 0.25f, 0.70f, 1f);
+        Check(Near(additive, 12f * (1f + 0.60f + 0.25f + 0.70f)), $"fórmula aditiva de dano ({additive:0.00})");
+        Check(Near(pistola.ComputeShotDamage(10, 0.25f, 0.40f, 2f), 12f * (1f + 1.60f + 0.25f + 0.40f) * 2f), "fórmula aditiva com Arma Dourada + Crítico 2x");
+
+        // 2. Sistema de 2 Slots (preenchimento automático Slot 2, soma em repetida e substituição).
+        var ws = new WeaponSystem();
+        try
+        {
+            Check(ws.AddOrUpgrade(pistola, 1) && ws.Weapons.Count == 1, "Slot 1 preenchido com Pistola");
+            Check(!ws.NeedsSlotReplacement(revolver) && ws.AddOrUpgrade(revolver, 2) && ws.Weapons.Count == 2 && ws.Weapons[1].Level == 2,
+                "Slot 2 preenchido automaticamente");
+            Check(!ws.NeedsSlotReplacement(pistola) && ws.AddOrUpgrade(pistola, 3) && ws.Weapons[0].Level == 4 && ws.Weapons.Count == 2,
+                "arma repetida soma níveis direto");
+            Check(ws.NeedsSlotReplacement(sniper) && !ws.AddOrUpgrade(sniper, 1) && ws.Weapons.Count == 2,
+                "3ª arma nova bloqueia adição direta e exige substituição");
+            Check(ws.ReplaceSlot(1, sniper, 3) && ws.Weapons.Count == 2 && ws.Weapons[1].Data == sniper && ws.Weapons[1].Level == 3 && ws.Selected == 1,
+                "substituição do Slot 2 aplica nova arma no nível sorteado");
+            ws.AddOrUpgrade(sniper, 10);
+            Check(ws.Weapons[1].Level == 10 && ws.Weapons[1].IsGolden, "Arma Dourada marcada no Nv 10");
+        }
+        finally
+        {
+            ws.Free();
+        }
+
+        // 3. SalaDescanso.tscn expõe as 8 armas no Caça-níquel de Armas e Player.tscn configura i-frames + camadas de ghosting.
+        var loungePacked = Godot.GD.Load<Godot.PackedScene>("res://scenes/levels/SalaDescanso.tscn");
+        var lounge = loungePacked.Instantiate();
+        try
+        {
+            var slotUi = lounge.GetNode<SlotMachineUI>("Canvas_SlotMachine");
+            Check(slotUi != null && slotUi.WeaponPool.Count == 8, $"SalaDescanso WeaponPool tem 8 armas (encontradas: {slotUi?.WeaponPool.Count})");
+        }
+        finally
+        {
+            lounge?.Free();
+        }
+
+        var playerPacked = Godot.GD.Load<Godot.PackedScene>("res://scenes/Player.tscn");
+        var player = playerPacked.Instantiate<PlayerController>();
+        try
+        {
+            Check(Near(player.InvulnerabilityDuration, 0.5f), "i-frames pós-dano = 0,5s");
+            Check(player.CollisionLayer == 2 && player.CollisionMask == 5, "camadas do jogador compatíveis com ghosting no dash");
+        }
+        finally
+        {
+            player?.Free();
+        }
+    }
+
+    static float RealDps(WeaponData d, int level)
+    {
+        int mag = d.Magazine(level);
+        float shotDamage = d.Damage(level) * d.ProjectilesPerShot;
+        float magTime = mag * d.FireIntervalAt(level);
+        float cycleTime = magTime + d.ReloadTime(level);
+        return (mag * shotDamage) / cycleTime;
     }
 
     static void CamadaDeDificuldade()

@@ -42,10 +42,20 @@ public partial class WeaponData : Resource
     /// <summary>Alcance em unidades de mundo (1 unidade = Units.Px pixels).</summary>
     [Export] public float Range { get; set; } = 10f;
 
+    public const float DamageBonusPerLevel = 0.15f;
+    public const float MagazineBonusPerLevel = 0.10f;
+    public const float ReloadReductionPerLevel = 0.05f;
+    public const int FireRateMilestoneLevel = 5;
+    public const float FireRateMilestoneBonus = 0.15f;
+    public const int GoldenLevel = 10;
+    public const float GoldenDamageBonus = 0.25f;
+
     [ExportGroup("Projétil")]
     /// <summary>Velocidade do projétil em pixels por segundo (já em coordenadas do Godot).</summary>
     [Export] public float ProjectileSpeed { get; set; } = 1000f;
     [Export] public float ProjectileLifetime { get; set; } = 1.2f;
+    /// <summary>Inimigos atravessados além do primeiro (0 = para no 1º alvo; Sniper = 2, atinge até 3).</summary>
+    [Export] public int PierceCount { get; set; } = 0;
     /// <summary>Folha de balas (gun_sprite_sheet.png) e o recorte exato da bala desta arma.</summary>
     [Export] public Texture2D ProjectileSheet { get; set; }
     [Export] public Rect2 ProjectileRegion { get; set; }
@@ -58,8 +68,38 @@ public partial class WeaponData : Resource
     /// <summary>Pitch base do disparo (variação aleatória de ±0,04 aplicada na reprodução).</summary>
     [Export] public float FirePitchScale { get; set; } = 1.0f;
 
-    public float Damage(int level) => BaseDamage + DamagePerLevel * (level - 1);
-    public int Magazine(int level) => BaseMagazine + Mathf.FloorToInt(MagazinePerLevel * (level - 1));
-    public float ReloadTime(int level) =>
-        Mathf.Max(MinReloadTime, BaseReloadTime * Mathf.Pow(ReloadMultiplierPerLevel, level - 1));
+    /// <summary>Bônus aditivo de dano por nível (PDF, seção 4): +15%/nv + 25% no Nv 10 (Arma Dourada).</summary>
+    public float LevelDamageBonus(int level)
+    {
+        int lv = Mathf.Clamp(level, 1, WeaponInstance.MaxLevel);
+        return DamageBonusPerLevel * (lv - 1) + (lv >= GoldenLevel ? GoldenDamageBonus : 0f);
+    }
+
+    public float Damage(int level) => BaseDamage * (1f + LevelDamageBonus(level));
+
+    /// <summary>
+    /// Fórmula aditiva de dano (PDF, seção 4):
+    /// DanoBase × (1 + BônusNível + Arsenal + MelhoriasDano + BebidaDano) × Crítico.
+    /// </summary>
+    public float ComputeShotDamage(int level, float arsenalBonus, float runDamageBonus, float critMultiplier = 1f) =>
+        BaseDamage * (1f + LevelDamageBonus(level) + arsenalBonus + runDamageBonus) * critMultiplier;
+
+    /// <summary>Pente por nível (PDF, seção 4): ceil(PenteBase × (1 + 0,10 × (Nivel - 1))).</summary>
+    public int Magazine(int level)
+    {
+        int lv = Mathf.Clamp(level, 1, WeaponInstance.MaxLevel);
+        return Mathf.Max(1, Mathf.CeilToInt(BaseMagazine * (1f + MagazineBonusPerLevel * (lv - 1)) - 0.0001f));
+    }
+
+    /// <summary>Recarga por nível (PDF, seção 4): -5% por nível (teto -45% no Nv 10).</summary>
+    public float ReloadTime(int level)
+    {
+        int lv = Mathf.Clamp(level, 1, WeaponInstance.MaxLevel);
+        return Mathf.Max(MinReloadTime, BaseReloadTime * (1f - ReloadReductionPerLevel * (lv - 1)));
+    }
+
+    /// <summary>Marco Nv 5 (PDF, seção 4): +15% de cadência de tiro permanente.</summary>
+    public float FireRateBonus(int level) => level >= FireRateMilestoneLevel ? FireRateMilestoneBonus : 0f;
+
+    public float FireIntervalAt(int level) => FireInterval / (1f + FireRateBonus(level));
 }

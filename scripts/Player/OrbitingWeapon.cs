@@ -120,11 +120,18 @@ public partial class OrbitingWeapon : Node2D
         if (name.Contains("rev", StringComparison.OrdinalIgnoreCase))
             return "res://resources/weapons/RevolverHighRoller.tres";
         if (name.Contains("metralhadora", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("machine", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("smg", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("vice", StringComparison.OrdinalIgnoreCase))
             return "res://resources/weapons/SMGViceCity.tres";
         if (name.Contains("escopeta", StringComparison.OrdinalIgnoreCase))
             return "res://resources/weapons/EscopetaRoyalFlush.tres";
+        if (name.Contains("m4", StringComparison.OrdinalIgnoreCase))
+            return "res://resources/weapons/M4Tatica.tres";
+        if (name.Contains("ak", StringComparison.OrdinalIgnoreCase))
+            return "res://resources/weapons/AK47Cassino.tres";
+        if (name.Contains("sniper", StringComparison.OrdinalIgnoreCase))
+            return "res://resources/weapons/SniperVip.tres";
         if (name.Contains("rifle", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("dados", StringComparison.OrdinalIgnoreCase))
             return "res://resources/weapons/LancaDados.tres";
@@ -142,10 +149,17 @@ public partial class OrbitingWeapon : Node2D
         if (name.Contains("rev", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("Revolver.png", StringComparison.OrdinalIgnoreCase)) return (2.8f, 17f, 2.5f);
         if (name.Contains("metralhadora", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("machine", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("smg", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("MachineGun.png", StringComparison.OrdinalIgnoreCase)) return (3.0f, 29f, 3.5f);
         if (name.Contains("escopeta", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("Shotgun.png", StringComparison.OrdinalIgnoreCase)) return (3.1f, 28f, 2.2f);
+        if (name.Contains("m4", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith("AssaultRifle1.png", StringComparison.OrdinalIgnoreCase)) return (3.0f, 29f, 4.0f);
+        if (name.Contains("ak", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith("AssaultRifle2.png", StringComparison.OrdinalIgnoreCase)) return (3.0f, 29f, 3.5f);
+        if (name.Contains("sniper", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith("SniperRifle.png", StringComparison.OrdinalIgnoreCase)) return (3.1f, 31f, 4.0f);
         if (name.Contains("rifle", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("dados", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("Rifle.png", StringComparison.OrdinalIgnoreCase)) return (3.1f, 31f, 2.0f);
@@ -156,8 +170,12 @@ public partial class OrbitingWeapon : Node2D
     {
         return name.Contains("pistola", StringComparison.OrdinalIgnoreCase) ||
                name.Contains("rev", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("m4", StringComparison.OrdinalIgnoreCase) ||
+               name.Contains("ak", StringComparison.OrdinalIgnoreCase) ||
                path.EndsWith("Pistol.png", StringComparison.OrdinalIgnoreCase) ||
-               path.EndsWith("Revolver.png", StringComparison.OrdinalIgnoreCase);
+               path.EndsWith("Revolver.png", StringComparison.OrdinalIgnoreCase) ||
+               path.EndsWith("AssaultRifle1.png", StringComparison.OrdinalIgnoreCase) ||
+               path.EndsWith("AssaultRifle2.png", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Linha e frames da folha que pertencem exatamente à arma equipada.</summary>
@@ -177,16 +195,21 @@ public partial class OrbitingWeapon : Node2D
         if (name.Contains("rev", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("Revolver.png", StringComparison.OrdinalIgnoreCase)) return (12, EarlyFrames);
         if (name.Contains("metralhadora", StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("machine", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("smg", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("vice", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("MachineGun.png", StringComparison.OrdinalIgnoreCase)) return (10, LateFrames);
         if (name.Contains("escopeta", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("Shotgun.png", StringComparison.OrdinalIgnoreCase)) return (9, LateFrames);
+        if (name.Contains("m4", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith("AssaultRifle1.png", StringComparison.OrdinalIgnoreCase)) return (9, EarlyFrames);
+        if (name.Contains("ak", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith("AssaultRifle2.png", StringComparison.OrdinalIgnoreCase)) return (10, EarlyFrames);
+        if (name.Contains("sniper", StringComparison.OrdinalIgnoreCase) ||
+            path.EndsWith("SniperRifle.png", StringComparison.OrdinalIgnoreCase)) return (12, LateFrames);
         if (name.Contains("rifle", StringComparison.OrdinalIgnoreCase) ||
             name.Contains("dados", StringComparison.OrdinalIgnoreCase) ||
             path.EndsWith("Rifle.png", StringComparison.OrdinalIgnoreCase)) return (11, LateFrames);
-        if (path.EndsWith("AssaultRifle1.png", StringComparison.OrdinalIgnoreCase)) return (9, EarlyFrames);
-        if (path.EndsWith("AssaultRifle2.png", StringComparison.OrdinalIgnoreCase)) return (10, EarlyFrames);
         return (11, EarlyFrames);
     }
 

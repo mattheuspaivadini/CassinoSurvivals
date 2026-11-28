@@ -13,6 +13,8 @@ public partial class PlayerController : RigidBody2D
 	[Export] public float RollSpeed { get; set; } = 15f;
 	[Export] public float RollDuration { get; set; } = 0.25f;
 	[Export] public float RollCooldown { get; set; } = 0.6f;
+	/// <summary>Invulnerabilidade pós-dano (PDF, seção 3: 0,5s). Evita múltiplos golpes no dash/poças.</summary>
+	[Export] public float InvulnerabilityDuration { get; set; } = 0.5f;
 	/// <summary>Raio (unidades) usado nas checagens de contato/coleta por distância.</summary>
 	[Export] public float Radius { get; set; } = 0.4f;
 
@@ -27,13 +29,22 @@ public partial class PlayerController : RigidBody2D
 	public float CurrentHp { get; private set; }
 	float baseMaxHp;
 	public float RadiusPx => Radius * Units.Px;
+	public bool IsInvulnerable => invulnTimer > 0f;
+	public bool IsRolling => rollTimer > 0f;
+
+	const uint PlayerLayerBit = 2u;
+	const uint EnemyLayerBit = 4u;
 
 	AnimatedSprite2D sprite;
 	Color baseColor;
 	string currentAnim;
 	float flashTimer;
+	float invulnTimer;
 	float rollTimer;
 	float rollCooldownTimer;
+	uint defaultCollisionLayer;
+	uint defaultCollisionMask;
+	bool ghosting;
 	Vector2 rollDirection;
 
 	static readonly string[] Directions = { "down", "up", "left", "right" };
@@ -41,6 +52,8 @@ public partial class PlayerController : RigidBody2D
 	public override void _Ready()
 	{
 		Instance = this;
+		defaultCollisionLayer = CollisionLayer;
+		defaultCollisionMask = CollisionMask;
 		sprite = GetNode<AnimatedSprite2D>("Sprite");
 		sprite.Modulate = Colors.White;
 		baseColor = Colors.White;
@@ -130,9 +143,17 @@ public partial class PlayerController : RigidBody2D
 		if (rollTimer > 0f)
 		{
 			rollTimer -= dt;
-			LinearVelocity = rollDirection * RollSpeed * Units.Px;
-			PlayAnim("roll_" + DirName(rollDirection));
-			return;
+			if (rollTimer <= 0f)
+			{
+				rollTimer = 0f;
+				SetGhosting(false);
+			}
+			else
+			{
+				LinearVelocity = rollDirection * RollSpeed * Units.Px;
+				PlayAnim("roll_" + DirName(rollDirection));
+				return;
+			}
 		}
 
 		bool canRoll = GameManager.Instance == null || GameManager.Instance.State == GameState.Playing;
@@ -141,13 +162,15 @@ public partial class PlayerController : RigidBody2D
 			rollDirection = input.LengthSquared() > 0.01f ? input.Normalized() : AimDirection();
 			rollTimer = RollDuration;
 			rollCooldownTimer = RollCooldown * RunState.DashCooldownMultiplier;
+			SetGhosting(true);
 			LinearVelocity = rollDirection * RollSpeed * Units.Px;
 			PlayAnim("roll_" + DirName(rollDirection));
 			AudioManager.Instance?.PlayDodgeRoll();
 			return;
 		}
 
-		LinearVelocity = input * MoveSpeed * RunState.MoveSpeedMultiplier * Units.Px;
+		float speedMult = Mathf.Min(RunState.MoveSpeedMultiplier, RunState.MaxMoveSpeedMultiplier);
+		LinearVelocity = input * MoveSpeed * speedMult * Units.Px;
 		if (input.LengthSquared() > 0.01f)
 		{
 			sprite.FlipH = false;
@@ -160,11 +183,31 @@ public partial class PlayerController : RigidBody2D
 		}
 	}
 
+	/// <summary>Ghosting no Dash (PDF, seção 3): atravessa inimigos sem parar por colisão, mantendo paredes.</summary>
+	void SetGhosting(bool on)
+	{
+		if (ghosting == on) return;
+		ghosting = on;
+		CollisionLayer = on ? (defaultCollisionLayer & ~PlayerLayerBit) : defaultCollisionLayer;
+		CollisionMask = on ? (defaultCollisionMask & ~EnemyLayerBit) : defaultCollisionMask;
+	}
+
 	public override void _Process(double delta)
 	{
-		if (flashTimer <= 0f) return;
-		flashTimer -= (float)delta;
-		if (flashTimer <= 0f) sprite.Modulate = baseColor;
+		float dt = (float)delta;
+		if (invulnTimer > 0f) invulnTimer = Mathf.Max(0f, invulnTimer - dt);
+		if (flashTimer > 0f) flashTimer = Mathf.Max(0f, flashTimer - dt);
+
+		if (flashTimer > 0f) return;
+		if (invulnTimer > 0f)
+		{
+			bool blink = ((int)(invulnTimer * 20f) & 1) == 0;
+			sprite.Modulate = new Color(baseColor.R, baseColor.G, baseColor.B, blink ? 0.45f : 0.95f);
+		}
+		else if (sprite.Modulate != baseColor)
+		{
+			sprite.Modulate = baseColor;
+		}
 	}
 
 	/// <summary>Direção usada no rolamento quando o jogador está parado.</summary>
@@ -176,7 +219,8 @@ public partial class PlayerController : RigidBody2D
 
 	public void TakeDamage(float amount)
 	{
-		if (CurrentHp <= 0f || GameManager.Instance.State != GameState.Playing) return;
+		if (CurrentHp <= 0f || invulnTimer > 0f || GameManager.Instance.State != GameState.Playing) return;
+		invulnTimer = InvulnerabilityDuration;
 		CurrentHp = Mathf.Max(0f, CurrentHp - amount);
 		Flash(Colors.Red);
 		AudioManager.Instance?.PlayPlayerHurt();

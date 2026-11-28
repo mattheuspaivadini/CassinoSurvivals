@@ -21,12 +21,26 @@ public partial class HUD : CanvasLayer
     Label hpText, scoreText, chipsText, dollarsText, timerText, bannerText;
     RichTextLabel weaponsText;
     HBoxContainer passivesRow;
+    HBoxContainer weaponSlotsRow;
+    readonly WeaponSlotCard[] weaponSlotCards = new WeaponSlotCard[WeaponSystem.MaxSlots];
     readonly Dictionary<string, Texture2D> texCache = new Dictionary<string, Texture2D>();
     float refreshTimer, bannerTimer;
     const float PlayerBarScale = 4f;
     const float PlayerFillOffsetX = 9f;
     const float PlayerFillOffsetY = 26f;
     const float PlayerHpFlashDuration = 0.14f;
+
+    sealed class WeaponSlotCard
+    {
+        public PanelContainer Panel;
+        public StyleBoxFlat Style;
+        public TextureRect Icon;
+        public Label Header;
+        public Label LevelLabel;
+        public Label AmmoLabel;
+        public ColorRect BarBg;
+        public ColorRect BarFill;
+    }
     sealed class BossBarView
     {
         public Control Root;
@@ -77,8 +91,11 @@ public partial class HUD : CanvasLayer
         UpdateChips(gm.Chips);
         BuildPlayerHpBar();
         BuildPassivesRow();
+        BuildWeaponSlotsBar();
+        if (WeaponSystem != null) WeaponSystem.WeaponsChanged += RefreshWeapons;
         RunState.Changed += RefreshPassives;
         RefreshPassives();
+        RefreshWeapons();
         UpdateHp(PlayerController.Instance.CurrentHp, PlayerController.Instance.MaxHp);
         bannerText.Visible = false;
         if (gm.InLounge && gm.CurrentStage == 14)
@@ -147,12 +164,106 @@ public partial class HUD : CanvasLayer
         {
             AnchorLeft = 0f, AnchorRight = 0f,
             AnchorTop = 1f, AnchorBottom = 1f,
-            OffsetLeft = 28f, OffsetRight = 1040f,
+            OffsetLeft = 28f, OffsetRight = 700f,
             OffsetTop = -104f, OffsetBottom = -20f,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
         passivesRow.AddThemeConstantOverride("separation", 10);
         AddChild(passivesRow);
+    }
+
+    /// <summary>PDF, seção 2: exibição dos 2 Slots de Arma no rodapé com nível, munição, barra de recarga e destaque dourado no Nv 10.</summary>
+    void BuildWeaponSlotsBar()
+    {
+        weaponSlotsRow = new HBoxContainer
+        {
+            AnchorLeft = 1f, AnchorRight = 1f,
+            AnchorTop = 1f, AnchorBottom = 1f,
+            OffsetLeft = -556f, OffsetRight = -28f,
+            OffsetTop = -126f, OffsetBottom = -20f,
+            Alignment = BoxContainer.AlignmentMode.End,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+        weaponSlotsRow.AddThemeConstantOverride("separation", 16);
+        AddChild(weaponSlotsRow);
+
+        for (int i = 0; i < WeaponSystem.MaxSlots; i++)
+        {
+            var style = new StyleBoxFlat
+            {
+                BgColor = new Color(0.06f, 0.03f, 0.11f, 0.84f),
+                BorderColor = new Color(0.35f, 0.30f, 0.45f, 0.7f),
+                BorderWidthLeft = 2, BorderWidthRight = 2, BorderWidthTop = 2, BorderWidthBottom = 2,
+                CornerRadiusTopLeft = 8, CornerRadiusTopRight = 8, CornerRadiusBottomLeft = 8, CornerRadiusBottomRight = 8,
+                ContentMarginLeft = 10, ContentMarginRight = 10, ContentMarginTop = 8, ContentMarginBottom = 8,
+            };
+            var panel = new PanelContainer
+            {
+                CustomMinimumSize = new Vector2(256f, 106f),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            panel.AddThemeStyleboxOverride("panel", style);
+
+            var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+            row.AddThemeConstantOverride("separation", 10);
+            panel.AddChild(row);
+
+            var icon = new TextureRect
+            {
+                CustomMinimumSize = new Vector2(72f, 72f),
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+                TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            row.AddChild(icon);
+
+            var info = new VBoxContainer
+            {
+                SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
+                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            info.AddThemeConstantOverride("separation", 3);
+            row.AddChild(info);
+
+            var header = new Label { ClipText = true, MouseFilter = Control.MouseFilterEnum.Ignore };
+            header.AddThemeFontSizeOverride("font_size", 18);
+            info.AddChild(header);
+
+            var levelLabel = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
+            levelLabel.AddThemeFontSizeOverride("font_size", 15);
+            info.AddChild(levelLabel);
+
+            var ammoLabel = new Label { MouseFilter = Control.MouseFilterEnum.Ignore };
+            ammoLabel.AddThemeFontSizeOverride("font_size", 15);
+            info.AddChild(ammoLabel);
+
+            var barBg = new ColorRect
+            {
+                CustomMinimumSize = new Vector2(146f, 10f),
+                Color = new Color(0.14f, 0.12f, 0.20f, 0.95f),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            var barFill = new ColorRect
+            {
+                AnchorLeft = 0f, AnchorRight = 0f, AnchorTop = 0f, AnchorBottom = 1f,
+                OffsetLeft = 0f, OffsetRight = 146f, OffsetTop = 0f, OffsetBottom = 0f,
+                Color = new Color(0.35f, 0.95f, 1f),
+                MouseFilter = Control.MouseFilterEnum.Ignore,
+            };
+            barBg.AddChild(barFill);
+            info.AddChild(barBg);
+
+            weaponSlotsRow.AddChild(panel);
+            weaponSlotCards[i] = new WeaponSlotCard
+            {
+                Panel = panel, Style = style, Icon = icon,
+                Header = header, LevelLabel = levelLabel, AmmoLabel = ammoLabel,
+                BarBg = barBg, BarFill = barFill,
+            };
+        }
     }
 
     void RefreshPassives()
@@ -308,6 +419,7 @@ public partial class HUD : CanvasLayer
     // GameManager é autoload e sobrevive ao reload: desconecta para não chamar um nó liberado.
     public override void _ExitTree()
     {
+        if (WeaponSystem != null && IsInstanceValid(WeaponSystem)) WeaponSystem.WeaponsChanged -= RefreshWeapons;
         RunState.Changed -= RefreshPassives;
         GameManager.Instance.ScoreChanged -= UpdateScore;
         GameManager.Instance.ChipsChanged -= UpdateChips;
@@ -358,21 +470,100 @@ public partial class HUD : CanvasLayer
 
     void RefreshWeapons()
     {
+        if (WeaponSystem == null) return;
         sb.Clear();
         AppendRunBuffs();
         var list = WeaponSystem.Weapons;
-        for (int i = 0; i < list.Count; i++)
+        if (WeaponSystem.SandboxMode && list.Count > WeaponSystem.MaxSlots)
         {
-            var w = list[i];
-            sb.Append(i == WeaponSystem.Selected ? "> " : "   ").Append("[color=#").Append(w.ColorHex).Append(']').Append(w.Data.WeaponName).Append("[/color]  Nv ")
-              .Append(w.Level).Append("  ");
-            if (w.IsReloading) sb.Append("[color=#FF5555]RECARREGANDO ").Append((int)(w.ReloadProgress * 100f)).Append("%[/color]");
-            else sb.Append(w.Ammo).Append('/').Append(w.MagazineSize);
-            sb.Append('\n');
+            for (int i = 0; i < list.Count; i++)
+            {
+                var w = list[i];
+                sb.Append(i == WeaponSystem.Selected ? "> " : "   ").Append("[color=#").Append(w.ColorHex).Append(']').Append(w.Data.WeaponName).Append("[/color]  Nv ")
+                  .Append(w.Level).Append("  ");
+                if (w.IsReloading) sb.Append("[color=#FF5555]RECARREGANDO ").Append((int)(w.ReloadProgress * 100f)).Append("%[/color]");
+                else sb.Append(w.Ammo).Append('/').Append(w.MagazineSize);
+                sb.Append('\n');
+            }
         }
+        int maxKey = WeaponSystem.SandboxMode ? Mathf.Min(list.Count, 9) : WeaponSystem.MaxSlots;
         sb.Append(AimSettings.Auto ? "[color=#7CFC9A]MIRA: AUTOMÁTICA[/color]" : "[color=#FFD54A]MIRA: MOUSE (clique atira)[/color]")
-          .Append("  [color=#AAAAAA][T] troca · [1-").Append(Mathf.Min(list.Count, 9)).Append("] arma[/color]");
+          .Append("  [color=#AAAAAA][T] troca · [1-").Append(Mathf.Max(1, maxKey)).Append(" / Scroll] arma[/color]");
         weaponsText.Text = sb.ToString();
+
+        RefreshWeaponSlotCards(list);
+    }
+
+    void RefreshWeaponSlotCards(List<WeaponInstance> list)
+    {
+        for (int i = 0; i < weaponSlotCards.Length; i++)
+        {
+            var card = weaponSlotCards[i];
+            if (card == null) continue;
+
+            if (i >= list.Count)
+            {
+                card.Icon.Texture = null;
+                card.Icon.Visible = false;
+                card.Header.Text = $"[{i + 1}] SLOT VAZIO";
+                card.Header.AddThemeColorOverride("font_color", new Color(0.55f, 0.55f, 0.65f));
+                card.LevelLabel.Text = "Caça-níquel de Armas";
+                card.LevelLabel.AddThemeColorOverride("font_color", new Color(0.45f, 0.45f, 0.55f));
+                card.AmmoLabel.Text = "—";
+                card.AmmoLabel.AddThemeColorOverride("font_color", new Color(0.45f, 0.45f, 0.55f));
+                card.BarBg.Visible = false;
+                card.Style.BgColor = new Color(0.05f, 0.03f, 0.09f, 0.62f);
+                card.Style.BorderColor = new Color(0.28f, 0.25f, 0.36f, 0.55f);
+                card.Style.BorderWidthLeft = card.Style.BorderWidthRight = card.Style.BorderWidthTop = card.Style.BorderWidthBottom = 2;
+                continue;
+            }
+
+            var w = list[i];
+            bool selected = i == WeaponSystem.Selected;
+            bool golden = w.IsGolden;
+
+            var tex = LoadTexture(SlotMachineUI.WeaponFramePath(w.Data));
+            card.Icon.Texture = tex;
+            card.Icon.Visible = tex != null;
+            card.Icon.Modulate = golden ? new Color(1f, 0.92f, 0.45f) : (selected ? Colors.White : new Color(0.75f, 0.75f, 0.8f));
+
+            card.Header.Text = $"[{i + 1}] {w.Data.WeaponName}";
+            card.Header.AddThemeColorOverride("font_color", golden ? new Color(1f, 0.88f, 0.25f) : (selected ? Colors.White : new Color(0.78f, 0.78f, 0.85f)));
+
+            card.LevelLabel.Text = golden ? "★ NV 10 · ARMA DOURADA" : $"Nv {w.Level}/{WeaponInstance.MaxLevel}" + (w.Level >= WeaponData.FireRateMilestoneLevel ? " · +15% Cad." : "");
+            card.LevelLabel.AddThemeColorOverride("font_color", golden ? new Color(1f, 0.84f, 0.18f) : new Color(0.75f, 0.85f, 1f));
+
+            card.BarBg.Visible = true;
+            float barW = card.BarBg.Size.X > 1f ? card.BarBg.Size.X : 146f;
+            if (w.IsReloading)
+            {
+                card.AmmoLabel.Text = $"RECARREGANDO {(int)(w.ReloadProgress * 100f)}%";
+                card.AmmoLabel.AddThemeColorOverride("font_color", new Color(1f, 0.42f, 0.35f));
+                card.BarFill.OffsetRight = barW * Mathf.Clamp(w.ReloadProgress, 0f, 1f);
+                card.BarFill.Color = new Color(1f, 0.45f, 0.25f);
+            }
+            else
+            {
+                int mag = Mathf.Max(1, w.MagazineSize);
+                card.AmmoLabel.Text = $"{w.Ammo} / {mag}";
+                card.AmmoLabel.AddThemeColorOverride("font_color", selected ? new Color(0.92f, 0.97f, 1f) : new Color(0.7f, 0.72f, 0.78f));
+                card.BarFill.OffsetRight = barW * Mathf.Clamp((float)w.Ammo / mag, 0f, 1f);
+                card.BarFill.Color = golden ? new Color(1f, 0.84f, 0.18f) : (selected ? new Color(0.35f, 0.95f, 1f) : new Color(0.5f, 0.55f, 0.65f));
+            }
+
+            if (golden)
+            {
+                card.Style.BgColor = selected ? new Color(0.24f, 0.17f, 0.03f, 0.95f) : new Color(0.14f, 0.10f, 0.02f, 0.82f);
+                card.Style.BorderColor = selected ? new Color(1f, 0.88f, 0.20f) : new Color(0.82f, 0.65f, 0.15f, 0.85f);
+            }
+            else
+            {
+                card.Style.BgColor = selected ? new Color(0.12f, 0.06f, 0.20f, 0.94f) : new Color(0.06f, 0.03f, 0.11f, 0.78f);
+                card.Style.BorderColor = selected ? new Color(0.35f, 0.95f, 1f) : new Color(0.38f, 0.34f, 0.48f, 0.7f);
+            }
+            int bw = selected ? 3 : 2;
+            card.Style.BorderWidthLeft = card.Style.BorderWidthRight = card.Style.BorderWidthTop = card.Style.BorderWidthBottom = bw;
+        }
     }
 
     void RefreshTimer()
