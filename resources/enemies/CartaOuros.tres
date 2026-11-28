@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spritesheet_losango_frente.png" id="2_r"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spritesheet_losango_costas.png" id="3_r"]
+[ext_resource type="Texture2D" path="res://assets/sprites/losango_animacao_atirar.png" id="4_r"]
+[ext_resource type="Texture2D" path="res://assets/sprites/losango_costas_animacao_tiro.png" id="5_r"]
+[ext_resource type="Texture2D" path="res://assets/sprites/losango_projetil.png" id="6_r"]
+
+[resource]
+script = ExtResource("1_s")
+ChaseSheet = ExtResource("2_r")
+ChaseBackSheet = ExtResource("3_r")
+AttackSheet = ExtResource("4_r")
+AttackBackSheet = ExtResource("5_r")
+ProjectileSprite = ExtResource("6_r")
+ProjectileRegion = Rect2(0, 0, 16, 32)
+EnemyName = "Carta de Ouros"
+Color = Color(1, 1, 1, 1)
+Scale = 0.8
+Mass = 1.0
+ChaseFrames = 4
+FrameSize = 40
+AnimFps = 8.0
+SpriteScale = 2.2
+MaxHp = 26.0
+ContactDamage = 6.0
+ContactCooldown = 0.6
+MoveSpeed = 3.2
+Behavior = 2
+ProjectileDamage = 9.0
+Points = 30
+GuaranteedChip = false
+Dollars = 1
+ChipDropChance = 0.005
+HealDropChance = 0.03
+PointsDropChance = 0.05
+IsBoss = false

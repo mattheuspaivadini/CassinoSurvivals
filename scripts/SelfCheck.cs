@@ -26,6 +26,7 @@ public static class SelfCheck
         BestiarioEVariantes();
         SalaDeDescansoEBlockout3();
         ArenasDosAtosEBlockout2();
+        NaipesEBosses();
         LojaExternaCompleta();
         TabelasDeSorte();
         BebidasEEstadoDaRun();
@@ -159,6 +160,60 @@ public static class SelfCheck
         Check(PassiveCatalog.Remaining(RunState.Passives) == 0 && PassiveCatalog.Draw(RunState.Passives, 2, rng).Count == 0, "catálogo esgota após 12 passivas");
         RunState.Reset();
         Check(RunState.Passives.Count == 0, "Reset zera passivas");
+    }
+
+    static void NaipesEBosses()
+    {
+        // Armadura de Boss: dentro do teto entra 100%, excedente a 20%.
+        Check(Near(EnemyRules.ApplyDpsCap(0f, 50f, 55f), 50f), "dano dentro do teto entra inteiro");
+        Check(Near(EnemyRules.ApplyDpsCap(50f, 15f, 55f), 5f + 10f * 0.2f), "excedente do teto entra a 20%");
+        Check(Near(EnemyRules.ApplyDpsCap(100f, 10f, 55f), 2f), "teto estourado no segundo: tudo a 20%");
+        Check(Near(EnemyRules.ApplyDpsCap(0f, 10f, 0f), 10f), "sem teto: dano normal");
+
+        // Trava de Fase em 50%: a barra não passa do marco.
+        Check(Near(EnemyRules.ClampToLock(1700f, 3200f, 0.5f, 500f), 100f), "golpe não atravessa a trava de 50%");
+        Check(Near(EnemyRules.ClampToLock(1600f, 3200f, 0.5f, 500f), 500f), "após a trava o dano volta ao normal");
+
+        // Geometria dos avisos.
+        Check(EnemyRules.InCircle(new Godot.Vector2(2f, 0f), Godot.Vector2.Zero, 2f) && !EnemyRules.InCircle(new Godot.Vector2(2.1f, 0f), Godot.Vector2.Zero, 2f), "ponto no círculo do aviso");
+        Check(EnemyRules.InLine(new Godot.Vector2(5f, 0.9f), Godot.Vector2.Zero, new Godot.Vector2(10f, 0f), 1f), "ponto na faixa da investida");
+        Check(!EnemyRules.InLine(new Godot.Vector2(12f, 0f), Godot.Vector2.Zero, new Godot.Vector2(10f, 0f), 1f), "fora da ponta da faixa");
+        var fan = EnemyRules.FanDirections(Godot.Vector2.Right, 5, 50f);
+        Check(fan.Length == 5 && Near(fan[2].Angle(), 0f) && Near(Godot.Mathf.RadToDeg(fan[4].Angle() - fan[0].Angle()), 50f), "leque de 5 cartas em 50°");
+
+        // Copas: teto de 6 coraçõezinhos.
+        Check(EnemyRules.SummonRoom(0, 3, 6) == 3 && EnemyRules.SummonRoom(5, 3, 6) == 1 && EnemyRules.SummonRoom(6, 3, 6) == 0, "teto de invocação");
+
+        // Recursos dos naipes e bosses.
+        var expect = new (EnemyKind kind, EnemyBehavior b)[]
+        {
+            (EnemyKind.CartaEspadas, EnemyBehavior.Espadas), (EnemyKind.CartaOuros, EnemyBehavior.Ouros),
+            (EnemyKind.CartaPaus, EnemyBehavior.Chase), (EnemyKind.CartaCopas, EnemyBehavior.Copas),
+        };
+        foreach (var (kind, b) in expect)
+        {
+            var d = EnemyCatalog.Load(kind);
+            Check(d != null && d.Behavior == b, $"{kind} carrega com o comportamento {b}");
+            Check(d.GetOrBuildFrames().HasAnimation("chase"), $"{kind} tem animação");
+        }
+        var copas = EnemyCatalog.Load(EnemyKind.CartaCopas);
+        Check(copas.SummonEnemy != null && copas.SummonEnemy.Dollars == 0, "Copas invoca coraçõezinhos de $0");
+        Check(EnemyCatalog.Load(EnemyKind.CartaPaus).KnockbackResistant, "Paus resiste a empurrão");
+        Check(EnemyCatalog.Load(EnemyKind.CartaEspadas).GetOrBuildFrames().HasAnimation("chase_back"), "Espadas tem sprite de costas");
+
+        var rainha = EnemyCatalog.LoadBoss(BossKind.Rainha);
+        var rei = EnemyCatalog.LoadBoss(BossKind.Rei);
+        var tigre = EnemyCatalog.LoadBoss(CampaignRules.ForStage(15).Boss);
+        Check(rainha.Behavior == EnemyBehavior.Rainha && rainha.IsBoss, "F5: A Rainha");
+        Check(rei.Behavior == EnemyBehavior.Rei && rei.IsBoss, "F10: O Rei de Paus");
+        Check(tigre.Behavior == EnemyBehavior.Tigrinho && tigre.EnemyName == "Tigrinho", "F15: Tigrinho é o chefe final");
+        var rf = rainha.GetOrBuildFrames().GetFrameTexture("chase", 0) as Godot.AtlasTexture;
+        Check(rf != null && Near(rf.Region.Size.Y, 51f) && Near(rf.Region.Size.X, 32f), "frames da Rainha 32x51");
+
+        var summon = EnemyData.CreateSummon(EnemyData.CreateGoldenVariant(EnemyCatalog.Load(EnemyKind.Ficha)));
+        Check(!summon.IsGolden && summon.Dollars == 0 && !summon.GuaranteedChip && summon.ChipDropChance == 0f && summon.DrinkDropChance == 0f, "invocado: nunca Dourado, $0 e sem drop");
+
+        Check(EnemyBrain.Create(EnemyBehavior.Tigrinho) is TigrinhoBrain && EnemyBrain.Create(EnemyBehavior.Chase) == null, "cérebros por comportamento");
     }
 
     static void BestiarioEVariantes()

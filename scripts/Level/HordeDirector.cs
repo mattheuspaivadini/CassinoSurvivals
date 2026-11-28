@@ -119,9 +119,34 @@ public partial class HordeDirector : Node
         return c;
     }
 
+    /// <summary>Sem export na cena, carrega o .tres padrão do tipo (as 4 cartas entram sem editar as arenas).</summary>
     void RegisterKind(EnemyKind kind, EnemyData source)
     {
+        source ??= EnemyCatalog.Load(kind);
         if (source != null) kindLookup[kind] = NormalizeCommon(source);
+    }
+
+    /// <summary>
+    /// Reforços de boss pelas portas (Guarda da Corte, Decreto, Lacaios): $0, sem drop, nunca Dourados.
+    /// Entram no total da fase já na fila, para a sala não fechar com porta pendente. Retorna false se o tipo não existe ou não há portas.
+    /// </summary>
+    public bool SummonAtDoors(EnemyKind kind, int count, System.Action<Enemy> onSpawned)
+    {
+        if (count <= 0 || doors == null || doors.Count == 0 || !kindLookup.TryGetValue(kind, out var source)) return false;
+        var data = EnemyData.CreateSummon(source);
+        roundTotal += count;
+        for (int i = 0; i < count; i++)
+        {
+            var door = doors[rng.RandiRange(0, doors.Count - 1)];
+            door.Enqueue(d =>
+            {
+                var e = EnemySpawner.Instance.Spawn(data, d.SpawnPosition, spec.HpMultiplier, damageMultiplier: spec.DamageMultiplier);
+                e.SetEntry(d.EntryPosition);
+                roundSpawned++;
+                onSpawned?.Invoke(e);
+            });
+        }
+        return true;
     }
 
     public override void _ExitTree()
@@ -219,8 +244,11 @@ public partial class HordeDirector : Node
     void SpawnBoss()
     {
         phase = Phase.BossFight;
-        var data = BossType.CloneWithSharedFrames();
+        // Rainha (F5), Rei de Paus (F10) e Tigrinho (F15, chefe final). BossType da cena é o fallback.
+        var source = EnemyCatalog.LoadBoss(stageSpec.Boss) ?? BossType;
+        var data = source.CloneWithSharedFrames();
         data.MaxHp = spec.BossHp;
+        data.BossDpsCap = stageSpec.BossDpsCap;
         data.FixedHp = true;
         data.GuaranteedChip = spec.BossChips > 0;
         data.ChipDrops = spec.BossChips;
