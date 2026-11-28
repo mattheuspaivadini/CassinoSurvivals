@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://autoloads/AudioManager.cs" id="1_am"]
 [ext_resource type="AudioStream" path="res://assets/sounds/musica_tema.mp3" id="2_music"]
@@ -12,6 +12,10 @@
 [ext_resource type="AudioStream" path="res://assets/sounds/dodge_roll.mp3" id="10_dodge_roll"]
 [ext_resource type="AudioStream" path="res://assets/sounds/roulette_spin.mp3" id="11_roulette_spin"]
 [ext_resource type="AudioStream" path="res://assets/sounds/stage_clear.mp3" id="12_stage_clear"]
+[ext_resource type="AudioStream" path="res://assets/sounds/item_pickup.mp3" id="13_item_pickup"]
+[ext_resource type="AudioStream" path="res://assets/sounds/healing.mp3" id="14_healing"]
+[ext_resource type="AudioStream" path="res://assets/sounds/normal_victory.mp3" id="15_normal_victory"]
+[ext_resource type="AudioStream" path="res://assets/sounds/drink.mp3" id="16_drink"]
 
 [node name="AudioManager" type="Node"]
 script = ExtResource("1_am")
@@ -24,8 +28,13 @@ Jackpot = ExtResource("7_jackpot_win")
 Explosion = ExtResource("8_explosion")
 WeaponReload = ExtResource("9_weapon_reload")
 DodgeRoll = ExtResource("10_dodge_roll")
+SlotSpin = ExtResource("11_roulette_spin")
 RouletteSpin = ExtResource("11_roulette_spin")
 StageClear = ExtResource("12_stage_clear")
+Pickup = ExtResource("13_item_pickup")
+Heal = ExtResource("14_healing")
+SlotWin = ExtResource("15_normal_victory")
+Drink = ExtResource("16_drink")
 
 [node name="Source" type="AudioStreamPlayer" parent="."]
 max_polyphony = 16

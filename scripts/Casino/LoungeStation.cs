@@ -24,11 +24,18 @@ public partial class LoungeStation : Node2D
     public int UsesInRoom { get; private set; }
     public bool IsRemoved { get; private set; }
 
+    const float SpinDuration = 1.2f; // o mesmo giro do SlotMachineUI
+    bool spinning;
+
     int promptState = int.MinValue;
     float feedbackTimer;
 
     public override void _EnterTree() => All.Add(this);
-    public override void _ExitTree() => All.Remove(this);
+    public override void _ExitTree()
+    {
+        All.Remove(this);
+        if (spinning) AudioManager.Instance?.StopSlotSpin(); // o loop é do autoload e sobreviveria à cena
+    }
 
     public override void _Ready()
     {
@@ -132,15 +139,27 @@ public partial class LoungeStation : Node2D
 
     void Activate(GameManager gm)
     {
-        if (!CanInteract(gm.Chips)) return;
+        if (spinning || !CanInteract(gm.Chips)) return;
         for (int i = 0; i < Cost; i++) gm.TrySpendChip();
         RecordUse();
         if (StationType == LoungeStationType.Roulette) AudioManager.Instance?.PlayRouletteSpin();
-        else AudioManager.Instance?.PlaySlotWin();
+        else if (StationType == LoungeStationType.Bar) AudioManager.Instance?.PlayDrink();
+        else SpinThenWin();
 
         string spent = Cost == 1 ? "1 FICHA" : $"{Cost} FICHAS";
         SetPrompt(4, $"{LoungeRules.GetDisplayName(StationType)} (-{spent})");
         feedbackTimer = 1.2f;
+    }
+
+    async void SpinThenWin()
+    {
+        spinning = true;
+        AudioManager.Instance?.StartSlotSpin();
+        await ToSignal(GetTree().CreateTimer(SpinDuration), SceneTreeTimer.SignalName.Timeout);
+        if (!IsInstanceValid(this) || !IsInsideTree()) return; // _ExitTree já parou o giro
+        spinning = false;
+        AudioManager.Instance?.StopSlotSpin();
+        AudioManager.Instance?.PlaySlotWin();
     }
 
     void RefreshTitleLabel()

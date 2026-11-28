@@ -45,7 +45,7 @@ public partial class Drop : Node2D
             case DropType.Heal: player.Heal(value); break;
             case DropType.Points: GameManager.Instance.AddScore((int)value); break;
         }
-        AudioManager.Instance?.PlayPickup();
+        if (type != DropType.Heal) AudioManager.Instance?.PlayPickup(); // só moedas: fichas e pontos
         QueueFree();
     }
 }
