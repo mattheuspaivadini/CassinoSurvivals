@@ -1,22 +1,29 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WeaponData" format=3 uid="uid://b0g65mpi5axdo"]
 
-[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+[ext_resource type="Script" uid="uid://obuihq4yvepn" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+[ext_resource type="Texture2D" uid="uid://d0kmmed1vj6uy" path="res://assets/GunsAssetPack/Individual_Gun_Sprites/Black_and_White_Outline/Pistol.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://cnnfcu1yg1a3c" path="res://assets/GunsAssetPack/Gun_Sprite_Sheet/gun_sprite_sheet.png" id="3_tex"]
+[ext_resource type="AudioStream" uid="uid://c6qbhq1wa0tn4" path="res://assets/GunsAssetPack/sounds/tiro_metralhadora.wav" id="4_snd"]
 
 [resource]
 script = ExtResource("1_s")
-WeaponName = "Pistola Neon"
-ProjectileColor = Color(0.2, 1.0, 1.0, 1.0)
-BaseDamage = 10.0
-DamagePerLevel = 4.0
-BaseMagazine = 8
-MagazinePerLevel = 1.0
-BaseReloadTime = 1.4
-ReloadMultiplierPerLevel = 0.92
-MinReloadTime = 0.25
-FireInterval = 0.22
-ProjectilesPerShot = 1
-SpreadAngle = 0.0
+WeaponName = "Pistola"
+ProjectileColor = Color(0.2, 1, 1, 1)
+WeaponSprite = ExtResource("2_tex")
+WeaponSpriteScale = 2.7
+MuzzleOffsetPx = 13.0
+MuzzleOffsetY = 2.5
+FiringRowIndex = 11
+BaseDamage = 12.0
+BaseMagazine = 12
+BaseReloadTime = 1.0
+FireInterval = 0.333333
 Range = 10.0
-ProjectileSpeed = 16.0
+ProjectileSpeed = 1000.0
 ProjectileLifetime = 1.2
-ProjectileScale = 0.3
+PierceCount = 0
+ProjectileSheet = ExtResource("3_tex")
+ProjectileRegion = Rect2(0, 16, 3, 1)
+ProjectileScale = 6.0
+FireSound = ExtResource("4_snd")
+FirePitchScale = 1.0

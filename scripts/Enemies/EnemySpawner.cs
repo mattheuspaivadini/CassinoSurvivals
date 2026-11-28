@@ -9,6 +9,9 @@ public partial class EnemySpawner : Node
 {
     public static EnemySpawner Instance { get; private set; }
 
+    /// <summary>false nas fases com horda finita: quem spawna é o HordeDirector (sem spawn por tempo nem boss).</summary>
+    [Export] public bool AutoSpawn { get; set; } = true;
+
     [ExportGroup("Tipos")]
     [Export] public Godot.Collections.Array<EnemyData> CommonTypes { get; set; }
     [Export] public EnemyData EliteType { get; set; }
@@ -33,16 +36,27 @@ public partial class EnemySpawner : Node
     [Export] public float SpawnMargin { get; set; } = 2f;
 
     [Signal] public delegate void BossSpawnedEventHandler();
+    /// <summary>Um inimigo saiu da lista ativa (morreu).</summary>
+    [Signal] public delegate void EnemyRemovedEventHandler();
+    /// <summary>Um inimigo extra nasceu fora do plano inicial (ex.: "Troco" da Fichona).</summary>
+    [Signal] public delegate void ExtraEnemySpawnedEventHandler();
 
     public bool HasBossSpawned { get; private set; }
+    public IReadOnlyList<Enemy> Active => active;
 
     readonly List<Enemy> active = new List<Enemy>(512);
     float timer;
 
     public override void _Ready() => Instance = this;
 
+    public override void _ExitTree()
+    {
+        if (Instance == this) Instance = null;
+    }
+
     public override void _Process(double delta)
     {
+        if (!AutoSpawn) return;
         var gm = GameManager.Instance;
         if (gm.State != GameState.Playing || PlayerController.Instance == null) return;
 
@@ -60,31 +74,39 @@ public partial class EnemySpawner : Node
 
         for (int i = 0; i < batch && active.Count < MaxAlive; i++)
         {
-            var type = GD.Randf() < elite ? EliteType : CommonTypes[GD.RandRange(0, CommonTypes.Count - 1)];
+            var baseType = CommonTypes[GD.RandRange(0, CommonTypes.Count - 1)];
+            var type = GD.Randf() < elite ? EnemyData.CreateGoldenVariant(baseType) : baseType;
             Spawn(type, RandomSpawnPosition(), hpMul);
         }
     }
 
     void SpawnBoss()
     {
-        HasBossSpawned = true;
         Spawn(BossType, RandomSpawnPosition(), 1f);
+        AnnounceBoss();
+    }
+
+    /// <summary>Som e banner de entrada do boss (também usado pelos rounds de boss da fase).</summary>
+    public void AnnounceBoss()
+    {
+        HasBossSpawned = true;
         AudioManager.Instance?.PlayBossSpawn();
         EmitSignal(SignalName.BossSpawned);
     }
 
-    public Enemy Spawn(EnemyData data, Vector2 pos, float hpMultiplier)
+    public Enemy Spawn(EnemyData data, Vector2 pos, float hpMultiplier, bool isExtra = false, float damageMultiplier = 1f)
     {
         var e = EnemyScene.Instantiate<Enemy>();
         e.Position = pos; // antes do AddChild: o corpo já nasce no lugar certo
         AddChild(e);
-        e.Init(data, hpMultiplier);
+        e.Init(data, hpMultiplier, damageMultiplier);
         e.ActiveIndex = active.Count;
         active.Add(e);
+        if (isExtra) EmitSignal(SignalName.ExtraEnemySpawned);
         return e;
     }
 
-    public void Despawn(Enemy e)
+    public void Despawn(Enemy e, bool freeNode = true)
     {
         int i = e.ActiveIndex;
         if (i < 0) return;
@@ -93,7 +115,27 @@ public partial class EnemySpawner : Node
         active[i].ActiveIndex = i;
         active.RemoveAt(last);
         e.ActiveIndex = -1;
-        e.QueueFree();
+        if (freeNode) e.QueueFree();
+        EmitSignal(SignalName.EnemyRemoved);
+    }
+
+    /// <summary>Soma de afastamento dos vizinhos que se sobrepõem (peso cai linearmente com a distância).</summary>
+    public Vector2 Separation(Enemy self)
+    {
+        Vector2 push = Vector2.Zero;
+        Vector2 p = self.GlobalPosition;
+        for (int i = 0; i < active.Count; i++)
+        {
+            var e = active[i];
+            if (e == self) continue;
+            Vector2 d = p - e.GlobalPosition;
+            float r = (self.Radius + e.Radius) * 1.3f;
+            float l2 = d.LengthSquared();
+            if (l2 < 0.0001f || l2 >= r * r) continue;
+            float l = Mathf.Sqrt(l2);
+            push += d / l * (1f - l / r);
+        }
+        return push;
     }
 
     /// <summary>Spawna fora da visão da câmera, preso dentro do mapa.</summary>

@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
+
+[resource]
+script = ExtResource("1_s")
+EnemyName = "Máquina de Caça-Níquel"
+Color = Color(1, 1, 1, 1)
+Scale = 2.4
+Mass = 500.0
+FrameSize = 32
+FrameHeight = 55
+AnimFps = 12.0
+SpriteScale = 4.0
+MaxHp = 14000.0
+ContactDamage = 18.0
+ContactCooldown = 0.8
+MoveSpeed = 2.2
+Behavior = 7
+ProjectileDamage = 11.0
+Points = 10000
+Dollars = 250
+BossDpsCap = 180.0
+FixedHp = true
+GuaranteedChip = false
+ChipDropChance = 0.0
+HealDropChance = 0.0
+PointsDropChance = 0.0
+IsBoss = true

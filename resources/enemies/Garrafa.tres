@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Enemies/Bottle/Bottle_Idle.png" id="2_idle"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Enemies/Bottle/Bottle_Chase.png" id="3_chase"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Enemies/Bottle/Bottle_Death.png" id="4_death"]
+
+[resource]
+script = ExtResource("1_s")
+EnemyName = "Garrafa de Champanhe"
+Color = Color(1, 1, 1, 1)
+Scale = 0.75
+Mass = 1.0
+IdleSheet = ExtResource("2_idle")
+IdleFrames = 4
+ChaseSheet = ExtResource("3_chase")
+ChaseFrames = 6
+DeathSheet = ExtResource("4_death")
+DeathFrames = 3
+FrameSize = 32
+AnimFps = 12.0
+SpriteScale = 2.8
+MaxHp = 36.0
+ContactDamage = 10.0
+ContactCooldown = 0.6
+MoveSpeed = 4.6
+FixedHp = false
+Flanker = false
+Explodes = true
+ExplosionDamage = 22.0
+ExplosionRadius = 1.9
+ExplosionTriggerRange = 1.15
+ExplosionFuse = 0.5
+PuddleDamagePerSecond = 6.0
+PuddleRadius = 1.6
+PuddleDuration = 4.0
+GoldenPuddleDuration = 6.0
+Points = 25
+GuaranteedChip = false
+Dollars = 1
+ChipDropChance = 0.005
+HealDropChance = 0.03
+PointsDropChance = 0.05
+IsBoss = false

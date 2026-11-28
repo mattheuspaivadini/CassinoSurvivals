@@ -1,22 +1,29 @@
-[gd_resource type="Resource" script_class="WeaponData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WeaponData" format=3 uid="uid://cbf6js3a53x0h"]
 
-[ext_resource type="Script" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+[ext_resource type="Script" uid="uid://obuihq4yvepn" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+[ext_resource type="Texture2D" uid="uid://bqrftolrp84rb" path="res://assets/GunsAssetPack/Individual_Gun_Sprites/Black_and_White_Outline/Revolver.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://cnnfcu1yg1a3c" path="res://assets/GunsAssetPack/Gun_Sprite_Sheet/gun_sprite_sheet.png" id="3_tex"]
+[ext_resource type="AudioStream" uid="uid://bn5deoc2rl3lb" path="res://assets/GunsAssetPack/sounds/tiro_pistola.wav" id="4_snd"]
 
 [resource]
 script = ExtResource("1_s")
-WeaponName = "Revólver High Roller"
-ProjectileColor = Color(1.0, 0.85, 0.2, 1.0)
-BaseDamage = 35.0
-DamagePerLevel = 12.0
+WeaponName = "Revólver"
+ProjectileColor = Color(1, 0.85, 0.2, 1)
+WeaponSprite = ExtResource("2_tex")
+WeaponSpriteScale = 2.8
+MuzzleOffsetPx = 17.0
+MuzzleOffsetY = 2.5
+FiringRowIndex = 12
+BaseDamage = 26.0
 BaseMagazine = 6
-MagazinePerLevel = 0.5
-BaseReloadTime = 2.0
-ReloadMultiplierPerLevel = 0.92
-MinReloadTime = 0.25
-FireInterval = 0.6
-ProjectilesPerShot = 1
-SpreadAngle = 0.0
-Range = 14.0
-ProjectileSpeed = 24.0
+BaseReloadTime = 1.1
+FireInterval = 0.434783
+Range = 12.0
+ProjectileSpeed = 1000.0
 ProjectileLifetime = 1.2
-ProjectileScale = 0.4
+PierceCount = 0
+ProjectileSheet = ExtResource("3_tex")
+ProjectileRegion = Rect2(32, 16, 3, 1)
+ProjectileScale = 6.0
+FireSound = ExtResource("4_snd")
+FirePitchScale = 0.92

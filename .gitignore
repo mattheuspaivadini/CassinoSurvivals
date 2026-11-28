@@ -39,3 +39,6 @@ bin/
 obj/
 .mono/
 data_*/
+
+opencode.json
+sons_modificados/

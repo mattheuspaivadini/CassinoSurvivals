@@ -1,4 +1,4 @@
-[gd_scene load_steps=30 format=3]
+[gd_scene load_steps=35 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/sprites/FloorTile.png" id="1_tex"]
 [ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_tex"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="4_scr"]
 [ext_resource type="Script" path="res://scripts/Enemies/EnemySpawner.cs" id="5_scr"]
 [ext_resource type="Resource" path="res://resources/enemies/Capanga.tres" id="6_res"]
+[ext_resource type="Resource" path="res://resources/enemies/Garrafa.tres" id="6b_res"]
 [ext_resource type="Resource" path="res://resources/enemies/CrupieVeloz.tres" id="7_res"]
 [ext_resource type="Resource" path="res://resources/enemies/SegurancaElite.tres" id="8_res"]
 [ext_resource type="Resource" path="res://resources/enemies/Tigrinho.tres" id="9_res"]
@@ -24,7 +25,11 @@
 [ext_resource type="Resource" path="res://resources/weapons/SMGViceCity.tres" id="22_res"]
 [ext_resource type="Resource" path="res://resources/weapons/RevolverHighRoller.tres" id="23_res"]
 [ext_resource type="Resource" path="res://resources/weapons/LancaDados.tres" id="24_res"]
+[ext_resource type="Resource" path="res://resources/weapons/M4Tatica.tres" id="27_res"]
+[ext_resource type="Resource" path="res://resources/weapons/AK47Cassino.tres" id="28_res"]
+[ext_resource type="Resource" path="res://resources/weapons/SniperVip.tres" id="29_res"]
 [ext_resource type="Script" path="res://scripts/UI/EndScreenUI.cs" id="25_scr"]
+[ext_resource type="Script" path="res://scripts/MainController.cs" id="26_scr"]
 
 [sub_resource type="RectangleShape2D" id="1_sh"]
 size = Vector2(3720.0, 60.0)
@@ -38,7 +43,11 @@ size = Vector2(60.0, 3720.0)
 [sub_resource type="RectangleShape2D" id="4_sh"]
 size = Vector2(60.0, 3720.0)
 
-[node name="Main" type="Node2D"]
+[node name="Main" type="Node2D" node_paths=PackedStringArray("EnemySpawner", "WeaponSystem")]
+script = ExtResource("26_scr")
+DebugWeaponSandbox = false
+EnemySpawner = NodePath("Managers/EnemySpawner")
+WeaponSystem = NodePath("Player/WeaponSystem")
 
 [node name="Map" type="Node2D" parent="."]
 
@@ -113,7 +122,7 @@ shape = SubResource("4_sh")
 
 [node name="EnemySpawner" type="Node" parent="Managers"]
 script = ExtResource("5_scr")
-CommonTypes = Array[ExtResource("4_scr")]([ExtResource("6_res"), ExtResource("7_res")])
+CommonTypes = Array[ExtResource("4_scr")]([ExtResource("7_res"), ExtResource("7_res"), ExtResource("6b_res"), ExtResource("6_res")])
 EliteType = ExtResource("8_res")
 BossType = ExtResource("9_res")
 EnemyScene = ExtResource("10_pac")
@@ -281,7 +290,7 @@ theme_override_font_sizes/font_size = 64
 [node name="Canvas_SlotMachine" type="CanvasLayer" parent="." node_paths=PackedStringArray("WeaponSystem")]
 layer = 10
 script = ExtResource("19_scr")
-WeaponPool = Array[ExtResource("18_scr")]([ExtResource("20_res"), ExtResource("21_res"), ExtResource("22_res"), ExtResource("23_res"), ExtResource("24_res")])
+WeaponPool = Array[ExtResource("18_scr")]([ExtResource("20_res"), ExtResource("23_res"), ExtResource("21_res"), ExtResource("27_res"), ExtResource("28_res"), ExtResource("22_res"), ExtResource("24_res"), ExtResource("29_res")])
 WeaponSystem = NodePath("../Player/WeaponSystem")
 
 [node name="Panel" type="ColorRect" parent="Canvas_SlotMachine"]

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spritesheet_chefe_paus_frente.png" id="2_r"]
+[ext_resource type="Texture2D" path="res://assets/sprites/spritesheet_chefe_paus_costas.png" id="3_r"]
+
+[resource]
+script = ExtResource("1_s")
+ChaseSheet = ExtResource("2_r")
+ChaseBackSheet = ExtResource("3_r")
+EnemyName = "Carta de Paus"
+Color = Color(1, 1, 1, 1)
+Scale = 1.0
+Mass = 6.0
+ChaseFrames = 4
+FrameSize = 32
+FrameHeight = 51
+AnimFps = 8.0
+SpriteScale = 2.4
+MaxHp = 95.0
+ContactDamage = 20.0
+ContactCooldown = 0.7
+MoveSpeed = 2.4
+KnockbackResistant = true
+Points = 40
+GuaranteedChip = false
+Dollars = 1
+ChipDropChance = 0.005
+HealDropChance = 0.03
+PointsDropChance = 0.05
+IsBoss = false

@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="WeaponData" format=3]
+
+[ext_resource type="Script" uid="uid://obuihq4yvepn" path="res://scripts/Resources/WeaponData.cs" id="1_s"]
+[ext_resource type="Texture2D" uid="uid://bd1px1qdhxhl5" path="res://assets/GunsAssetPack/Individual_Gun_Sprites/Black_and_White_Outline/AssaultRifle1.png" id="2_tex"]
+[ext_resource type="Texture2D" uid="uid://cnnfcu1yg1a3c" path="res://assets/GunsAssetPack/Gun_Sprite_Sheet/gun_sprite_sheet.png" id="3_tex"]
+[ext_resource type="AudioStream" path="res://assets/sounds/machine_gun_fire.mp3" id="4_snd"]
+
+[resource]
+script = ExtResource("1_s")
+WeaponName = "M4"
+ProjectileColor = Color(0.35, 0.78, 1, 1)
+WeaponSprite = ExtResource("2_tex")
+WeaponSpriteScale = 3.0
+MuzzleOffsetPx = 29.0
+MuzzleOffsetY = 4.0
+FiringRowIndex = 9
+BaseDamage = 11.0
+BaseMagazine = 28
+BaseReloadTime = 1.6
+FireInterval = 0.2
+ProjectilesPerShot = 1
+SpreadAngle = 0.0
+Range = 11.0
+ProjectileSpeed = 1050.0
+ProjectileLifetime = 1.2
+PierceCount = 0
+ProjectileSheet = ExtResource("3_tex")
+ProjectileRegion = Rect2(0, 16, 3, 1)
+ProjectileScale = 6.0
+FireSound = ExtResource("4_snd")
+FirePitchScale = 1.12

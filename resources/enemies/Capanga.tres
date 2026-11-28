@@ -1,23 +1,33 @@
-[gd_resource type="Resource" script_class="EnemyData" load_steps=3 format=3]
+[gd_resource type="Resource" script_class="EnemyData" load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/Resources/EnemyData.cs" id="1_s"]
-[ext_resource type="Texture2D" path="res://assets/sprites/Square.png" id="2_t"]
+[ext_resource type="Texture2D" path="res://assets/Dicehead and Casino Asset Pack/Enemies/Poker_Chip_Boss/Boss_Chase.png" id="2_chase"]
+[ext_resource type="Resource" path="res://resources/enemies/CrupieVeloz.tres" id="3_ficha"]
 
 [resource]
 script = ExtResource("1_s")
-EnemyName = "Capanga"
-Sprite = ExtResource("2_t")
-Color = Color(0.9, 0.2, 0.25, 1.0)
-Scale = 0.8
-Mass = 1.0
-MaxHp = 20.0
-ContactDamage = 8.0
+EnemyName = "Fichona"
+Color = Color(1, 1, 1, 1)
+Scale = 1.35
+Mass = 4.0
+ChaseSheet = ExtResource("2_chase")
+ChaseFrames = 8
+FrameSize = 64
+AnimFps = 9.0
+SpriteScale = 2.2
+MaxHp = 140.0
+ContactDamage = 16.0
 ContactCooldown = 0.6
 MoveSpeed = 2.6
 FixedHp = false
-Points = 10
+Flanker = false
+SplitEnemy = ExtResource("3_ficha")
+SplitMinCount = 3
+SplitMaxCount = 4
+Points = 40
 GuaranteedChip = false
+Dollars = 1
 ChipDropChance = 0.005
-HealDropChance = 0.03
-PointsDropChance = 0.05
+HealDropChance = 0.04
+PointsDropChance = 0.06
 IsBoss = false
