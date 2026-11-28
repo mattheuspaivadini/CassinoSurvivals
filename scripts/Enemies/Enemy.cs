@@ -247,8 +247,15 @@ public partial class Enemy : RigidBody2D
         sprite.Play(name);
     }
 
-    /// <summary>Morte sem recompensa e sem explosão (invocados quando o dono cai).</summary>
+    /// <summary>Morte sem recompensa e sem explosão (invocados quando o dono cai ou limpeza do Sandbox).</summary>
     public void Kill() => ResolveDeath(killedByPlayer: false, explode: false);
+
+    /// <summary>Modo Sandbox (#23): ajusta o HP atual para testar transições de Trava de Fase e Fúria.</summary>
+    public void SetHpForDebug(float newHp)
+    {
+        if (dead) return;
+        hp = Mathf.Clamp(newHp, 1f, MaxHp);
+    }
 
     /// <summary>Ao sair de uma porta, anda até este ponto antes de perseguir (não fica preso no batente).</summary>
     public void SetEntry(Vector2 worldPos)
@@ -485,8 +492,9 @@ public partial class Enemy : RigidBody2D
             sprite.AnimationFinished += QueueFree;
         }
 
-        // Na fase com rounds quem encerra é a saída; no modo antigo o boss vence a partida.
-        if (boss && HordeDirector.Instance == null) GameManager.Instance?.Victory();
+        // Na fase com rounds quem encerra é a saída; no modo antigo o boss vence a partida (exceto no Sandbox).
+        bool sandbox = GameManager.Instance != null && GameManager.Instance.EnemySandboxActive;
+        if (boss && HordeDirector.Instance == null && !sandbox) GameManager.Instance?.Victory();
     }
 
     void TriggerDominoExplosion()
