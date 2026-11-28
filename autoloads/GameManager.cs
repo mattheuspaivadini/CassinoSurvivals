@@ -8,6 +8,7 @@ public enum GameState { Playing, Paused, GameOver, Victory }
 public partial class GameManager : Node
 {
     public const string CutsceneScenePath = "res://scenes/Cutscene.tscn";
+    public const string MainMenuScenePath = "res://scenes/MainMenu.tscn";
     public const string LoungeScenePath = "res://scenes/levels/SalaDescanso.tscn";
 
     public static GameManager Instance { get; private set; }
@@ -133,6 +134,24 @@ public partial class GameManager : Node
         GetTree().Paused = false;
         string target = showCutscene ? CutsceneScenePath : CampaignRules.ForStage(1).ScenePath;
         GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, target);
+    }
+
+    /// <summary>
+    /// Volta ao Menu Principal. Da tela final os $ já foram pagos; da pausa a run é abandonada
+    /// sem pagar os $ dela (o PDF só paga no resumo de fim de partida).
+    /// </summary>
+    public void GoToMainMenu()
+    {
+        Score = Chips = RunDollars = CashedOutChips = 0;
+        Elapsed = 0f;
+        CurrentStage = 1;
+        InLounge = false;
+        CampaignActive = false;
+        LoungeStation.RouletteUsesInRun = 0;
+        RunState.Reset();
+        State = GameState.Playing;
+        GetTree().Paused = false;
+        GetTree().CallDeferred(SceneTree.MethodName.ChangeSceneToFile, MainMenuScenePath);
     }
 
     public void AdvanceFromExit()
