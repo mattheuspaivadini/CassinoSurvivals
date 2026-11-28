@@ -56,6 +56,12 @@ public partial class SlotMachineUI : CanvasLayer
         panel.Visible = false;
     }
 
+    public override void _ExitTree()
+    {
+        if (Instance == this) Instance = null;
+        AudioManager.Instance?.StopSlotSpin(); // o player é do autoload: sem isto o loop sobreviveria à cena
+    }
+
     /// <summary>Sem estação (máquina antiga da arena/sandbox): custa 1 ficha.</summary>
     public void Open(LoungeStation fromStation = null)
     {
@@ -74,7 +80,7 @@ public partial class SlotMachineUI : CanvasLayer
     {
         SetButtons(false);
         resultText.Text = "Girando...";
-        AudioManager.Instance?.PlaySlotSpin();
+        AudioManager.Instance?.StartSlotSpin();
 
         // Sorte (Tabela A) decide o tier ANTES da animação; os rolos só exibem o resultado.
         int tier = LuckTables.RollWeaponTier(MetaProgress.LuckLevel, RunState.Rng);
@@ -87,10 +93,12 @@ public partial class SlotMachineUI : CanvasLayer
         }
 
         for (int i = 0; i < 3; i++) ShowReel(i, reels[i]);
+        AudioManager.Instance?.StopSlotSpin();
 
-        bool jackpot = tier >= 3;
+        bool jackpot = SlotRules.IsJackpot(reels);
         resultText.Text = jackpot ? "JACKPOT!!! Escolha sua arma" : "Escolha uma arma ou recuse o giro";
         if (jackpot) AudioManager.Instance?.PlayJackpot();
+        else AudioManager.Instance?.PlaySlotWin();
         SetButtons(true);
         choosing = true;
     }
@@ -107,7 +115,6 @@ public partial class SlotMachineUI : CanvasLayer
         bool owned = WeaponSystem.Find(chosen) != null;
 
         WeaponSystem.AddOrUpgrade(chosen, levels);
-        AudioManager.Instance?.PlaySlotWin();
 
         int now = WeaponSystem.Find(chosen).Level;
         resultText.Text = owned

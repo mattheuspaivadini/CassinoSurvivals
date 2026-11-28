@@ -265,6 +265,7 @@ public partial class HordeDirector : Node
             return;
         }
         if (roundKilled < roundTotal) return;
+        AudioManager.Instance?.PlayStageClear();
 
         int clearDollars = spec.RoomClearDollars > 0 ? spec.RoomClearDollars : (spec.Boss ? 0 : RoundClearDollars);
         if (clearDollars > 0) GameManager.Instance.AddDollars(clearDollars);

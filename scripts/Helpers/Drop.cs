@@ -46,7 +46,7 @@ public partial class Drop : Node2D
             case DropType.Points: GameManager.Instance.AddScore((int)value); break;
             case DropType.Drink: RunState.Consume((DrinkType)(int)value); break;
         }
-        if (type != DropType.Drink) AudioManager.Instance?.PlayPickup(); // Consume já toca o som da bebida
+        if (type != DropType.Heal && type != DropType.Drink) AudioManager.Instance?.PlayPickup(); // cura e bebida têm som próprio
         QueueFree();
     }
 }
