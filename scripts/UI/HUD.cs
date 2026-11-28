@@ -121,9 +121,39 @@ public partial class HUD : CanvasLayer
         RefreshBossBar();
     }
 
+    // Cores das bebidas no HUD (mesmas dos drops): Cura, Dano, Velocidade.
+    static readonly string[] DrinkHex = { "FF73BF", "FF5933", "B373FF" };
+
+    /// <summary>Bebidas ativas com segundos restantes e passivas da run, logo abaixo da barra de HP.</summary>
+    void AppendRunBuffs()
+    {
+        bool any = false;
+        for (int i = 0; i < DrinkRules.Count; i++)
+        {
+            var t = (DrinkType)i;
+            if (!RunState.IsActive(t)) continue;
+            sb.Append("[color=#").Append(DrinkHex[i]).Append("]● ").Append(DrinkRules.Name(t)).Append(' ')
+              .Append(Mathf.CeilToInt(RunState.TimeLeft(t))).Append("s[/color]   ");
+            any = true;
+        }
+        if (any) sb.Append('\n');
+
+        if (RunState.Passives.Count == 0) return;
+        sb.Append("[color=#FFD54A]PASSIVAS:[/color] [color=#DDDDDD]");
+        bool first = true;
+        foreach (var p in RunState.Passives)
+        {
+            if (!first) sb.Append(" · ");
+            sb.Append(PassiveCatalog.Name(p));
+            first = false;
+        }
+        sb.Append("[/color]\n");
+    }
+
     void RefreshWeapons()
     {
         sb.Clear();
+        AppendRunBuffs();
         var list = WeaponSystem.Weapons;
         for (int i = 0; i < list.Count; i++)
         {
@@ -131,7 +161,7 @@ public partial class HUD : CanvasLayer
             sb.Append(i == WeaponSystem.Selected ? "> " : "   ").Append("[color=#").Append(w.ColorHex).Append(']').Append(w.Data.WeaponName).Append("[/color]  Nv ")
               .Append(w.Level).Append("  ");
             if (w.IsReloading) sb.Append("[color=#FF5555]RECARREGANDO ").Append((int)(w.ReloadProgress * 100f)).Append("%[/color]");
-            else sb.Append(w.Ammo).Append('/').Append(w.Data.Magazine(w.Level));
+            else sb.Append(w.Ammo).Append('/').Append(w.MagazineSize);
             sb.Append('\n');
         }
         sb.Append(AimSettings.Auto ? "[color=#7CFC9A]MIRA: AUTOMÁTICA[/color]" : "[color=#FFD54A]MIRA: MOUSE (clique atira)[/color]")

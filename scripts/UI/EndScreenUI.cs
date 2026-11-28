@@ -48,17 +48,18 @@ public partial class EndScreenUI : CanvasLayer
     /// <summary>Sobe título e resumo e encaixa a loja entre eles e o botão de reiniciar.</summary>
     void BuildShop()
     {
-        title.OffsetTop -= 230f;
-        title.OffsetBottom -= 230f;
-        stats.OffsetTop -= 230f;
-        stats.OffsetBottom -= 200f;
+        // 5 upgrades: sobe mais o cabeçalho para a loja caber acima do botão de reiniciar.
+        title.OffsetTop -= 300f;
+        title.OffsetBottom -= 300f;
+        stats.OffsetTop -= 300f;
+        stats.OffsetBottom -= 270f;
 
         var box = new VBoxContainer
         {
             AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
-            OffsetLeft = -520f, OffsetRight = 520f, OffsetTop = -120f, OffsetBottom = 95f,
+            OffsetLeft = -520f, OffsetRight = 520f, OffsetTop = -190f, OffsetBottom = 100f,
         };
-        box.AddThemeConstantOverride("separation", 8);
+        box.AddThemeConstantOverride("separation", 6);
         panel.AddChild(box);
 
         balance = new Label { HorizontalAlignment = HorizontalAlignment.Center };
@@ -69,8 +70,8 @@ public partial class EndScreenUI : CanvasLayer
         for (int i = 0; i < buyButtons.Length; i++)
         {
             int index = i;
-            var b = new Button { CustomMinimumSize = new Vector2(0f, 48f), FocusMode = Control.FocusModeEnum.None };
-            b.AddThemeFontSizeOverride("font_size", 24);
+            var b = new Button { CustomMinimumSize = new Vector2(0f, 42f), FocusMode = Control.FocusModeEnum.None };
+            b.AddThemeFontSizeOverride("font_size", 22);
             b.Pressed += () =>
             {
                 if (MetaProgress.TryBuy((MetaProgress.Upgrade)index)) RefreshShop();

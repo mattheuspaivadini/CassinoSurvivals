@@ -5,7 +5,7 @@ public partial class Drop : Node2D
 {
     /// <summary>Unidades.</summary>
     [Export] public float PickupRadius { get; set; } = 0.7f;
-    /// <summary>Cura e pontos somem depois disso; fichas nunca somem.</summary>
+    /// <summary>Cura, pontos e bebidas somem depois disso; fichas nunca somem.</summary>
     [Export] public float Lifetime { get; set; } = 40f;
 
     Sprite2D sprite;
@@ -44,8 +44,9 @@ public partial class Drop : Node2D
             case DropType.Chip: GameManager.Instance.AddChips((int)value); break;
             case DropType.Heal: player.Heal(value); break;
             case DropType.Points: GameManager.Instance.AddScore((int)value); break;
+            case DropType.Drink: RunState.Consume((DrinkType)(int)value); break;
         }
-        AudioManager.Instance?.PlayPickup();
+        if (type != DropType.Drink) AudioManager.Instance?.PlayPickup(); // Consume já toca o som da bebida
         QueueFree();
     }
 }

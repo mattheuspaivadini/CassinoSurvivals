@@ -1,6 +1,10 @@
+using System.Collections.Generic;
 using Godot;
 
-/// <summary>Modal do caça-níquel: pausa o jogo, gira 3 roletas (tempo real), jogador escolhe 1 slot.</summary>
+/// <summary>
+/// Modal do Caça-níquel de Armas: pausa o jogo, cobra o giro, sorteia o tier pela Tabela A de Sorte
+/// e só então anima os 3 rolos. O jogador escolhe 1 slot ou RECUSA o giro (a ficha não volta).
+/// </summary>
 public partial class SlotMachineUI : CanvasLayer
 {
     public static SlotMachineUI Instance { get; private set; }
@@ -13,12 +17,13 @@ public partial class SlotMachineUI : CanvasLayer
     [Export] public float SpinTick { get; set; } = 0.06f;
     [Export] public float CloseDelay { get; set; } = 1.3f;
 
-    readonly WeaponData[] reels = new WeaponData[3];
+    WeaponData[] reels = new WeaponData[3];
     readonly Button[] buttons = new Button[3];
     readonly ColorRect[] colors = new ColorRect[3];
     readonly Label[] labels = new Label[3];
     Control panel;
     Label resultText;
+    Button declineButton;
     bool choosing;
 
     public override void _Ready()
@@ -36,13 +41,31 @@ public partial class SlotMachineUI : CanvasLayer
             labels[i].AddThemeFontOverride("font", new SystemFont { FontWeight = 700 });
             buttons[i].Pressed += () => Choose(idx);
         }
+
+        declineButton = new Button
+        {
+            Text = "RECUSAR GIRO",
+            AnchorLeft = 0.5f, AnchorRight = 0.5f, AnchorTop = 0.5f, AnchorBottom = 0.5f,
+            OffsetLeft = -150f, OffsetRight = 150f, OffsetTop = 118f, OffsetBottom = 160f,
+            FocusMode = Control.FocusModeEnum.None,
+        };
+        declineButton.AddThemeFontSizeOverride("font_size", 22);
+        declineButton.Pressed += Decline;
+        panel.AddChild(declineButton);
+
         panel.Visible = false;
     }
 
-    public void Open()
+    /// <summary>Sem estação (máquina antiga da arena/sandbox): custa 1 ficha.</summary>
+    public void Open(LoungeStation fromStation = null)
     {
-        if (panel.Visible || GameManager.Instance.Chips <= 0) return;
-        GameManager.Instance.SetPaused(true);
+        var gm = GameManager.Instance;
+        if (panel.Visible || WeaponPool == null || WeaponPool.Count == 0) return;
+        if (fromStation != null ? !fromStation.CanInteract(gm.Chips) : gm.Chips <= 0) return;
+        bool paid = fromStation != null ? fromStation.TryPay() : gm.TrySpendChip();
+        if (!paid) return;
+
+        gm.SetPaused(true);
         panel.Visible = true;
         Spin();
     }
@@ -53,22 +76,26 @@ public partial class SlotMachineUI : CanvasLayer
         resultText.Text = "Girando...";
         AudioManager.Instance?.PlaySlotSpin();
 
+        // Sorte (Tabela A) decide o tier ANTES da animação; os rolos só exibem o resultado.
+        int tier = LuckTables.RollWeaponTier(MetaProgress.LuckLevel, RunState.Rng);
+        reels = WeaponSlotRoll.BuildReels(new List<WeaponData>(WeaponPool), tier, RunState.Rng);
+
         for (float t = 0f; t < SpinDuration; t += SpinTick)
         {
             for (int i = 0; i < 3; i++) ShowReel(i, RandomWeapon());
             await ToSignal(GetTree().CreateTimer(SpinTick), SceneTreeTimer.SignalName.Timeout);
         }
 
-        for (int i = 0; i < 3; i++) { reels[i] = RandomWeapon(); ShowReel(i, reels[i]); }
+        for (int i = 0; i < 3; i++) ShowReel(i, reels[i]);
 
-        bool jackpot = reels[0] == reels[1] && reels[1] == reels[2];
-        resultText.Text = jackpot ? "JACKPOT!!! Escolha sua arma" : "Escolha uma arma";
+        bool jackpot = tier >= 3;
+        resultText.Text = jackpot ? "JACKPOT!!! Escolha sua arma" : "Escolha uma arma ou recuse o giro";
         if (jackpot) AudioManager.Instance?.PlayJackpot();
         SetButtons(true);
         choosing = true;
     }
 
-    async void Choose(int index)
+    void Choose(int index)
     {
         if (!choosing) return;
         choosing = false;
@@ -79,20 +106,33 @@ public partial class SlotMachineUI : CanvasLayer
         int levels = SlotRules.LevelsFor(matches);
         bool owned = WeaponSystem.Find(chosen) != null;
 
-        GameManager.Instance.TrySpendChip();
         WeaponSystem.AddOrUpgrade(chosen, levels);
         AudioManager.Instance?.PlaySlotWin();
 
+        int now = WeaponSystem.Find(chosen).Level;
         resultText.Text = owned
-            ? $"{chosen.WeaponName} x{matches}: +{levels} nível(is)! Agora Nv {WeaponSystem.Find(chosen).Level}"
-            : $"{chosen.WeaponName} x{matches}: DESBLOQUEADA no Nv {levels}!";
+            ? $"{chosen.WeaponName} x{matches}: +{levels} nível(is)! Agora Nv {now}" + (now >= WeaponInstance.MaxLevel ? " (MÁX)" : "")
+            : $"{chosen.WeaponName} x{matches}: DESBLOQUEADA no Nv {now}!";
+        CloseLater();
+    }
 
+    void Decline()
+    {
+        if (!choosing) return;
+        choosing = false;
+        SetButtons(false);
+        resultText.Text = "Giro recusado. Suas armas continuam as mesmas.";
+        CloseLater();
+    }
+
+    async void CloseLater()
+    {
         await ToSignal(GetTree().CreateTimer(CloseDelay), SceneTreeTimer.SignalName.Timeout);
         panel.Visible = false;
         GameManager.Instance.SetPaused(false);
     }
 
-    WeaponData RandomWeapon() => WeaponPool[GD.RandRange(0, WeaponPool.Count - 1)];
+    WeaponData RandomWeapon() => WeaponPool[RunState.Rng.Next(WeaponPool.Count)];
 
     void ShowReel(int i, WeaponData w)
     {
@@ -107,5 +147,6 @@ public partial class SlotMachineUI : CanvasLayer
             buttons[i].Disabled = !on;
             colors[i].Modulate = new Color(1f, 1f, 1f, on ? 1f : 0.6f);
         }
+        declineButton.Disabled = !on;
     }
 }
