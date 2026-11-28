@@ -8,12 +8,16 @@ using Godot;
 public static class DifficultyRules
 {
     /// <summary>
-    /// Muito mais monstros (decisão do grupo): a curva oficial vai de 25 a 60; aqui ela é multiplicada
-    /// por 4x na F1 (≈100) subindo até 5x na F15 (≈300 na F14).
+    /// Curva de monstros por fase (decisão do grupo): sempre crescente, começando com poucos e chegando
+    /// ao chefe final com a maior horda. Inclui as fases de boss (sem a "mini-horda" menor do PDF).
+    /// Count = Start + (End - Start) · t^Curve, com t = (fase - 1) / 14.
     /// </summary>
-    public const float MobScaleStart = 4f, MobScaleEnd = 5f;
-    /// <summary>A horda dura 1,5x o tempo oficial: chega bem mais densa, não só mais longa.</summary>
-    public const float DurationScale = 1.5f;
+    public const int MobsStart = 40, MobsEnd = 320;
+    public const float MobsCurve = 1.35f;
+    /// <summary>Duração da horda: base fixa + tempo por monstro (horda maior = mais densa e mais longa).</summary>
+    public const float DurationBase = 35f, DurationPerMob = 0.2f;
+    /// <summary>Nas fases de boss, o chefe entra quando esta fração da horda já caiu e luta junto com o resto.</summary>
+    public const float BossEntryFraction = 0.5f;
     /// <summary>HP extra: +15% na F1, crescendo +2% por fase.</summary>
     public const float HpBase = 1.15f, HpPerStage = 0.02f;
     /// <summary>Dano extra: +10% na F1, crescendo +1,5% por fase.</summary>
@@ -32,16 +36,21 @@ public static class DifficultyRules
     public static float HpScale(int stage) => HpBase + HpPerStage * (Clamp(stage) - 1);
     public static float DamageScale(int stage) => DamageBase + DamagePerStage * (Clamp(stage) - 1);
     public static float SpeedScale(int stage) => 1f + SpeedPerStage * (Clamp(stage) - 1);
-    public static float MobScale(int stage) =>
-        Mathf.Lerp(MobScaleStart, MobScaleEnd, (Clamp(stage) - 1) / (float)(CampaignRules.TotalStages - 1));
+    public static int MobCount(int stage)
+    {
+        float t = (Clamp(stage) - 1) / (float)(CampaignRules.TotalStages - 1);
+        return Mathf.RoundToInt(MobsStart + (MobsEnd - MobsStart) * Mathf.Pow(t, MobsCurve));
+    }
 
-    public static int MobCount(int stage, int baseCount) => Mathf.CeilToInt(baseCount * MobScale(stage));
+    public static float Duration(int count) => DurationBase + DurationPerMob * count;
+
+    public static int BossEntryKills(int count) => Mathf.CeilToInt(count * BossEntryFraction);
 
     /// <summary>Aplica a camada de dificuldade a uma fase da curva oficial.</summary>
     public static RoundSpec Apply(RoundSpec s) => new RoundSpec(
         s.Round, s.Act, s.StageInAct,
-        MobCount(s.Round, s.Count),
-        s.Duration * DurationScale,
+        MobCount(s.Round),
+        Duration(MobCount(s.Round)),
         s.Elites,
         s.HpMultiplier * HpScale(s.Round),
         s.DamageMultiplier * DamageScale(s.Round),

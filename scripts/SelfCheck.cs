@@ -38,10 +38,12 @@ public static class SelfCheck
 
         var baseF1 = RoundRules.For(1);
         var f1 = DifficultyRules.Apply(baseF1);
-        Check(f1.Count >= 100, $"F1 com ~100 monstros ({f1.Count})");
-        var f14 = DifficultyRules.Apply(RoundRules.For(14));
-        Check(f14.Count >= 280, $"F14 com ~300 monstros ({f14.Count})");
-        Check(DifficultyRules.MaxAlive >= 100 && DifficultyRules.MaxAlive < f14.Count, "teto de vivos segura a horda grande sem cortar o total");
+        var f15 = DifficultyRules.Apply(RoundRules.For(15));
+        Check(f1.Count == DifficultyRules.MobsStart && f15.Count == DifficultyRules.MobsEnd, $"curva de monstros {f1.Count} -> {f15.Count}");
+        for (int st = 2; st <= CampaignRules.TotalStages; st++)
+            Check(DifficultyRules.Apply(RoundRules.For(st)).Count > DifficultyRules.Apply(RoundRules.For(st - 1)).Count, $"F{st} tem mais monstros que a anterior (inclui bosses)");
+        Check(f15.Boss && DifficultyRules.BossEntryKills(f15.Count) < f15.Count, "Tigrinho entra no meio da maior horda");
+        Check(DifficultyRules.MaxAlive >= 100 && DifficultyRules.MaxAlive < f15.Count, "teto de vivos segura a horda grande sem cortar o total");
         for (int st = 2; st <= 14; st++)
             if (!CampaignRules.IsBossStage(st) && !CampaignRules.IsBossStage(st - 1))
                 Check(DifficultyRules.Apply(RoundRules.For(st)).Count >= DifficultyRules.Apply(RoundRules.For(st - 1)).Count, $"F{st} não tem menos monstros que a anterior");
