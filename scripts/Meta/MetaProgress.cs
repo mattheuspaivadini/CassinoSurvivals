@@ -30,7 +30,9 @@ public static class MetaProgress
         new[] { 150, 300, 550, 900, 1450 },
     };
 
-    public static int Dollars { get; private set; }
+    /// <summary>Saldo salvo; carrega o arquivo na primeira leitura (antes só carregava ao ler um nível).</summary>
+    public static int Dollars { get { Load(); return dollars; } private set => dollars = value; }
+    static int dollars;
     static readonly int[] levels = new int[Names.Length];
     static bool loaded;
 
@@ -79,7 +81,7 @@ public static class MetaProgress
         loaded = true;
         var cfg = new ConfigFile();
         if (cfg.Load(SavePath) != Error.Ok) return;
-        Dollars = (int)cfg.GetValue("meta", "dollars", 0);
+        dollars = (int)cfg.GetValue("meta", "dollars", 0);
         for (int i = 0; i < levels.Length; i++)
             levels[i] = Mathf.Clamp((int)cfg.GetValue("upgrades", Names[i], 0), 0, MaxLevel);
     }
