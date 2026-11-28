@@ -2,19 +2,24 @@ using System.Collections.Generic;
 using Godot;
 
 /// <summary>
-/// Armas do jogador. Dois modos de mira (AimSettings, alterna com T): automático, que mira e
-/// atira no inimigo visível mais próximo dentro do alcance, ou manual, com mira no mouse e
-/// gatilho no botão esquerdo. Teclas 1-9 escolhem a arma; scroll alterna. No sandbox, Q/E também.
+/// Armas do jogador (PDF, seção 4: até 2 slots simultâneos em run normal). Dois modos de mira
+/// (AimSettings, alterna com T): automático ou manual. Teclas 1-2 e scroll alternam os slots.
 /// </summary>
 public partial class WeaponSystem : Node
 {
-    static readonly string[] SandboxWeaponPaths =
+    /// <summary>PDF, seção 4: o jogador carrega até 2 armas simultaneamente.</summary>
+    public const int MaxSlots = 2;
+
+    public static readonly string[] OfficialWeaponPaths =
     {
         "res://resources/weapons/PistolaNeon.tres",
         "res://resources/weapons/RevolverHighRoller.tres",
-        "res://resources/weapons/SMGViceCity.tres",
         "res://resources/weapons/EscopetaRoyalFlush.tres",
+        "res://resources/weapons/M4Tatica.tres",
+        "res://resources/weapons/AK47Cassino.tres",
+        "res://resources/weapons/SMGViceCity.tres",
         "res://resources/weapons/LancaDados.tres",
+        "res://resources/weapons/SniperVip.tres",
     };
 
     const string ProjectileSheetPath = "res://assets/GunsAssetPack/Gun_Sprite_Sheet/gun_sprite_sheet.png";
@@ -63,7 +68,7 @@ public partial class WeaponSystem : Node
             sandboxMode = value;
             if (!sandboxMode) return;
 
-            foreach (string path in SandboxWeaponPaths)
+            foreach (string path in OfficialWeaponPaths)
             {
                 WeaponData data = GD.Load<WeaponData>(path);
                 if (data != null && Find(data) == null) AddOrUpgrade(data, 1);
@@ -108,14 +113,40 @@ public partial class WeaponSystem : Node
         return null;
     }
 
-    /// <summary>Se já tem a arma: +levels. Se não tem: desbloqueia no nível = levels.</summary>
-    public void AddOrUpgrade(WeaponData data, int levels)
-    {
-        var w = Find(data);
-        if (w == null) Weapons.Add(new WeaponInstance(data, levels));
-        else w.AddLevels(levels);
+    /// <summary>True quando os 2 slots estão ocupados por outras armas e exige confirmação de substituição.</summary>
+    public bool NeedsSlotReplacement(WeaponData data) =>
+        !sandboxMode && data != null && Find(data) == null && Weapons.Count >= MaxSlots;
 
+    /// <summary>
+    /// Se já tem a arma: +levels (até Nv 10). Se há slot livre (ou sandbox): adiciona no próximo slot.
+    /// Se os 2 slots estão cheios com outra arma: retorna false para a UI abrir substituição.
+    /// </summary>
+    public bool AddOrUpgrade(WeaponData data, int levels)
+    {
+        if (data == null) return false;
+        var w = Find(data);
+        if (w != null)
+        {
+            w.AddLevels(levels);
+            EmitSignal(SignalName.WeaponsChanged);
+            return true;
+        }
+
+        if (!sandboxMode && Weapons.Count >= MaxSlots) return false;
+
+        Weapons.Add(new WeaponInstance(data, levels));
         EmitSignal(SignalName.WeaponsChanged);
+        return true;
+    }
+
+    /// <summary>Substitui o slot escolhido (0 ou 1) pela nova arma no nível sorteado.</summary>
+    public bool ReplaceSlot(int slotIndex, WeaponData data, int level)
+    {
+        if (data == null || slotIndex < 0 || slotIndex >= Weapons.Count) return false;
+        Weapons[slotIndex] = new WeaponInstance(data, level);
+        Selected = slotIndex;
+        EmitSignal(SignalName.WeaponsChanged);
+        return true;
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -166,9 +197,11 @@ public partial class WeaponSystem : Node
         if (name.Contains("rev", System.StringComparison.OrdinalIgnoreCase)) return GoldBulletRect;
         // Escopeta usa a bala do Rifle (recorte 32,16,3,1) em leque.
         if (name.Contains("escopeta", System.StringComparison.OrdinalIgnoreCase)) return GoldBulletRect;
-        if (name.Contains("rifle", System.StringComparison.OrdinalIgnoreCase) ||
+        if (name.Contains("ak", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("sniper", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("rifle", System.StringComparison.OrdinalIgnoreCase) ||
             name.Contains("dados", System.StringComparison.OrdinalIgnoreCase)) return GoldBulletRect;
-        return BulletRect; // Pistola e Metralhadora
+        return BulletRect; // Pistola, M4 e Machine Gun
     }
 
     /// <summary>Atlas da bala, cacheado por arma (os projéteis compartilham o mesmo resource).</summary>
@@ -193,11 +226,14 @@ public partial class WeaponSystem : Node
     static AudioStream ResolveFireSound(WeaponData d)
     {
         string name = d?.WeaponName ?? string.Empty;
-        // O clipe de metralhadora é curto/nitido (armas leves); o de pistola tem cauda
+        // O clipe de metralhadora é curto/nitido (armas leves/automáticas); o de pistola tem cauda
         // mais longa e serve para as armas encorpadas com pitch mais grave.
         if (name.Contains("metralhadora", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("machine", System.StringComparison.OrdinalIgnoreCase) ||
             name.Contains("smg", System.StringComparison.OrdinalIgnoreCase) ||
             name.Contains("vice", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("m4", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("ak", System.StringComparison.OrdinalIgnoreCase) ||
             name.Contains("pistola", System.StringComparison.OrdinalIgnoreCase))
             return GD.Load<AudioStream>(LightShotPath);
         return GD.Load<AudioStream>(HeavyShotPath);
@@ -207,11 +243,15 @@ public partial class WeaponSystem : Node
     static float ResolveFirePitch(WeaponData d)
     {
         string name = d?.WeaponName ?? string.Empty;
+        if (name.Contains("sniper", System.StringComparison.OrdinalIgnoreCase)) return 0.72f;
         if (name.Contains("escopeta", System.StringComparison.OrdinalIgnoreCase)) return 0.82f;
+        if (name.Contains("ak", System.StringComparison.OrdinalIgnoreCase)) return 0.86f;
         if (name.Contains("rifle", System.StringComparison.OrdinalIgnoreCase) ||
             name.Contains("dados", System.StringComparison.OrdinalIgnoreCase)) return 0.88f;
         if (name.Contains("rev", System.StringComparison.OrdinalIgnoreCase)) return 0.92f;
+        if (name.Contains("m4", System.StringComparison.OrdinalIgnoreCase)) return 1.12f;
         if (name.Contains("metralhadora", System.StringComparison.OrdinalIgnoreCase) ||
+            name.Contains("machine", System.StringComparison.OrdinalIgnoreCase) ||
             name.Contains("smg", System.StringComparison.OrdinalIgnoreCase)) return 1.06f;
         return 1.0f;
     }
@@ -326,17 +366,24 @@ public partial class WeaponSystem : Node
         baseDir = baseDir.Normalized();
 
         int n = Mathf.Max(1, d.ProjectilesPerShot);
-        // Aditivo (PDF): Arsenal da Loja Externa + Melhorias de Dano + Bebida de Dano.
-        float damage = d.Damage(w.Level) * (MetaProgress.DamageMultiplier + RunState.DamageBonus);
+        // Fórmula aditiva (PDF, seção 4): DanoBase × (1 + BônusNível + Arsenal + MelhoriasDano + BebidaDano) × Crítico.
+        float damage = d.ComputeShotDamage(w.Level, MetaProgress.DamageBonus, RunState.DamageBonus);
 
         for (int i = 0; i < n; i++)
         {
-            // Única variação permitida: o spread intencional da arma.
-            float offset = n == 1 ? 0f : Mathf.DegToRad(d.SpreadAngle) * ((float)i / (n - 1) - 0.5f);
+            // Leque uniforme para múltiplos projéteis; dispersão leve quando arma de tiro único tem SpreadAngle > 0.
+            float offset;
+            if (n > 1)
+                offset = Mathf.DegToRad(d.SpreadAngle) * ((float)i / (n - 1) - 0.5f);
+            else if (d.SpreadAngle > 0f)
+                offset = Mathf.DegToRad((float)GD.RandRange(-d.SpreadAngle * 0.5, d.SpreadAngle * 0.5));
+            else
+                offset = 0f;
+
             var v = baseDir.Rotated(offset) * d.ProjectileSpeed; // ProjectileSpeed já é px/s
             var p = ProjectileScene.Instantiate<Projectile>();
             GetTree().CurrentScene.AddChild(p);
-            p.Launch(muzzle, v, damage, d.ProjectileLifetime, GetProjectileTexture(d), d.ProjectileScale);
+            p.Launch(muzzle, v, damage, d.ProjectileLifetime, GetProjectileTexture(d), d.ProjectileScale, d.PierceCount);
         }
         PlayFireSound(d);
     }
