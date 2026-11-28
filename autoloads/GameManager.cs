@@ -44,7 +44,9 @@ public partial class GameManager : Node
 
     public override void _Process(double delta)
     {
-        if (State == GameState.Playing) Elapsed += (float)delta;
+        if (State != GameState.Playing) return;
+        Elapsed += (float)delta;
+        RunState.Tick((float)delta);
     }
 
     public void AddScore(int amount)
@@ -111,6 +113,7 @@ public partial class GameManager : Node
         Score = Chips = 0;
         RunDollars = CashedOutChips = 0;
         Elapsed = 0f;
+        RunState.Reset();
         State = GameState.Playing;
         GetTree().Paused = false;
         GetTree().ReloadCurrentScene();
